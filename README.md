@@ -14,7 +14,9 @@ are on the page.
 After each of your moves the page compares it with the network's best move, using the network's
 own evaluation, and shows the difference to it and the network's top three moves. The bot plays
 at 0, 1 or 2 ply, and the analysis uses the same depth. At the end of a game you see the total
-error and the biggest errors, and finished games stay under Played games below the board.
+error and the biggest errors. Finished games stay under Played games below the board with a
+table of both players' moves and cube decisions: the cubeless win chance, the network's choice
+and the difference to it.
 
 The board follows DG Android: seven board styles, mirroring, a portrait board on narrow screens,
 dark mode, sounds and optional playing toggles. Positions can be copied and set as XGID. Import

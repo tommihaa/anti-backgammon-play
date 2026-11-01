@@ -49,6 +49,13 @@
   .review { display: grid; gap: 8px; margin: 0 0 10px; }
   .review[hidden], #actions[hidden] { display: none; }
   #played { margin: 8px 0 4px; max-width: 100%; }
+  .decisions { margin-top: 10px; }
+  .table-wrap { overflow-x: auto; }
+  .decisions table { border-collapse: collapse; font-size: .85rem; width: 100%; }
+  .decisions th, .decisions td { text-align: left; padding: 2px 8px 2px 0; white-space: nowrap; vertical-align: top; }
+  .decisions th { color: var(--ink); font-weight: normal; border-bottom: 1px solid var(--frame); }
+  .decisions td:nth-child(3) { font-family: ui-monospace, Consolas, monospace; }
+  .decisions .cube-row td { font-style: italic; }
   .review button { padding: 6px 12px; }
   .xgid-row button { padding: 4px 12px; }
   .xgid-msg { color: var(--muted); font-size: .9rem; margin: 4px 0 0; min-height: 1.2em; }
@@ -203,6 +210,8 @@
         Sinä-valikosta, kumpi pelaaja olet. Jatka tästä pelaa asemasta bottia vastaan. Sulje
         palauttaa keskeytetyn pelisi. Nackgammonia ja double repeatin toistettua peliä ei voi toistaa.
         Päättyneet pelit analyyseineen ja siirtoineen ovat laudan alla kohdassa Pelatut pelit.
+        Siellä on myös taulukko molempien siirroista ja kuutiopäätöksistä: voittoprosentti ilman
+        kuutiota, verkon valinta ja ero siihen. Botin siirrot analysoidaan, kun avaat pelin.
         Näppäimistöllä Ctrl+Z kumoaa, välilyönti heittää, Enter vahvistaa valmiin siirron, jatkaa
         tai aloittaa seuraavan pelin ja S vaihtaa noppien järjestyksen. Siirtolista on laudan alla.
         Pip-luvut ovat numeroriveillä muurin kohdalla, botin ylhäällä ja omasi alhaalla. Luovuta on
@@ -269,6 +278,9 @@
         against the bot, and Close brings back your paused game. Nackgammon and the replayed game
         of double repeat cannot be replayed.
         Finished games with their analysis and moves are below the board under Played games.
+        There you also find a table of both players' moves and cube decisions: the cubeless win
+        chance, the network's choice and the difference to it. The bot's moves are analysed when
+        you open the game.
         On the keyboard Ctrl+Z undoes, Space rolls, Enter submits a complete move, continues or
         starts the next game and S swaps the dice. The move list is below the board. The pip counts are on the
         number rows at the bar, the bot's at the top and yours at the bottom. Resign is in the panel
