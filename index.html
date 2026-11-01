@@ -5,58 +5,107 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Anti-Backgammon</title>
 <style>
+  /* Ympäristön värit asettaa src/ui.mjs lautatyylistä ja laitteen tummasta tilasta
+     (src/ulkoasu.mjs). Nämä ovat oletustyylin X-22 arvot ennen skriptiä. */
   :root {
-    --bg: #ece6da; --panel: #f7f3ea; --ink: #2b2620; --muted: #6e655a;
-    --board: #c9b28a; --frame: #5b4630; --pt-a: #8a5a3c; --pt-b: #e4d6b8;
-    --me: #fbf8f0; --me-edge: #3a332b; --bot: #7a2430; --bot-edge: #2a0c10;
-    --hl: #2f7d5b; --last: #d39b2a; --accent: #3d5a80;
+    --bg: #FBF8F4; --panel: #F1EBE4; --ink: #1E1A16; --muted: #4C443B; --frame: #B8AA98;
+    --accent: #6B5844; --on-accent: #FBF8F4; --link: #6B5844;
+    --hl: #3fcf8e; --last: #e8b44a;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1c1a17; --panel: #26231f; --ink: #ece6da; --muted: #a59a8b;
-      --board: #6b5a40; --frame: #2e2418; --pt-a: #4f3524; --pt-b: #8f7d5c;
-      --me: #f1ece2; --me-edge: #120f0c; --bot: #a43645; --bot-edge: #200a0d;
-      --hl: #4fbf8d; --last: #e8b44a; --accent: #8fb0d8;
+      --bg: #1B1712; --panel: #17120F; --ink: #F0E7D6; --muted: #9A8D7A; --frame: #6E6154;
+      --accent: #F0EBC0; --on-accent: #17120F; --link: #E9973F;
     }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink);
     font: 16px/1.45 Georgia, "Times New Roman", serif; }
-  main { max-width: 980px; margin: 0 auto; padding: 16px; }
+  main { max-width: 1060px; margin: 0 auto; padding: 16px; }
   h1 { font-size: 1.6rem; margin: 0 0 4px; }
   .sub { color: var(--muted); margin: 0 0 12px; }
-  .layout { display: grid; grid-template-columns: 1fr 260px; gap: 16px; }
-  @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
-  svg { width: 100%; height: auto; display: block; border-radius: 8px; touch-action: manipulation; }
-  .panel { background: var(--panel); border-radius: 8px; padding: 12px; }
+  /* Kotialue oikealla: paneeli vasemmalla. Peilattuna päinvastoin (DG Androidin kätisyys). */
+  .layout { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
+  .layout > .panel { order: -1; }
+  body.home-left .layout { grid-template-columns: 1fr 260px; }
+  body.home-left .layout > .panel { order: 1; }
+  svg { width: 100%; height: auto; display: block; border-radius: 8px; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent; }
+  .panel { background: var(--panel); border: 1px solid var(--frame); border-radius: 8px; padding: 12px; }
+  .card { display: none; background: var(--panel); border: 1px solid var(--frame); border-radius: 8px;
+    padding: 6px 10px; margin: 6px 0; }
+  @media (max-width: 760px) {
+    .layout, body.home-left .layout { grid-template-columns: 1fr; }
+    .layout > .panel, body.home-left .layout > .panel { order: 1; }
+    body.portrait .card { display: block; }
+  }
+  .look { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; margin-top: 8px; }
+  .resign { margin-top: 10px; width: 100%; }
+  .xgid { width: 100%; margin-top: 8px; font: 12px/1.4 ui-monospace, Consolas, monospace; padding: 6px;
+    background: var(--bg); color: var(--ink); border: 1px solid var(--frame); border-radius: 4px; }
+  .xgid-row { margin-top: 6px; }
+  .import-label { display: block; margin-top: 8px; font-size: .9rem; color: var(--muted); }
+  #importFile { margin-top: 4px; max-width: 100%; }
+  .review { display: grid; gap: 8px; margin: 0 0 10px; }
+  .review[hidden], #actions[hidden] { display: none; }
+  #played { margin: 8px 0 4px; max-width: 100%; }
+  .review button { padding: 6px 12px; }
+  .xgid-row button { padding: 4px 12px; }
+  .xgid-msg { color: var(--muted); font-size: .9rem; margin: 4px 0 0; min-height: 1.2em; }
+  .look label.wide { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; }
   .status { min-height: 3em; margin: 10px 0; }
   .analysis { color: var(--muted); margin: 0 0 10px; min-height: 1.5em; }
   .analysis p, .analysis ol { margin: 4px 0; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; }
   button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--frame);
     background: var(--panel); color: var(--ink); cursor: pointer; }
-  button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  summary, h1 { color: var(--ink); }
+  a { color: var(--link); }
   button:disabled { opacity: .45; cursor: default; }
+  select { font: inherit; padding: 2px 4px; background: var(--panel); color: var(--ink); border: 1px solid var(--frame); border-radius: 4px; }
   .score { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
-  .log { font: 13px/1.5 ui-monospace, Consolas, monospace; max-height: 320px; overflow-y: auto;
+  .score .caption { grid-column: 1 / -1; color: var(--muted); font-size: .9rem; margin-top: 4px; }
+  .moves { background: var(--panel); border: 1px solid var(--frame); border-radius: 8px; padding: 8px 12px; }
+  .log { font: 13px/1.5 ui-monospace, Consolas, monospace; max-height: 320px; overflow: auto;
     white-space: pre; margin: 0; }
   details { margin-top: 12px; }
   summary { cursor: pointer; }
   .pt { cursor: pointer; }
+  [data-dice].pt rect { cursor: pointer; }
   .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .head button { padding: 4px 10px; font-size: .9rem; }
+  .head button { padding: 4px 10px; font-size: .9rem; display: inline-flex; align-items: center; gap: 8px; }
+  #flag svg { display: block; border: 1px solid var(--frame); border-radius: 2px; }
+  .look label.sub { padding-left: 24px; }
 </style>
 </head>
 <body>
 <main>
-  <div class="head"><h1>Anti-Backgammon</h1><button id="lang" data-t="other">English</button></div>
+  <div class="head"><h1>Anti-Backgammon</h1><button id="lang"><span id="flag"></span><span data-t="other">English</span></button></div>
   <p class="sub" data-t="sub"></p>
   <div class="layout">
     <div>
-      <svg id="board" viewBox="0 0 760 520" role="img" aria-label="Pelilauta"></svg>
+      <div class="card" id="cardBot"></div>
+      <svg id="board" viewBox="0 0 733 493" role="img" aria-label="Pelilauta"></svg>
+      <div class="card" id="cardMe"></div>
       <div class="status" id="status"></div>
       <div class="analysis" id="analysis" aria-live="polite"></div>
-      <div class="row">
+      <div class="review" id="review" hidden>
+        <div class="row">
+          <label><span data-t="reviewGameLabel">Peli</span> <select id="reviewGame"></select></label>
+          <label><span data-t="reviewYouLabel">Sinä</span> <select id="reviewYou"></select></label>
+        </div>
+        <div class="row">
+          <button id="reviewFirst" aria-label="|&lt;">⏮</button>
+          <button id="reviewPrev" aria-label="&lt;">◀</button>
+          <button id="reviewNext" aria-label="&gt;">▶</button>
+          <button id="reviewLast" aria-label="&gt;|">⏭</button>
+          <button id="reviewMark" data-t="reviewMark">Seuraava merkki</button>
+          <button id="reviewPlay" class="primary" data-t="reviewPlay">Jatka tästä</button>
+          <button id="reviewClose" data-t="reviewClose">Sulje</button>
+        </div>
+      </div>
+      <div class="row" id="actions">
         <button id="roll" class="primary" data-t="roll">Heitä</button>
         <button id="done" class="primary" data-t="done">Valmis</button>
         <button id="undo" data-t="undo">Kumoa</button>
@@ -64,25 +113,63 @@
         <button id="double">Tuplaa</button>
         <button id="take" class="primary" data-t="take">Ota vastaan</button>
         <button id="drop" data-t="drop">Luovu</button>
-        <button id="new">Uusi peli</button>
+        <button id="new">Seuraava peli</button>
       </div>
+      <details open class="moves">
+        <summary data-t="moves">Siirrot</summary>
+        <pre class="log" id="log"></pre>
+      </details>
+      <details class="moves" id="playedBox" hidden>
+        <summary data-t="playedTitle">Pelatut pelit</summary>
+        <select id="played" aria-label="Pelatut pelit"></select>
+        <div class="analysis" id="playedSummary"></div>
+        <pre class="log" id="playedLog"></pre>
+      </details>
     </div>
     <div class="panel">
       <div class="score">
-        <strong data-t="penalty">Rangaistuspisteet</strong><span data-t="limit">raja 7</span>
+        <strong><label for="limit" data-t="match">Ottelu</label></strong><select id="limit"></select>
+        <span class="caption" data-t="penalty">Rangaistuspisteet</span>
         <span data-t="you">Sinä</span><span id="penMe">0</span>
         <span data-t="bot">Botti</span><span id="penBot">0</span>
-        <span>&nbsp;</span><span></span>
-        <strong data-t="pips">Pipit</strong><span></span>
-        <span data-t="you">Sinä</span><span id="pipMe"></span>
-        <span data-t="bot">Botti</span><span id="pipBot"></span>
         <span>&nbsp;</span><span></span>
         <strong data-t="cube">Kuution arvo</strong><span id="cubeVal">1</span>
         <strong data-t="row">Rivi</strong><span id="rows"></span>
       </div>
-      <details open>
-        <summary data-t="moves">Siirrot</summary>
-        <pre class="log" id="log"></pre>
+      <button id="resign" class="resign" data-t="resign">Luovuta</button>
+      <details>
+        <summary data-t="position">Asema (XGID)</summary>
+        <input id="xgid" class="xgid" spellcheck="false" autocomplete="off" aria-label="XGID">
+        <div class="row xgid-row">
+          <button id="xgidCopy" data-t="xgidCopy">Kopioi</button>
+          <button id="xgidSet" data-t="xgidSet">Aseta</button>
+        </div>
+        <p class="xgid-msg" id="xgidMsg" aria-live="polite"></p>
+      </details>
+      <details>
+        <summary data-t="importTitle">Tuo ottelu</summary>
+        <label class="import-label" for="importFile" data-t="importFileLabel">Tiedosto (.mat tai .sgf)</label>
+        <input type="file" id="importFile" accept=".mat,.sgf,.txt,text/plain">
+        <label class="import-label" for="importText" data-t="importPasteLabel">Tai liitä teksti</label>
+        <textarea id="importText" class="xgid" rows="4" spellcheck="false"></textarea>
+        <div class="row xgid-row"><button id="importGo" data-t="importGo">Tuo</button></div>
+        <p class="xgid-msg" id="importMsg" aria-live="polite"></p>
+      </details>
+      <details>
+        <summary data-t="look">Ulkoasu</summary>
+        <div class="look">
+          <label for="style" data-t="styleLabel">Lauta</label><select id="style"></select>
+          <label for="home" data-t="homeLabel">Kotialue</label><select id="home"></select>
+          <label class="wide"><input type="checkbox" id="portrait"><span data-t="portraitLabel">Pystylauta kapealla ruudulla</span></label>
+        </div>
+      </details>
+      <details>
+        <summary data-t="soundsTitle">Äänet</summary>
+        <div class="look" id="sounds"></div>
+      </details>
+      <details>
+        <summary data-t="playing">Pelaaminen</summary>
+        <div class="look" id="playing"></div>
       </details>
       <details>
         <summary data-t="rules">Säännöt</summary>
@@ -95,16 +182,62 @@
         omistukseensa kaksinkertaisella arvolla ja vain omistaja voi tuplata seuraavaksi. Luopuja
         saa kuution nykyarvon verran rangaistuspisteitä. Kuution suurin arvo on 64, eikä siitä voi
         enää tuplata.</p>
-        <p>Ottelu pelataan seitsemään rangaistuspisteeseen. Sen saavuttaja häviää ottelun. Kun
-        jompikumpi on yhden pisteen päässä rajasta, seuraava peli on Crawford-peli ilman kuutiota.
-        Sen jälkeen kuutio on taas käytössä.</p>
+        <p>Ottelu pelataan valittuun rangaistuspisteiden rajaan, oletuksena seitsemään. Rajan
+        saavuttaja häviää ottelun. Kun jompikumpi on yhden pisteen päässä rajasta, seuraava peli on
+        Crawford-peli ilman kuutiota. Sen jälkeen kuutio on taas käytössä. Rahapelissä rajaa ei ole,
+        ja pisteet kertyvät. Pituuden vaihto aloittaa uuden ottelun.</p>
         <p>Jos peli ei ole päättynyt 300 rivin jälkeen, se päättyy tasapeliin, eikä kumpikaan saa
         rangaistuspisteitä. Rivi on kaksi puolisiirtoa, kuten siirtolistassa.</p>
-        <p>Sinä pelaat vaaleilla nappuloilla pisteeltä 24 kohti pistettä 1. Klikkaa nappulaa ja sitten
-        kohdepistettä. Jos kohteita on vain yksi, siirto tehdään heti.</p>
-        <p>Jokaista siirtoasi verrataan verkon parhaaseen siirtoon verkon omalla arviolla. Ero on
+        <p>Sinä pelaat vaaleilla nappuloilla pisteeltä 24 kohti pistettä 1. Klikkaa nappulaa, niin se
+        siirtyy ensimmäisen käyttämättömän nopan verran. Jos sillä nopalla ei ole laillista siirtoa,
+        niin nappula siirtyy seuraavan verran. Nopat ovat sen pelaajan puolella, jonka heitto se on.
+        Käytetty noppa harmaantuu. Tuplilla noppia on neljä. Kun muurilla on nappulasi, niin
+        laudan nappulan klikkaus tuo muurin nappulat ensin sisään ja siirtää sitten klikatun
+        nappulan. Kumoa peruu viimeisen osasiirron.
+        Asema (XGID) -kohdan Kopioi antaa aseman XGID-tunnisteena, jonka XG ja gnubg lukevat. Kun
+        liität tunnisteen kenttään ja painat Aseta, niin lauta siirtyy siihen asemaan. Ottelun
+        pisteet ja pituus pysyvät ennallaan. Isot kirjaimet ovat sinun nappulasi.
+        Tuo ottelu -kohta lukee DailyGammonin viennin (.mat) tai .sgf-tiedoston, myös DG Androidin
+        merkityin asemin. Valitse tiedosto tai liitä teksti ja paina Tuo. Ottelua selataan nuolilla
+        tai näppäimillä vasen ja oikea. Seuraava merkki hyppää merkittyyn asemaan. Valitse
+        Sinä-valikosta, kumpi pelaaja olet. Jatka tästä pelaa asemasta bottia vastaan. Sulje
+        palauttaa keskeytetyn pelisi. Nackgammonia ja double repeatin toistettua peliä ei voi toistaa.
+        Päättyneet pelit analyyseineen ja siirtoineen ovat laudan alla kohdassa Pelatut pelit.
+        Näppäimistöllä Ctrl+Z kumoaa, välilyönti heittää, Enter vahvistaa valmiin siirron, jatkaa
+        tai aloittaa seuraavan pelin ja S vaihtaa noppien järjestyksen. Siirtolista on laudan alla.
+        Pip-luvut ovat numeroriveillä muurin kohdalla, botin ylhäällä ja omasi alhaalla. Luovuta on
+        paneelissa ottelun tietojen alla ja kysyy varmistuksen.</p>
+        <p>Pelaaminen-kohdassa valitset botin syvyyden. 0-ply on verkon suora arvio ja nopea.
+        1-ply ja 2-ply katsovat botin siirron jälkeen kaikki heittosi eteenpäin ja pelaavat
+        vahvemmin, mutta 2-ply vie koneesta riippuen sekunteja siirtoa kohden. Siirtojesi analyysi
+        tehdään samalla syvyydellä kuin botti pelaa. Syvemmällä haulla analyysi ilmestyy hetken
+        viiveellä. Botin kuutiopäätökset tehdään aina 0-ply-arviolla.</p>
+        <p>Näytä analyysi siirron jälkeen on oletuksena päällä. Muut Pelaaminen-kohdan kytkimet
+        ovat oletuksena pois. Aseta pakkosiirrot puolestani asettaa
+        valmiiksi ne osasiirrot, jotka ovat mukana jokaisessa laillisessa siirrossa. Valmis jää
+        sinulle. Nuolet näyttävät omat osasiirtosi ennen Valmista ja botin edellisen siirron
+        heittoosi asti. Näytä painettu piste suurentaa laudan reunassa sen pisteen numeron, jota
+        painat: oranssi tarkoittaa että pisteeltä voi siirtää, yliviivattu että ei voi. Noppien
+        kytkimillä noppien klikkaus vahvistaa valmiin siirron, vaihtaa käyttämättömien noppien
+        järjestyksen tai heittää, kun botin nopat ovat laudalla. Seuraava peli noppien paikalle tuo
+        napin laudan keskelle pelin päätyttyä.</p>
+        <p>Ulkoasu-kohdasta valitset laudan (Monte Carlo X-22, Monte Carlo variant, Deco, vaahtera,
+        pähkinä, tammi ja nahka tai oliivi), kotialueen puolen ja pystylaudan. Kotialue vasemmalla
+        peilaa laudan ja siirtää paneelin oikealle. Pystylauta näyttää kapealla ruudulla botin
+        kortin laudan yläpuolella ja omasi alapuolella. Tumma tila seuraa laitteen asetusta.
+        Valinnat säilyvät selaimessa.</p>
+        <p>Äänet-kohdan Pelin äänet on oletuksena pois. Päällä nopat ja nappulat kolahtavat puuhun,
+        kuutio kolahtaa kun tuplaat tai otat vastaan ja gongi soi seuraavan pelin alkaessa.
+        Napautus pisteeseen, jolta ei voi siirtää, antaa kaksoiskolahduksen, kun Näytä painettu
+        piste on päällä. Ruuduilla jätät yksittäisen äänen pois. Äänet ovat DG Androidista.</p>
+        <p>Jokaista siirtoasi verrataan verkon parhaaseen siirtoon verkon omalla arviolla botin
+        syvyydellä. Ero on
         equityä ilman kuutiota. Siirtolistassa ?! on epätarkka (vähintään 0,04), ? virhe (0,08) ja
-        ?? vakava virhe (0,16). Pelin lopussa näet virheiden summan ja kolme suurinta virhettä.</p>
+        ?? vakava virhe (0,16). Siirtosi jälkeen näet arvion omalla rivillään ja sen alla verkon
+        kolme parasta siirtoa ja niiden eron parhaaseen. Jos siirtosi on sama kuin verkon paras,
+        niin luetteloa ei näytetä. Pelin aikana näet vain eroja parhaaseen siirtoon etkä aseman
+        arviota, joten analyysi ei kerro, kannattaako tuplata. Pelin lopussa näet virheiden summan ja kolme suurinta virhettä, kunkin kohdalla
+        samoin verkon kolme parasta.</p>
         </div>
         <div data-lang="en" hidden>
         <p>Board, dice and movement are normal backgammon. The first player to leave the game, by
@@ -114,17 +247,62 @@
         rolling when you think your opponent must leave first. The player who takes owns the cube at
         twice the value, and only the owner can double next. A player who passes gets penalty points
         equal to the current cube value. The highest cube value is 64.</p>
-        <p>The match is played to seven penalty points. The player who reaches seven loses the match.
-        When either player is one point away, the next game is the Crawford game without the cube.
-        After that the cube is back in play.</p>
+        <p>The match is played to the chosen number of penalty points, seven by default. The player
+        who reaches the limit loses the match. When either player is one point away, the next game is
+        the Crawford game without the cube. After that the cube is back in play. In a money game
+        there is no limit, and the points add up. Changing the length starts a new match.</p>
         <p>If the game has not ended after 300 rows, it is a draw, and nobody gets penalty points. A
         row is two half-moves, as in the move list.</p>
-        <p>You play the light checkers from point 24 towards point 1. Click a checker and then the
-        destination point. If there is only one destination, the move is made at once.</p>
+        <p>You play the light checkers from point 24 towards point 1. Click a checker to move it by
+        the first unused die. If that die has no legal move for it, the checker moves by the next
+        one. The dice are on the side of the player who rolled them. A used die turns grey, and
+        doubles show four dice. When you have a checker on the bar, clicking a checker on the board
+        first brings the bar checkers in and then moves the clicked one. Undo takes back the last
+        part of the move.
+        Copy under Position (XGID) gives the position as an XGID, which XG and gnubg read. When you
+        paste an ID into the field and press Set, the board moves to that position. The match
+        score and length stay as they are. Capital letters are your checkers.
+        Import match reads a DailyGammon export (.mat) or an .sgf file, also with the positions
+        marked in DG Android. Choose a file or paste the text and press Import. Step through the
+        match with the arrow buttons or the left and right keys, and Next mark jumps to a marked
+        position. Pick which player you are under You. Play from here continues from the position
+        against the bot, and Close brings back your paused game. Nackgammon and the replayed game
+        of double repeat cannot be replayed.
+        Finished games with their analysis and moves are below the board under Played games.
+        On the keyboard Ctrl+Z undoes, Space rolls, Enter submits a complete move, continues or
+        starts the next game and S swaps the dice. The move list is below the board. The pip counts are on the
+        number rows at the bar, the bot's at the top and yours at the bottom. Resign is in the panel
+        below the match details, and it asks you to confirm.</p>
+        <p>Under Playing you choose the bot's depth. 0-ply is the network's direct evaluation and
+        fast. 1-ply and 2-ply look ahead through all your rolls after the bot's move and play
+        stronger, but 2-ply can take seconds per move depending on your computer. Your moves are
+        analysed at the same depth as the bot plays, so with a deeper search the analysis appears
+        after a short delay. The bot's cube decisions always use the 0-ply evaluation.</p>
+        <p>Show the analysis after my move is on by default. The other switches under Playing are
+        off by default. Place forced checkers for me places the
+        parts of the move that are in every legal move. Done stays yours. The arrows show your
+        moves before Done and the bot's last move until you roll. Show which point I'm pressing
+        enlarges the number of the point under your finger at the board edge: orange means a checker
+        can move from there, crossed out means it can't. With the dice switches a click on the dice
+        submits a complete move, swaps the unused dice or rolls when the bot's dice are on the board.
+        Next game where the dice were puts the button in the middle of the board when a game ends.</p>
+        <p>Under Appearance you choose the board (Monte Carlo X-22, Monte Carlo variant, Deco, maple,
+        walnut, oak leather or olive), the side of your home board and the portrait board. Home board
+        on the left mirrors the board and moves the panel to the right. The portrait board shows the
+        bot's card above the board and yours below it on a narrow screen. Dark mode follows the
+        device setting. Your choices are kept in the browser.</p>
+        <p>Game sounds under Sounds is off by default. When it is on, the dice and the checkers knock
+        on wood, the cube knocks when you double or take and a gong sounds when the next game starts.
+        A tap on a point you can't move from gives a double knock when Show which point I'm pressing
+        is on. The boxes leave out one sound at a time. The sounds come from DG Android.</p>
         <p>Each of your moves is compared with the network's best move, using the network's own
-        evaluation. The difference is cubeless equity. In the move list ?! is doubtful (at least
-        0.04), ? an error (0.08) and ?? a blunder (0.16). At the end of the game you see the total
-        error and the three biggest errors.</p>
+        evaluation at the bot's depth. The difference is cubeless equity. In the move list ?! is doubtful (at least
+        0.04), ? an error (0.08) and ?? a blunder (0.16). After your move you see the verdict on its
+        own line and below it the network's top three moves and how far each is from the best. If
+        your move is the network's best, the list is left out. During the game you see only
+        differences from the best move and never the evaluation of the position, so the analysis
+        does not tell you whether to double. At the end of the game you see the total
+        error and the three biggest errors, each with the network's top three.</p>
         </div>
       </details>
     </div>

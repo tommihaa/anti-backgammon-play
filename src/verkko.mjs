@@ -11,7 +11,7 @@
 //                vastustaja) ovat oppineet juuri sen.
 //   periaatteet2: sama, mutta yksinäinen nappula 1–2-pisteellä on miina eikä haudattu (§3).
 
-import { BAR, OFF, pips, legalPlays, exited } from './engine.mjs';
+import { BAR, OFF, pips, legalPlays, exited, ROLLS } from './engine.mjs';
 import { mayDouble, DOUBLE_POINT, TAKE_POINT } from './kuutio.mjs';
 
 // mines = true: yksinäinen nappula 1–2-pisteellä on miina eikä haudattu (periaatteet2).
@@ -103,13 +103,66 @@ export function fromJSON(text) {
   return { ...o, w1: Float64Array.from(o.w1), b1: Float64Array.from(o.b1), w2: Float64Array.from(o.w2) };
 }
 
-// Verkkobotti valitsee siirron, jonka jälkeinen asema on verkon mukaan sille paras (yksi siirto).
-export function netBot(net) {
+// n-ply-arviot (gnubg:n nimitys): p on juuri siirtänyt asemaan s. Vastustaja heittää kaikki 21
+// heittoa ja valitsee siirtonsa verkon 0-ply-arviolla, minkä jälkeen syntynyt asema arvioidaan
+// (n−1)-ply:llä. Tämä on gnubg:n siirtosuodatin yhdellä ehdokkaalla. Jokainen taso on noin 20
+// kertaa edellistä hitaampi.
+// Vastustajan 0-ply-valinta heitolla: arvo ja asema.
+function bestReply(net, s, q, a, b) {
+  let best = -1, bestS = null;
+  for (const pl of legalPlays(s, q, a, b)) {
+    const v = exited(pl.s[q]) ? 0 : value(net, pl.s, q);
+    if (v > best) { best = v; bestS = pl.s; }
+  }
+  return [best, bestS];
+}
+
+// Palauttaa P(p voittaa).
+export function onePly(net, s, p) {
+  const q = 1 - p;
+  let sum = 0;
+  for (const [a, b, w] of ROLLS) sum += w * (1 - bestReply(net, s, q, a, b)[0]);
+  return sum / 36;
+}
+
+export function twoPly(net, s, p) {
+  const q = 1 - p;
+  let sum = 0;
+  for (const [a, b, w] of ROLLS) {
+    const bestS = bestReply(net, s, q, a, b)[1];
+    sum += w * (exited(bestS[q]) ? 1 : 1 - onePly(net, bestS, q));
+  }
+  return sum / 36;
+}
+
+export function threePly(net, s, p) {
+  const q = 1 - p;
+  let sum = 0;
+  for (const [a, b, w] of ROLLS) {
+    const bestS = bestReply(net, s, q, a, b)[1];
+    sum += w * (exited(bestS[q]) ? 1 : 1 - twoPly(net, bestS, q));
+  }
+  return sum / 36;
+}
+
+export const PLY = { 1: onePly, 2: twoPly, 3: threePly };
+
+// Verkkobotti valitsee siirron, jonka jälkeinen asema on verkon mukaan sille paras. ply 0 arvioi
+// jokaisen siirron kerran. ply ≥ 1 arvioi n-ply-haulla vain 0-ply-arvion parhaat `keep` siirtoa
+// (gnubg:n siirtosuodatin). Oletus ply 0 on sama botti kuin ennen.
+export function netBot(net, ply = 0, keep = 5) {
   return (s, p, d1, d2, rng) => {
-    const plays = legalPlays(s, p, d1, d2);
+    let plays = legalPlays(s, p, d1, d2);
+    const v0 = pl => (exited(pl.s[p]) ? 0 : value(net, pl.s, p));
+    let score = v0;
+    if (ply > 0) {
+      const scored = plays.map(pl => [v0(pl), pl]).sort((x, y) => y[0] - x[0]);
+      plays = scored.slice(0, keep).map(([, pl]) => pl);
+      score = pl => (exited(pl.s[p]) ? 0 : PLY[ply](net, pl.s, p));
+    }
     let best = -1, bests = [];
     for (const pl of plays) {
-      const v = exited(pl.s[p]) ? 0 : value(net, pl.s, p);
+      const v = score(pl);
       if (v > best + 1e-12) { best = v; bests = [pl]; } else if (Math.abs(v - best) <= 1e-12) bests.push(pl);
     }
     return bests[Math.floor(rng() * bests.length)];
