@@ -5,6 +5,7 @@
 import { initialState, legalPlays, pips, exited, clone, OFF, BAR, DRAW_HALF, DRAW_ROWS } from './engine.mjs';
 import { fromJSON, netBot, netCube } from './verkko.mjs';
 import { newCube, mayDouble, tablePolicy, MATCH_LIMIT } from './kuutio.mjs';
+import { newStall, observe, stuck, botOffers, botAccepts } from './jumi.mjs';
 import { T, applyStatic, switchLang } from './kieli.mjs';
 import { rankPlays } from './analyysi.mjs';
 import { toXGID, fromXGID } from './xgid.mjs';
@@ -156,7 +157,7 @@ function newGame() {
     turn: a > b ? 0 : 1, phase: 'move', cube: newCube(),
     crawford, plays: null, partial: [], partialDice: [], hitsMarks: [], base: null,
     lastBot: [], log: [], moveNo: 0, half: 0, over: false, errors: [], analysed: 0, totalLoss: 0, lastNote: null,
-    when: Date.now(), limit: match.limit, decisions: [],
+    when: Date.now(), limit: match.limit, decisions: [], stall: newStall(), turnAct: null,
     msg: T.opening(a, b, a > b, crawford),
   };
   if (!first) sound('gong');
@@ -581,9 +582,18 @@ function finishHuman() {
   later(() => botTurn(), 350);
 }
 
+// Vuoron alku jumin tunnistukseen (src/jumi.mjs). Arviosarja on ihmisen eli pelaajan 0 vuoroilta
+// botin 0-ply-arviolla, koska kalibrointi on mitattu siitä. turnAct kertoo, onko vuorolla jo
+// tuplattu tai tarjottu tasapeliä (Kaanon §2.8: joko tai, ja tarjous kerran vuorossa).
+function turnStart(p) {
+  observe(game.stall, game.half, game.s, p, p === 0 ? netPolicy.winProb(game.s, 0) : undefined);
+  game.turnAct = null;
+}
+
 function botTurn(opening = false, cubeDone = false) {
   if (game.over) return;
   game.turn = 1;
+  if (!opening && !cubeDone) turnStart(1);
   // Botti päättää tuplauksesta ennen heittoa. Avausheitto on jo heitetty, joten silloin ei tuplata.
   const doubles = !opening && !cubeDone && botCube.double(game.s, 1, game.cube);
   if (!opening && !cubeDone && canDouble(1)) cubeDecision(1, doubles ? 'double' : 'nodouble');
@@ -591,6 +601,14 @@ function botTurn(opening = false, cubeDone = false) {
     game.phase = 'offer';
     logCube('', T.logDouble(game.cube.value * 2));
     game.msg = T.botDoubles(game.cube.value * 2, points(game.cube.value));
+    render();
+    return;
+  }
+  // Botti tarjoaa tasapeliä vain jumissa ja vain, kun jatkaminen ei ole sille edullista.
+  if (!opening && !cubeDone && botOffers(netPolicy.winProb(game.s, 1), game.half, stuck(game.stall))) {
+    game.phase = 'drawOffer';
+    logCube('', T.logOfferDraw);
+    game.msg = T.botOffersDraw;
     render();
     return;
   }
@@ -623,16 +641,24 @@ function botPlayed(play, ms) {
   game.half++;
   if (checkEnd(1) || checkDraw()) return;
   game.turn = 0; game.phase = 'roll';
+  turnStart(0);
   render();
 }
 
 // Tasapeli 300 rivin eli 600 puolisiirron jälkeen (Kaanon §2.7), kuution arvosta riippumatta.
+// Tasapeliin päättynyt Crawford-peli pelataan uudelleen, joten Crawford-merkintä puretaan.
 function checkDraw() {
   if (game.half < DRAW_HALF) return false;
-  game.over = true; game.phase = 'over';
-  game.msg = T.draw(DRAW_ROWS);
-  render();
+  endDraw(T.draw(DRAW_ROWS));
   return true;
+}
+
+// Hyväksytty tasapelitarjous päättyy kuten 300 rivin tasapeli (Kaanon §2.8).
+function endDraw(msg) {
+  game.over = true; game.phase = 'over';
+  game.msg = msg;
+  if (game.crawford) { match.crawford = false; saveMatch(); game.msg += ' ' + T.crawfordReplay; }
+  render();
 }
 
 function checkEnd(p) {
@@ -669,7 +695,8 @@ function endByDrop(p) {
 }
 
 function humanDouble() {
-  if (game.phase !== 'roll' || !canDouble(0)) return;
+  if (game.phase !== 'roll' || !canDouble(0) || game.turnAct !== null) return;
+  game.turnAct = 'double';
   sound('cube');
   const next = game.cube.value * 2;
   cubeDecision(0, 'double');
@@ -705,9 +732,36 @@ function humanDrop() {
   endByDrop(0);
 }
 
+// Tasapelitarjous omalla vuorolla ennen heittoa (Kaanon §2.8). Botti päättää heti. Hylätyn
+// tarjouksen jälkeen samalla vuorolla ei voi enää tuplata eikä tarjota.
+function humanOfferDraw() {
+  if (game.phase !== 'roll' || game.turnAct !== null) return;
+  game.turnAct = 'offer';
+  const accepts = botAccepts(netPolicy.winProb(game.s, 0), game.half);
+  logCube(T.logOfferDraw, accepts ? T.logAccept : T.logDecline);
+  if (accepts) { endDraw(T.drawAgreed); return; }
+  game.msg = T.botDeclinedDraw;
+  render();
+}
+
+function humanAcceptDraw() {
+  if (game.phase !== 'drawOffer') return;
+  game.log[game.log.length - 1].me = T.logAccept;
+  endDraw(T.drawAgreed);
+}
+
+function humanDeclineDraw() {
+  if (game.phase !== 'drawOffer') return;
+  game.log[game.log.length - 1].me = T.logDecline;
+  game.phase = 'bot';
+  game.msg = T.youDeclinedDraw;
+  render();
+  later(() => botTurn(false, true), 350);
+}
+
 function humanRoll() {
   if (game.phase !== 'roll') return;
-  if (canDouble(0)) cubeDecision(0, 'nodouble');
+  if (canDouble(0) && game.turnAct !== 'offer') cubeDecision(0, 'nodouble');
   game.dice = roll();
   sound('dice');
   game.lastBot = [];
@@ -1071,8 +1125,11 @@ function render() {
   $('resign').style.display = game.over ? 'none' : '';
   $('undo').disabled = !(game.turn === 0 && game.phase === 'move' && game.partial.length > 0);
   $('pass').style.display = game.phase === 'pass' ? '' : 'none';
-  $('roll').style.display = game.phase === 'pass' || game.phase === 'offer' ? 'none' : '';
-  $('double').style.display = game.phase === 'roll' && canDouble(0) ? '' : 'none';
+  $('roll').style.display = ['pass', 'offer', 'drawOffer'].includes(game.phase) ? 'none' : '';
+  $('double').style.display = game.phase === 'roll' && canDouble(0) && game.turnAct !== 'offer' ? '' : 'none';
+  $('offerDraw').style.display = game.phase === 'roll' && game.turnAct === null ? '' : 'none';
+  $('acceptDraw').style.display = game.phase === 'drawOffer' ? '' : 'none';
+  $('declineDraw').style.display = game.phase === 'drawOffer' ? '' : 'none';
   $('double').textContent = T.double(game.cube.value * 2);
   $('take').style.display = game.phase === 'offer' ? '' : 'none';
   $('drop').style.display = game.phase === 'offer' ? '' : 'none';
@@ -1119,6 +1176,9 @@ $('pass').addEventListener('click', pass);
 $('double').addEventListener('click', humanDouble);
 $('take').addEventListener('click', humanTake);
 $('drop').addEventListener('click', humanDrop);
+$('offerDraw').addEventListener('click', humanOfferDraw);
+$('acceptDraw').addEventListener('click', humanAcceptDraw);
+$('declineDraw').addEventListener('click', humanDeclineDraw);
 $('done').addEventListener('click', () => {
   if (game.turn === 0 && game.phase === 'move' && nextMoves().length === 0) finishHuman();
 });
@@ -1183,10 +1243,10 @@ function setPosition(x, logText, msg) {
     ...game, s: x.s, cube: x.cube, over: false, base: null, partial: [], partialDice: [], hitsMarks: [],
     lastBot: [], botMoves: null, botUsed: [], lastNote: null, dice: x.dice, diceOwner: x.turn,
     order: x.dice ? [...x.dice] : [], log: [...game.log, { n: '', me: logText, bot: '' }],
-    msg, when: Date.now(), limit: match.limit, decisions: [],
+    msg, when: Date.now(), limit: match.limit, decisions: [], stall: newStall(), turnAct: null,
   };
   if (x.turn === 0) {
-    if (x.dice) beginHumanMove(); else { game.turn = 0; game.phase = 'roll'; }
+    if (x.dice) beginHumanMove(); else { game.turn = 0; game.phase = 'roll'; turnStart(0); }
   } else {
     game.turn = 1; game.phase = 'bot';
     later(() => botTurn(!!x.dice), 400);
@@ -1509,4 +1569,4 @@ $('lang').addEventListener('click', () => {
 newGame();
 
 // Testikoukku: ?debug antaa automaattiselle läpipeluulle pääsyn tilaan.
-if (location.search.includes('debug')) window.__dg = { get game() { return game; }, currentXGID, loadXGID, importMatch, get review() { return review; }, step, nextMark, playFromHere, closeReview, played, get ply() { return ply; }, match, prefs, opts, snd, newGame, clickSpot, swapDice, remainingDice, nextMoves, humanDouble, humanTake, humanDrop, botCube };
+if (location.search.includes('debug')) window.__dg = { get game() { return game; }, currentXGID, loadXGID, importMatch, get review() { return review; }, step, nextMark, playFromHere, closeReview, played, get ply() { return ply; }, match, prefs, opts, snd, newGame, clickSpot, swapDice, remainingDice, nextMoves, humanDouble, humanTake, humanDrop, botCube, humanOfferDraw, humanAcceptDraw, humanDeclineDraw };

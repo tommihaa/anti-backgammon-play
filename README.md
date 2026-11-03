@@ -8,8 +8,9 @@ analysis.
 Anti-Backgammon is backgammon where the first player to leave the game gets penalty points.
 Board, dice and movement are normal backgammon. Leaving means bearing off the last checker or
 resigning, and it costs the cube value. There are no gammons. The match is played to seven penalty
-points with the Crawford rule, and a game still running after 300 rows is a draw. The full rules
-are on the page.
+points with the Crawford rule, and a game still running after 300 rows is a draw. You can offer a
+draw before rolling, and the bot offers one only when the game is stuck. A Crawford game that ends
+in a draw is replayed. The full rules are on the page.
 
 After each of your moves the page compares it with the network's best move, using the network's
 own evaluation, and shows the difference to it and the network's top three moves. The bot plays

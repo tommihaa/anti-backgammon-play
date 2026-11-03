@@ -120,6 +120,9 @@
         <button id="double">Tuplaa</button>
         <button id="take" class="primary" data-t="take">Ota vastaan</button>
         <button id="drop" data-t="drop">Luovu</button>
+        <button id="offerDraw" data-t="offerDraw">Tarjoa tasapeliä</button>
+        <button id="acceptDraw" class="primary" data-t="acceptDraw">Hyväksy tasapeli</button>
+        <button id="declineDraw" data-t="declineDraw">Kieltäydy</button>
         <button id="new">Seuraava peli</button>
       </div>
       <details open class="moves">
@@ -193,8 +196,16 @@
         saavuttaja häviää ottelun. Kun jompikumpi on yhden pisteen päässä rajasta, seuraava peli on
         Crawford-peli ilman kuutiota. Sen jälkeen kuutio on taas käytössä. Rahapelissä rajaa ei ole,
         ja pisteet kertyvät. Pituuden vaihto aloittaa uuden ottelun.</p>
-        <p>Jos peli ei ole päättynyt 300 rivin jälkeen, se päättyy tasapeliin, eikä kumpikaan saa
-        rangaistuspisteitä. Rivi on kaksi puolisiirtoa, kuten siirtolistassa.</p>
+        <p>Jos peli ei ole päättynyt 300 rivin jälkeen, se päättyy tasapeliin eikä kumpikaan saa
+        rangaistuspisteitä. Rivi on kaksi puolisiirtoa, kuten siirtolistassa. Tasapeliin päättynyt
+        Crawford-peli pelataan uudelleen ilman kuutiota.</p>
+        <p>Voit tarjota tasapeliä omalla vuorollasi ennen heittoa napilla Tarjoa tasapeliä. Samalla
+        vuorolla voit joko tuplata tai tarjota tasapeliä. Tarjouksen voi tehdä kerran vuorossa.
+        Hyväksytty tarjous päättää pelin tasapeliin kuten 300 rivin raja. Botti hyväksyy, kun pelin
+        jatkaminen ei sen arvion mukaan olisi sille edullista (sietoraja 0,02 kuution arvosta).
+        Arviossa on otettu huomioon, että lähestyvä 300 rivin raja pienentää johtajan etua. Botti
+        tarjoaa itse vain jumiutuneessa pelissä eli kun pip-lukujen summa ei ole laskenut 100
+        rivissä tai botin arvio on pysynyt 50 riviä välillä 35–65 %.</p>
         <p>Sinä pelaat vaaleilla nappuloilla pisteeltä 24 kohti pistettä 1. Klikkaa nappulaa, niin se
         siirtyy ensimmäisen käyttämättömän nopan verran. Jos sillä nopalla ei ole laillista siirtoa,
         niin nappula siirtyy seuraavan verran. Nopat ovat sen pelaajan puolella, jonka heitto se on.
@@ -260,7 +271,15 @@
         the Crawford game without the cube. After that the cube is back in play. In a money game
         there is no limit, and the points add up. Changing the length starts a new match.</p>
         <p>If the game has not ended after 300 rows, it is a draw, and nobody gets penalty points. A
-        row is two half-moves, as in the move list.</p>
+        row is two half-moves, as in the move list. A Crawford game that ends in a draw is replayed
+        without the cube.</p>
+        <p>You can offer a draw on your turn before rolling with Offer a draw. On one turn you can
+        either double or offer a draw. You can offer once per turn. An accepted offer ends the game
+        in a draw, as the 300-row limit does. The bot accepts when continuing would not be in its
+        favour by its own estimate (tolerance 0.02 of the cube value). The estimate takes into account
+        that the approaching 300-row limit shrinks the leader's edge. The bot offers a draw itself
+        only in a stuck game: the pip count total has not dropped in 100 rows, or the bot's estimate
+        has stayed between 35 and 65 % for 50 rows.</p>
         <p>You play the light checkers from point 24 towards point 1. Click a checker to move it by
         the first unused die. If that die has no legal move for it, the checker moves by the next
         one. The dice are on the side of the player who rolled them. A used die turns grey, and
