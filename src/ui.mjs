@@ -52,20 +52,21 @@ const prefs = {
   left: store.get('ab-koti-vasen', false) === true,
   portrait: store.get('ab-pysty', false) === true,
 };
-// Pelaamisen kytkimet DG Androidin Pelaaminen-ryhmästä (docs/ASETUKSET.md luku 3), kaikki
-// oletuksena pois (Tommin valinta 1.11.2026). Ahne uloskanto jäi pois, koska tässä pelissä ulos
-// ehtiminen on se mitä vältetään.
-// Siirron jälkeinen analyysi on oma kytkimensä. Se on oletuksena päällä, koska analyysi oli
-// laudalla ennen kytkintä (Tommin tilaus 1.11.2026).
+// Pelaamisen kytkimet DG Androidin Pelaaminen-ryhmästä (docs/ASETUKSET.md luku 3). Ahne uloskanto
+// jäi pois, koska tässä pelissä ulos ehtiminen on se mitä vältetään. Siirron jälkeinen analyysi on
+// oma kytkimensä (Tommin tilaus 1.11.2026).
 export const PLAY_TOGGLES = ['analysis', 'forced', 'arrows', 'botArrows', 'press', 'diceSubmit', 'diceSwap', 'diceRoll', 'nextOnDice'];
-const TOGGLE_DEFAULTS = { analysis: true };
-const opts = Object.fromEntries(PLAY_TOGGLES.map(k => [k, TOGGLE_DEFAULTS[k] ?? false]));
+// Kaikki kytkimet ovat oletuksena päällä 3.11.2026 alkaen (Tommin päätös debuggausta varten, Kaanon §4).
+const opts = Object.fromEntries(PLAY_TOGGLES.map(k => [k, true]));
 { const saved = store.get('ab-pelaaminen', {}); for (const k of PLAY_TOGGLES) if (typeof saved?.[k] === 'boolean') opts[k] = saved[k]; }
 // Botin hakusyvyys: 0-ply on verkon suora arvio, 1- ja 2-ply katsovat vastustajan heitot eteenpäin.
 // Pelaaja valitsee, koska syvempi haku vie koneesta riippuen sekunteja (Tommin tilaus 1.11.2026).
+// Oletus on 2-ply 3.11.2026 alkaen (Tommin päätös debuggausta varten, Kaanon §4). Aiempi oletus
+// 1-ply valittiin, koska 2-ply:n siirto vie sekunteja. Siirron kesto näytetään viestissä.
 export const PLIES = [0, 1, 2];
-const savedPly = store.get('ab-syvyys', 0);
-let ply = PLIES.includes(savedPly) ? savedPly : 0;
+const DEFAULT_PLY = 2;
+const savedPly = store.get('ab-syvyys', DEFAULT_PLY);
+let ply = PLIES.includes(savedPly) ? savedPly : DEFAULT_PLY;
 // Pelin äänet (src/aanet.mjs): kytkin oletuksena pois. off luettelee pois jätetyt äänet.
 const snd = { on: false, off: [] };
 { const saved = store.get('ab-aanet', {}); snd.on = saved?.on === true; snd.off = Array.isArray(saved?.off) ? saved.off : []; }
@@ -94,7 +95,7 @@ const pen = match.pen;
 const saveMatch = () => store.set('ab-ottelu', match);
 const matchOver = () => match.limit !== null && pen.some(x => x >= match.limit);
 // Vastustajan verkko. Valinta ja vertailu: Kaanon/Anti-Backgammon §4.
-export const NET_FILE = 'verkot/vo3plyop-nolla-s2.json';
+export const NET_FILE = 'verkot/vo3plyop-nolla-s2-k30.json';
 const netText = await (await fetch(NET_FILE)).text();
 const net = fromJSON(netText);
 const botPlay = netBot(net);
@@ -599,11 +600,11 @@ function botTurn(opening = false, cubeDone = false) {
   game.msg = T.botThinking;
   render();
   // Haku palaa myöhemmin. Tulos kuuluu sille pelille, jossa se pyydettiin, kuten later().
-  const g = game;
-  botMove(game.s, game.dice[0], game.dice[1]).then(play => { if (game === g && !game.over) botPlayed(play); });
+  const g = game, t0 = performance.now();
+  botMove(game.s, game.dice[0], game.dice[1]).then(play => { if (game === g && !game.over) botPlayed(play, performance.now() - t0); });
 }
 
-function botPlayed(play) {
+function botPlayed(play, ms) {
   const before = plain(game.s);
   // Lyönnit osasiirroittain notaatiota varten.
   const tmp = clone(game.s); const hits = [];
@@ -618,7 +619,7 @@ function botPlayed(play) {
   else { game.moveNo++; game.log.push({ n: game.moveNo, me: '', bot: text }); }
   decide({ k: 'move', p: 1, n: game.moveNo, s: before, after: plain(play.s), dice: [...game.dice], text, ply, forced: play.moves.length === 0 });
   const d = `${game.dice[0]}${game.dice[1]}`;
-  game.msg = play.moves.length ? T.botPlayed(d, text.split(': ')[1]) : T.botDanced(d);
+  game.msg = play.moves.length ? T.botPlayed(d, text.split(': ')[1]) + ' ' + T.botTime(ply, ms) : T.botDanced(d);
   game.half++;
   if (checkEnd(1) || checkDraw()) return;
   game.turn = 0; game.phase = 'roll';
