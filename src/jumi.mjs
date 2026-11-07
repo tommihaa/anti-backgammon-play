@@ -58,16 +58,16 @@ export function stuck(st, { stallRows = STALL_ROWS, bandRows = BAND_ROWS, minRow
 }
 
 // Toteutunut equity vuorossa olevan näkökulmasta (poistuminen ensin −1, vastustaja ensin +1,
-// tasapeli 0) arvion ja jäljellä olevien rivien mukaan. Lähde tulokset/jumi-vo3plyop-nolla-s2-k30.txt
+// tasapeli 0) arvion ja jäljellä olevien rivien mukaan. Lähde tulokset/jumi-jatko-raw-g4-p3000.txt
 // (ehto eteneminen:100, 15 000 itsepeliä). Pisteet ovat lokeron keskimääräinen arvio ja equity.
 // Lokeroiden välillä interpoloidaan suoraan ja ääripäiden ulkopuolella käytetään ääripäätä.
 // Kaistat vaihtuvat porrastetusti, kuten kaanonin hyväksymisrajat on kuvattu. Yli 200 jäljellä
 // olevaa riviä ei mitattu, koska etenemisehto laukeaa aikaisintaan rivillä 100, joten niille
 // käytetään kaistaa 101–200 (Kaanon §2.8).
 const CALIBRATION = [
-  { maxLeft: 50, pts: [[0.040, -0.242], [0.155, -0.156], [0.251, -0.067], [0.350, -0.019], [0.447, -0.014], [0.551, 0.009], [0.650, 0.022], [0.747, 0.081], [0.843, 0.155], [0.958, 0.241]] },
-  { maxLeft: 100, pts: [[0.038, -0.715], [0.157, -0.510], [0.252, -0.344], [0.349, -0.218], [0.448, -0.040], [0.551, 0.061], [0.651, 0.240], [0.747, 0.354], [0.841, 0.525], [0.961, 0.725]] },
-  { maxLeft: Infinity, pts: [[0.035, -0.930], [0.157, -0.629], [0.251, -0.417], [0.348, -0.236], [0.448, -0.064], [0.550, 0.086], [0.650, 0.258], [0.748, 0.433], [0.842, 0.650], [0.964, 0.936]] },
+  { maxLeft: 50, pts: [[0.035, -0.303], [0.157, -0.177], [0.250, -0.082], [0.351, -0.020], [0.449, -0.020], [0.550, 0.019], [0.648, 0.019], [0.748, 0.080], [0.840, 0.171], [0.963, 0.309]] },
+  { maxLeft: 100, pts: [[0.035, -0.825], [0.156, -0.595], [0.251, -0.366], [0.351, -0.209], [0.449, -0.110], [0.552, 0.104], [0.649, 0.202], [0.748, 0.372], [0.844, 0.579], [0.965, 0.825]] },
+  { maxLeft: Infinity, pts: [[0.033, -0.982], [0.155, -0.768], [0.252, -0.518], [0.349, -0.341], [0.449, -0.127], [0.550, 0.115], [0.651, 0.329], [0.747, 0.519], [0.844, 0.761], [0.967, 0.982]] },
 ];
 
 export const rowsLeft = half => DRAW_ROWS - rowOf(half);

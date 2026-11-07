@@ -96,7 +96,7 @@ const pen = match.pen;
 const saveMatch = () => store.set('ab-ottelu', match);
 const matchOver = () => match.limit !== null && pen.some(x => x >= match.limit);
 // Vastustajan verkko. Valinta ja vertailu: Kaanon/Anti-Backgammon §4.
-export const NET_FILE = 'verkot/vo3plyop-nolla-s2-k30.json';
+export const NET_FILE = 'verkot/jatko-raw-g4-p3000.json';
 const netText = await (await fetch(NET_FILE)).text();
 const net = fromJSON(netText);
 const botPlay = netBot(net);
