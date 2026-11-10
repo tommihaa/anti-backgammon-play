@@ -13,11 +13,13 @@ draw before rolling, and the bot offers one only when the game is stuck. A Crawf
 in a draw is replayed. The full rules are on the page.
 
 After each of your moves the page compares it with the network's best move, using the network's
-own evaluation, and shows the difference to it and the network's top three moves. The bot plays
-at 0, 1 or 2 ply, and the analysis uses the same depth. At the end of a game you see the total
-error and the biggest errors. Finished games stay under Played games below the board with a
-table of both players' moves and cube decisions: the cubeless win chance, the network's choice
-and the difference to it.
+own evaluation. With Tutor mode on, the Evaluation panel shows the difference to it and the
+network's best moves after each of your moves. The bot plays at 0, 1 or 2 ply, and the analysis
+uses the same depth. The Game panel lists the moves of the current game and up to 30 finished
+games. Picking a row shows the position on the board and its evaluation: for a finished game the
+cubeless win chance, the equity and the difference to the best move, for both players' moves and
+cube decisions. The Results panel shows the match score and the PR of the match and of the game.
+The panels can be resized, and the page is in English, Finnish, German and French.
 
 The board follows DG Android: seven board styles, mirroring, a portrait board on narrow screens,
 dark mode, sounds and optional playing toggles. Positions can be copied and set as XGID. Import

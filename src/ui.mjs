@@ -6,7 +6,7 @@ import { initialState, legalPlays, pips, exited, clone, OFF, BAR, DRAW_HALF, DRA
 import { fromJSON, netBot, netCube } from './verkko.mjs';
 import { newCube, mayDouble, tablePolicy, MATCH_LIMIT } from './kuutio.mjs';
 import { newStall, observe, stuck, botOffers, botAccepts } from './jumi.mjs';
-import { T, applyStatic, switchLang } from './kieli.mjs';
+import { T, applyStatic, setLang } from './kieli.mjs';
 import { rankPlays } from './analyysi.mjs';
 import { toXGID, fromXGID } from './xgid.mjs';
 import { parseMatch, replay } from './tuonti.mjs';
@@ -92,6 +92,10 @@ let review = null;
 export const LIMITS = [1, 3, 5, 7, null];
 const match = store.get('ab-ottelu', { pen: [0, 0], crawford: false });
 if (match.limit === undefined) match.limit = MATCH_LIMIT;
+// Ottelun tunniste ja päättyneiden pelien määrä Tulokset-paneelia varten (ottelun PR, pelit ja
+// pelin numero).
+const startMatch = () => { match.id = Date.now(); match.done = 0; };
+if (match.id === undefined) startMatch();
 const pen = match.pen;
 const saveMatch = () => store.set('ab-ottelu', match);
 const matchOver = () => match.limit !== null && pen.some(x => x >= match.limit);
@@ -141,7 +145,7 @@ const points = n => T.points(n);
 
 function newGame() {
   const first = game === undefined;
-  if (matchOver()) { pen[0] = 0; pen[1] = 0; match.crawford = false; }
+  if (matchOver()) { pen[0] = 0; pen[1] = 0; match.crawford = false; startMatch(); }
   // Crawford-peli on ensimmäinen peli sen jälkeen, kun jompikumpi on yhden pisteen päässä rajasta
   // (Kaanon §2.6).
   const limit = match.limit;
@@ -156,12 +160,14 @@ function newGame() {
     s: initialState(), dice: [a, b], diceOwner: a > b ? 0 : 1, order: [a, b], botUsed: [],
     turn: a > b ? 0 : 1, phase: 'move', cube: newCube(),
     crawford, plays: null, partial: [], partialDice: [], hitsMarks: [], base: null,
-    lastBot: [], log: [], moveNo: 0, half: 0, over: false, errors: [], analysed: 0, totalLoss: 0, lastNote: null,
+    lastBot: [], log: [], moveNo: 0, half: 0, over: false, errors: [], analysed: 0, totalLoss: 0,
     when: Date.now(), limit: match.limit, decisions: [], stall: newStall(), turnAct: null,
-    msg: T.opening(a, b, a > b, crawford),
+    msg: T.opening(a, b, a > b, crawford), no: (match.done ?? 0) + 1, score: [...pen], match: match.id,
   };
   if (!first) sound('gong');
   review = null;
+  sel = { when: null, d: null };
+  fillGameSel();
   if (game.turn === 0) beginHumanMove(); else later(() => botTurn(true), 600);
   render();
 }
@@ -174,7 +180,7 @@ const played = [store.get('ab-pelatut', [])].flatMap(a => (Array.isArray(a) ? a 
 let finished = null;
 const record = g => ({
   when: g.when, msg: g.msg, limit: g.limit, log: g.log, analysed: g.analysed, totalLoss: g.totalLoss, errors: g.errors,
-  decisions: g.decisions ?? [],
+  decisions: g.decisions ?? [], no: g.no, score: g.score, match: g.match, crawford: g.crawford,
 });
 function saveFinished() {
   if (!finished) return;
@@ -182,37 +188,228 @@ function saveFinished() {
   if (k >= 0) played[k] = record(finished); else played.unshift(record(finished));
   played.length = Math.min(played.length, PLAYED_MAX);
   store.set('ab-pelatut', played);
-  fillPlayed();
+  fillGameSel();
 }
-function fillPlayed() {
-  const sel = $('played');
-  const keep = sel.value;
-  sel.textContent = '';
-  played.forEach((x, k) => {
+
+// Paneelit (Tommin tilaus 10.11.2026, mallina backgammondrills.com:n Hypergammon): Peli-paneelin
+// valitsimessa ovat nykyinen peli ja pelatut pelit, ja lista näyttää valitun pelin siirrot. Rivin
+// valinta näyttää aseman ennen siirtoa laudalla ja siirron arvion Arvio-paneelissa. Tulokset-
+// paneelissa ovat ottelu, pelit ja PR. sel.when on valitun pelatun pelin tunniste tai null
+// nykyiselle pelille, ja sel.d on valitun päätöksen indeksi pelin päätöksissä.
+let sel = { when: null, d: null };
+const liveGame = () => (review ? review.saved : game);
+const selRec = () => (sel.when === null ? liveGame() : played.find(x => x.when === sel.when) ?? liveGame());
+const viewing = () => !review && sel.d !== null && !!selRec().decisions?.[sel.d]?.s;
+
+function fillGameSel() {
+  const s = $('gameSel');
+  s.textContent = '';
+  const cur = liveGame();
+  const add = (value, x, now) => {
     const o = document.createElement('option');
-    o.value = String(k);
-    o.textContent = T.playedOption(new Date(x.when), x.limit);
-    sel.appendChild(o);
-  });
-  $('playedBox').hidden = played.length === 0;
-  sel.value = keep !== '' && played[Number(keep)] ? keep : '0';
-  showPlayed();
+    o.value = value;
+    o.textContent = T.gameOption(x.no, x.score, now ? null : new Date(x.when), x.limit);
+    s.appendChild(o);
+  };
+  add('', cur, true);
+  for (const x of played) if (x.when !== cur.when) add(String(x.when), x, false);
+  if (sel.when !== null && !played.some(x => x.when === sel.when)) sel = { when: null, d: null };
+  s.value = sel.when === null ? '' : String(sel.when);
 }
-function showPlayed() {
-  const x = played[Number($('played').value)];
-  const box = $('playedSummary');
+$('gameSel').addEventListener('change', e => {
+  sel = { when: e.target.value === '' ? null : Number(e.target.value), d: null };
+  const x = selRec();
+  if (x !== liveGame()) analyseRecord(x);
+  render();
+});
+function select(d) {
+  sel.d = sel.d === d ? null : d;
+  render();
+}
+function resume() {
+  sel.d = null;
+  render();
+}
+$('resume').addEventListener('click', resume);
+
+// Peli-paneelin lista: rivin numero ja sen alla molempien pelaajien siirrot omilla riveillään.
+// Rivi on valittavissa, kun siitä on kirjattu päätös (meD ja botD ovat päätösten indeksejä).
+let navOrder = [];
+function renderGamePanel() {
+  const list = $('gameList');
+  $('gameSel').hidden = !!review;
+  list.hidden = !!review;
+  $('log').hidden = !review;
+  if (review) { $('gameMsg').textContent = ''; return; }
+  const x = selRec(), live = x === liveGame();
+  $('gameMsg').textContent = live ? '' : x.msg;
+  list.textContent = '';
+  navOrder = [];
+  let selected = null;
+  for (const r of x.log) {
+    const row = document.createElement('div');
+    row.className = 'gl-row';
+    const n = document.createElement('span');
+    n.className = 'gl-n';
+    n.textContent = r.n === '' ? '' : `${r.n})`;
+    const lines = document.createElement('div');
+    let es = [{ p: 0, t: r.me, d: r.meD }, { p: 1, t: r.bot, d: r.botD }].filter(e => e.t !== '');
+    if (es.length === 2 && es[0].d !== undefined && es[1].d !== undefined && es[1].d < es[0].d) es = es.reverse();
+    for (const e of es) {
+      const b = document.createElement('button');
+      b.className = 'gl-line';
+      const dot = document.createElement('span');
+      dot.className = e.p === 0 ? 'dot me' : 'dot bot';
+      const t = document.createElement('span');
+      t.textContent = e.t;
+      b.append(dot, t);
+      b.setAttribute('aria-label', `${e.p === 0 ? T.static.you : T.static.bot}: ${e.t}`);
+      if (e.d === undefined || !x.decisions?.[e.d]) b.disabled = true;
+      else {
+        navOrder.push(e.d);
+        b.dataset.d = String(e.d);
+        if (sel.d === e.d) { b.classList.add('sel'); selected = b; }
+        b.addEventListener('click', () => select(e.d));
+      }
+      lines.appendChild(b);
+    }
+    row.append(n, lines);
+    list.appendChild(row);
+  }
+  if (selected) selected.scrollIntoView({ block: 'nearest' });
+  else if (live) list.scrollTop = 1e6;
+}
+// Nuolinäppäimet ylös ja alas askeltavat valittuja rivejä.
+function stepSel(k) {
+  if (!navOrder.length) return;
+  const i = navOrder.indexOf(sel.d);
+  const j = i < 0 ? (k > 0 ? 0 : navOrder.length - 1) : Math.max(0, Math.min(navOrder.length - 1, i + k));
+  sel.d = navOrder[j];
+  render();
+}
+
+// Laudalla näytettävä asema valitulta riviltä: asema ennen siirtoa tai kuutiopäätöstä, heitto ja
+// pelatun siirron nuolet. Näyttöolio on samaa muotoa kuin peli, mutta vaihe on 'view'.
+function viewGame() {
+  if (!viewing()) return null;
+  const x = selRec(), d = x.decisions[sel.d];
+  const dice = d.k === 'move' ? d.dice : null;
+  return {
+    s: [Int8Array.from(d.s[0]), Int8Array.from(d.s[1])], cube: d.cube ?? newCube(), crawford: !!x.crawford,
+    turn: d.p, phase: 'view', over: false, dice, diceOwner: d.p,
+    order: dice ? (dice[0] === dice[1] ? Array(4).fill(dice[0]) : [...dice]) : [],
+    botUsed: [], partial: [], partialDice: [], hitsMarks: [], lastBot: [], botMoves: null,
+    viewMoves: d.k === 'move' ? d.moves ?? null : null, viewP: d.p,
+  };
+}
+
+// PR kuten XG:ssä: keskimääräinen virhe pakottamatonta siirtoa kohden kertaa 500. Mukana ovat
+// vain omat siirrot, koska kuutiopäätöksille ei lasketa equityeroa.
+function pr(list) {
+  const n = list.reduce((a, x) => a + (x.analysed ?? 0), 0);
+  return n ? T.pr(500 * list.reduce((a, x) => a + (x.totalLoss ?? 0), 0) / n) : T.prNone;
+}
+function renderResults() {
+  const cur = liveGame();
+  $('gamesPlayed').textContent = String(match.done ?? 0);
+  const inMatch = played.filter(x => x.match === match.id && x.when !== cur.when);
+  $('matchPR').textContent = pr([cur, ...inMatch]);
+  $('gamePR').textContent = pr([selRec()]);
+}
+$('clearHistory').addEventListener('click', () => {
+  if (!played.length || !confirm(T.clearConfirm)) return;
+  played.length = 0;
+  store.set('ab-pelatut', played);
+  sel = { when: null, d: null };
+  fillGameSel();
+  render();
+});
+
+// Arvio-paneeli. Kesken olevassa pelissä näytetään vain omien siirtojen ero parhaaseen, ei
+// voittotodennäköisyyttä eikä kuutiopäätösten arviota (Tommin valinta 10.11.2026, Kaanonin linja:
+// analyysi ei kerro kesken pelin, kannattaako tuplata). Tutor-tila (kytkin analysis) näyttää
+// viimeisimmän oman siirron arvion jokaisen siirron jälkeen. Päättyneen pelin riveillä näkyvät
+// voittotodennäköisyys, equity ja ero parhaaseen molempien siirroista ja kuutiopäätöksistä.
+const para = (box, text) => { const p = document.createElement('p'); p.textContent = text; box.appendChild(p); return p; };
+const signed = x => (x >= 0 ? '+' : '−') + fmt(Math.abs(x));
+function renderEval() {
+  const box = $('evalBox');
   box.textContent = '';
-  if (!x) return;
-  const p = document.createElement('p');
-  p.textContent = x.msg;
-  box.appendChild(p);
-  renderSummary(box, x);
-  renderDecisions(box, x);
-  analyseRecord(x);
-  const wMe = Math.max(16, ...x.log.map(r => r.me.length)) + 3;
-  $('playedLog').textContent = x.log.map(r => `${r.n === '' ? '    ' : `${String(r.n).padStart(3)})`} ${r.me.padEnd(wMe)}${r.bot}`).join('\n');
+  if (review) { para(box, T.evalReview); return; }
+  const x = selRec(), live = x === liveGame() && !x.over;
+  let d = sel.d !== null ? x.decisions?.[sel.d] : null;
+  if (!d) {
+    if (!live) {
+      renderSummary(box, x);
+      para(box, x.decisions?.length ? T.evalPick : T.decisionsNone);
+      return;
+    }
+    if (!opts.analysis) { para(box, T.evalTutorOff); return; }
+    d = [...(x.decisions ?? [])].reverse().find(y => y.k === 'move' && y.p === 0);
+    if (!d) { para(box, T.evalNone); return; }
+  }
+  if (live && !opts.analysis) { para(box, T.evalTutorOff); return; }
+  if (live && d.p === 1) { para(box, T.evalBotLater); return; }
+  if (d.k !== 'move') {
+    if (live) { para(box, T.evalCubeLater); return; }
+    renderCubeEval(box, d);
+    return;
+  }
+  const who = d.p === 0 ? T.static.you : T.static.bot;
+  const played = d.text.split(': ')[1] ?? d.text;
+  if (d.forced) { para(box, T.evalTitle(d.n, who, d.text)); para(box, d.text.includes('/') ? T.evalForced : T.evalDance); return; }
+  if (!d.r) { para(box, d.p === 0 ? T.noteWait(d.text) : T.evalTitle(d.n, who, d.text) + ' ' + T.evalWait); return; }
+  const loss = Math.max(0, 2 * (d.r.best - d.r.played)), lv = level(loss);
+  para(box, d.p === 0
+    ? (lv ? T.noteBad(d.text, T.levels[lv[2]], fmt(loss)) : loss < SAME ? T.noteSame(d.text) : T.noteGood(d.text, fmt(loss)))
+    : T.evalTitle(d.n, who, d.text));
+  const rows = d.r.top.map(t => ({ m: t.m, x: t.x, loss: t.loss, played: false }));
+  let k = rows.findIndex(r => r.m === played);
+  if (k < 0) k = rows.findIndex(r => Math.abs(r.x - d.r.played) < 1e-12);
+  if (k >= 0) rows[k].played = true;
+  else rows.push({ m: played, x: d.r.played, loss, played: true });
+  const table = document.createElement('table');
+  table.className = 'eval';
+  const head = table.insertRow();
+  const cols = live ? [T.evalHead[0], T.evalHead[3]] : T.evalHead;
+  cols.forEach((c, i) => { const th = document.createElement('th'); th.textContent = c; if (i > 0) th.className = 'num'; head.appendChild(th); });
+  for (const r of rows) {
+    const tr = table.insertRow();
+    const best = r.loss < SAME;
+    tr.className = (best ? 'best' : 'worse') + (r.played ? ' played' : '');
+    const cells = [(r.played && best ? '✓ ' : '') + r.m];
+    if (!live) cells.push(T.pct(r.x), signed(2 * r.x - 1));
+    cells.push(best ? '' : '−' + fmt(r.loss));
+    cells.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; td.className = i === 0 ? 'mv' : 'num'; });
+  }
+  box.appendChild(table);
+  if (!live) para(box, T.evalHelp).className = 'caption';
 }
-$('played').addEventListener('change', showPlayed);
+// Kuutiopäätös päättyneestä pelistä: päättäjän voittotodennäköisyys ja verkon valinta.
+function renderCubeEval(box, d) {
+  const cube = (act, v) => (act === 'double' ? T.logDouble(2 * v) : act === 'take' ? T.logTake : act === 'drop' ? T.logDrop : T.noDouble);
+  const mine = d.k === 'cube' ? d.act === 'double' : d.act === 'take';
+  const pick = d.k === 'cube' ? (d.should ? 'double' : 'nodouble') : (d.should ? 'take' : 'drop');
+  para(box, T.evalTitle(d.n, d.p === 0 ? T.static.you : T.static.bot, cube(d.act, d.value)));
+  const table = document.createElement('table');
+  table.className = 'eval';
+  const rows = [[T.cubeHead[0], cube(d.act, d.value)], [T.cubeHead[1], T.pct(d.w)], [T.cubeHead[2], cube(pick, d.value)]];
+  for (const [a, b] of rows) {
+    const tr = table.insertRow();
+    tr.insertCell().textContent = a;
+    tr.insertCell().textContent = b;
+  }
+  const tr = table.insertRow();
+  tr.className = mine === d.should ? 'best' : 'worse';
+  tr.insertCell().textContent = T.cubeHead[3];
+  tr.insertCell().textContent = mine === d.should ? T.sameBest : T.cubeDiff;
+  box.appendChild(table);
+}
+function renderPanels() {
+  renderGamePanel();
+  renderEval();
+  renderResults();
+}
 
 // Jälkianalyysi: siirrot, joita pelin aikainen analyysi ei kattanut (botin siirrot ja kesken
 // jääneet), lasketaan yksi kerrallaan siirron omalla syvyydellä. Tulos tallentuu listaan.
@@ -230,63 +427,10 @@ async function analyseRecord(x) {
     if (!r) d.forced = true;
     else d.r = { best: r.best, played: r.played, top: topMoves(base, d.p, d.dice, r.top, r.best) };
     store.set('ab-pelatut', played);
-    if (played[Number($('played').value)] === x) refreshDecisions(x);
+    if (selRec().decisions === x.decisions) renderPanels();
     await new Promise(res => setTimeout(res, 0));
   }
   if (reviewing === x) reviewing = null;
-}
-function refreshDecisions(x) {
-  const old = $('playedSummary').querySelector('.decisions');
-  if (!old) return;
-  const tmp = document.createElement('div');
-  renderDecisions(tmp, x);
-  old.replaceWith(tmp.querySelector('.decisions'));
-}
-
-// Siirrot ja kuutiopäätökset taulukkona. Kuutiosta näytetään tuplaukset, vastaukset ja kohdat,
-// joissa verkko olisi tuplannut.
-function renderDecisions(box, x) {
-  const sec = document.createElement('div');
-  sec.className = 'decisions';
-  box.appendChild(sec);
-  const h = document.createElement('strong');
-  h.textContent = T.decisionsTitle;
-  sec.appendChild(h);
-  const ds = x.decisions ?? [];
-  const note = document.createElement('p');
-  if (!ds.length) { note.textContent = T.decisionsNone; sec.appendChild(note); return; }
-  const moves = ds.filter(d => d.k === 'move');
-  const left = moves.filter(d => !d.r && !d.forced).length;
-  note.textContent = T.decisionsHelp + (left ? ' ' + T.decisionsWait(moves.length - left, moves.length) : '');
-  sec.appendChild(note);
-  const wrap = document.createElement('div');
-  wrap.className = 'table-wrap';
-  const table = document.createElement('table');
-  const head = table.insertRow();
-  for (const t of T.decisionsHead) { const th = document.createElement('th'); th.textContent = t; head.appendChild(th); }
-  const cube = (act, v) => (act === 'double' ? T.logDouble(2 * v) : act === 'take' ? T.logTake : act === 'drop' ? T.logDrop : T.noDouble);
-  for (const d of ds) {
-    let cells;
-    if (d.k === 'move') {
-      if (d.forced) cells = [d.text, '', d.text.includes('/') ? T.forcedMove : T.reviewDance, ''];
-      else if (!d.r) cells = [d.text, '…', '…', ''];
-      else {
-        const loss = Math.max(0, 2 * (d.r.best - d.r.played)), lv = level(loss);
-        cells = [d.text + (lv ? lv[1] : ''), T.pct(d.r.played),
-          loss < SAME ? T.sameBest : `${d.r.top[0]?.m ?? ''} (${T.pct(d.r.best)})`, loss < SAME ? '' : fmt(loss)];
-      }
-    } else {
-      if (d.k === 'cube' && d.act !== 'double' && !d.should) continue;
-      const mine = d.k === 'cube' ? d.act === 'double' : d.act === 'take';
-      const pick = d.k === 'cube' ? (d.should ? 'double' : 'nodouble') : (d.should ? 'take' : 'drop');
-      cells = [cube(d.act, d.value), T.pct(d.w), cube(pick, d.value), mine === d.should ? '' : T.cubeDiff];
-    }
-    const tr = table.insertRow();
-    if (d.k !== 'move') tr.className = 'cube-row';
-    for (const c of [String(d.n || ''), d.p === 0 ? T.static.you : T.static.bot, ...cells]) tr.insertCell().textContent = c;
-  }
-  wrap.appendChild(table);
-  sec.appendChild(wrap);
 }
 
 // Botin viivästetty vuoro kuuluu sille pelille, jossa se ajastettiin. Ilman tätä luovutus ja uusi
@@ -317,13 +461,15 @@ function decide(d) {
   game.decisions?.push(d);
   return d;
 }
+// Viimeksi kirjatun päätöksen indeksi Peli-paneelin riviä varten, tai undefined.
+const lastDecision = () => (game.decisions?.length ? game.decisions.length - 1 : undefined);
 // Tuplaaja p ennen heittoaan: tuplasiko (act) ja olisiko verkko tuplannut.
 function cubeDecision(p, act) {
-  decide({ k: 'cube', p, n: game.moveNo, act, value: game.cube.value, w: botCube.winProb(game.s, p), should: botCube.double(game.s, p, game.cube) });
+  decide({ k: 'cube', p, n: game.moveNo, act, s: plain(game.s), cube: { ...game.cube }, value: game.cube.value, w: botCube.winProb(game.s, p), should: botCube.double(game.s, p, game.cube) });
 }
 // Ottaja q tuplauksen jälkeen, kuutio vielä ennen tuplausta.
 function takeDecision(q, act) {
-  decide({ k: 'take', p: q, n: game.moveNo, act, value: game.cube.value, w: 1 - botCube.winProb(game.s, 1 - q), should: botCube.take(game.s, q, game.cube) });
+  decide({ k: 'take', p: q, n: game.moveNo, act, s: plain(game.s), cube: { ...game.cube }, value: game.cube.value, w: 1 - botCube.winProb(game.s, 1 - q), should: botCube.take(game.s, q, game.cube) });
 }
 // Verkon parhaat siirtäjän numeroinnissa eroineen.
 function topMoves(base, p, dice, top, best) {
@@ -433,7 +579,7 @@ function remainingDice() {
 // ensimmäisellä ei jää laillista siirtoa (DG Androidin CompositionSession.step, Tommin valinta
 // 1.11.2026).
 function clickSpot(spot) {
-  if (game.over || game.turn !== 0 || game.phase !== 'move') return;
+  if (viewing() || game.over || game.turn !== 0 || game.phase !== 'move') return;
   const ns = nextSteps();
   for (const d of new Set(remainingDice())) {
     const st = ns.find(x => x.m[0] === spot && x.d === d);
@@ -471,6 +617,7 @@ const canSubmitByDice = () => opts.diceSubmit && turnComplete();
 const canRollByDice = () => opts.diceRoll && game.phase === 'roll' && game.diceOwner === 1;
 // Noppien klikkaus: valmiin vuoron vahvistus, järjestyksen vaihto tai heitto botin nopista.
 function clickDice() {
+  if (viewing()) return;
   if (canSubmitByDice()) { if (game.phase === 'pass') pass(); else finishHuman(); return; }
   if (canSwap()) { swapDice(); return; }
   if (canRollByDice()) humanRoll();
@@ -513,9 +660,7 @@ const fmt = x => T.num(x);
 // vasta tuloksen tullessa. Peli jatkuu sillä välin. Tulos kuuluu sille pelille, jossa se pyydettiin.
 function analyse(base, dice, played, row, moveNo, dec) {
   const g = game;
-  game.lastNote = { played, pending: true };
   rankMove(base, dice[0], dice[1], clone(game.s)).then(r => {
-    if (g.lastNote?.played === played && g.lastNote.pending) g.lastNote = null;
     // Seuraavan pelin aikana valmistunut analyysi kirjataan päättyneeseen peliin, joka on
     // pelattujen listassa (Tommin havainto 1.11.2026: edellisen pelin analyysi katosi).
     const done = () => { if (game === g) render(); else if (g.over) saveFinished(); };
@@ -531,7 +676,6 @@ function analyse(base, dice, played, row, moveNo, dec) {
       row.me += lv[1];
       g.errors.push({ n: moveNo, played, top, loss });
     }
-    if (g.lastNote === null && g.moveNo === moveNo) g.lastNote = { played, lv: lv ? lv[2] : null, loss, top };
     done();
   });
 }
@@ -550,30 +694,16 @@ function topList(top) {
   return ol;
 }
 
-// Siirron jälkeinen analyysi riveittäin: arvio omalla rivillään ja verkon parhaat luettelona.
-function renderNote(box, n) {
-  const p = document.createElement('p');
-  if (n.pending) { p.textContent = T.noteWait(n.played); box.appendChild(p); return; }
-  p.textContent = n.lv !== null ? T.noteBad(n.played, T.levels[n.lv], fmt(n.loss))
-    : n.loss < SAME ? T.noteSame(n.played) : T.noteGood(n.played, fmt(n.loss));
-  box.appendChild(p);
-  if (n.loss < SAME && n.lv === null) return;
-  const h = document.createElement('p');
-  h.textContent = T.topTitle(n.top.length);
-  box.appendChild(h);
-  box.appendChild(topList(n.top));
-}
-
 function finishHuman() {
   game.moveNo++;
   const played = notation(game.dice, game.partial, game.hitsMarks);
   const row = { n: game.moveNo, me: played, bot: '' };
   game.log.push(row);
-  game.lastNote = null;
   const dec = decide({
     k: 'move', p: 0, n: game.moveNo, s: plain(game.base), after: plain(game.s), dice: [...game.dice],
-    text: played, ply, forced: game.partial.length === 0,
+    text: played, ply, forced: game.partial.length === 0, moves: game.partial.map(m => [...m]), cube: { ...game.cube },
   });
+  row.meD = lastDecision();
   if (game.partial.length) analyse(game.base, [...game.dice], played, row, game.moveNo, dec);
   game.half++;
   if (checkEnd(0) || checkDraw()) return;
@@ -599,7 +729,7 @@ function botTurn(opening = false, cubeDone = false) {
   if (!opening && !cubeDone && canDouble(1)) cubeDecision(1, doubles ? 'double' : 'nodouble');
   if (doubles) {
     game.phase = 'offer';
-    logCube('', T.logDouble(game.cube.value * 2));
+    logCube('', T.logDouble(game.cube.value * 2), undefined, lastDecision());
     game.msg = T.botDoubles(game.cube.value * 2, points(game.cube.value));
     render();
     return;
@@ -633,9 +763,12 @@ function botPlayed(play, ms) {
   game.botMoves = play.moves;
   const text = notation(game.dice, play.moves, hits);
   const last = game.log[game.log.length - 1];
-  if (last && last.bot === '' && last.me !== '') last.bot = text;
-  else { game.moveNo++; game.log.push({ n: game.moveNo, me: '', bot: text }); }
-  decide({ k: 'move', p: 1, n: game.moveNo, s: before, after: plain(play.s), dice: [...game.dice], text, ply, forced: play.moves.length === 0 });
+  const joins = last && last.bot === '' && last.me !== '';
+  if (!joins) game.moveNo++;
+  decide({ k: 'move', p: 1, n: game.moveNo, s: before, after: plain(play.s), dice: [...game.dice], text, ply,
+    forced: play.moves.length === 0, moves: play.moves.map(m => [...m]), cube: { ...game.cube } });
+  if (joins) { last.bot = text; last.botD = lastDecision(); }
+  else game.log.push({ n: game.moveNo, me: '', bot: text, botD: lastDecision() });
   const d = `${game.dice[0]}${game.dice[1]}`;
   game.msg = play.moves.length ? T.botPlayed(d, text.split(': ')[1]) + ' ' + T.botTime(ply, ms) : T.botDanced(d);
   game.half++;
@@ -681,8 +814,8 @@ function matchNote() {
 const canDouble = p => !game.crawford && mayDouble(game.cube, p);
 
 // Kuution tapahtumat omalle rivilleen siirtolistaan.
-function logCube(me, bot) {
-  game.log.push({ n: '', me, bot });
+function logCube(me, bot, meD, botD) {
+  game.log.push({ n: '', me, bot, meD, botD });
 }
 
 // Luopuja saa kuution nykyarvon verran rangaistuspisteitä (Kaanon §2.4).
@@ -700,15 +833,16 @@ function humanDouble() {
   sound('cube');
   const next = game.cube.value * 2;
   cubeDecision(0, 'double');
+  const meD = lastDecision();
   const takes = botCube.take(game.s, 1, game.cube);
   takeDecision(1, takes ? 'take' : 'drop');
   if (!takes) {
-    logCube(T.logDouble(next), T.logDrop);
+    logCube(T.logDouble(next), T.logDrop, meD, lastDecision());
     endByDrop(1);
     return;
   }
   game.cube = { value: next, owner: 1 };
-  logCube(T.logDouble(next), T.logTake);
+  logCube(T.logDouble(next), T.logTake, meD, lastDecision());
   game.msg = T.botTook(next);
   render();
 }
@@ -718,7 +852,7 @@ function humanTake() {
   sound('cube');
   takeDecision(0, 'take');
   game.cube = { value: game.cube.value * 2, owner: 0 };
-  game.log[game.log.length - 1].me = T.logTake;
+  Object.assign(game.log[game.log.length - 1], { me: T.logTake, meD: lastDecision() });
   game.phase = 'bot';
   game.msg = T.youTook(game.cube.value);
   render();
@@ -728,7 +862,7 @@ function humanTake() {
 function humanDrop() {
   if (game.phase !== 'offer') return;
   takeDecision(0, 'drop');
-  game.log[game.log.length - 1].me = T.logDrop;
+  Object.assign(game.log[game.log.length - 1], { me: T.logDrop, meD: lastDecision() });
   endByDrop(0);
 }
 
@@ -927,6 +1061,11 @@ function drawArrows(L) {
   if (opts.arrows && game.turn === 0 && (game.phase === 'move')) {
     for (const [f, t] of game.partial) list.push({ f, t, own: true });
   }
+  if (game.phase === 'view' && game.viewMoves) {
+    for (const [f, t] of game.viewMoves) {
+      list.push(game.viewP === 0 ? { f, t, own: true } : { f: f === BAR ? BAR : 25 - f, t: t <= 0 ? 0 : 25 - t, own: false });
+    }
+  }
   if (opts.botArrows && game.turn === 0 && game.phase === 'roll' && game.botMoves) {
     for (const [f, t] of game.botMoves) list.push({ f: f === BAR ? BAR : 25 - f, t: t <= 0 ? 0 : 25 - t, own: false });
   }
@@ -1040,6 +1179,14 @@ for (const t of ['pointerup', 'pointercancel', 'pointerleave']) {
 }
 
 function render() {
+  // Valitun rivin asema piirretään näyttöoliosta. Peli itse jatkuu taustalla ennallaan.
+  const real = game, shown = viewGame();
+  if (shown) game = shown;
+  try { drawBoard(); } finally { game = real; }
+  renderStatus(!!shown);
+}
+
+function drawBoard() {
   svg.textContent = '';
   const s = game.s;
   const L = boardLook(prefs.style, isDark());
@@ -1105,13 +1252,22 @@ function render() {
   drawArrows(L);
   pressLayer = el('g', { 'pointer-events': 'none' });
   drawPress();
+}
 
+function renderStatus(isView) {
   const hint = game.turn === 0 && game.phase === 'move' && nextMoves().length === 0 ? T.confirm : '';
   $('status').textContent = game.msg + hint;
   const box = $('analysis');
   box.textContent = '';
-  if (game.over && finished !== game && !review) { finished = game; saveFinished(); }
-  if (game.over) renderSummary(box, game); else if (opts.analysis && game.lastNote) renderNote(box, game.lastNote);
+  if (game.over && finished !== game && !review) {
+    finished = game;
+    match.done = (match.done ?? 0) + 1; saveMatch();
+    saveFinished(); analyseRecord(played[0]);
+  }
+  if (isView) {
+    const x = selRec(), d = x.decisions[sel.d];
+    para(box, T.viewing(d.n, d.p === 0 ? T.static.you : T.static.bot, d.k === 'move' ? d.text : ''));
+  }
   if (game.mark) {
     const p = document.createElement('p');
     p.textContent = T.reviewMarkText(game.mark.text);
@@ -1142,12 +1298,17 @@ function render() {
   // Pelaajakortit pystylaudan ylä- ja alapuolella: botti ylhäällä, oma alhaalla.
   $('cardBot').textContent = T.card(T.static.bot, pen[1], game.turn === 1 && !game.over);
   $('cardMe').textContent = T.card(T.static.you, pen[0], game.turn === 0 && !game.over);
-  // Oman sarakkeen leveys pisimmästä siirrosta, jotta tuplat mahtuvat (siirtolista laudan alla).
-  const wMe = Math.max(16, ...game.log.map(r => r.me.length)) + 3;
-  $('log').textContent = game.log.map(r => `${r.n === '' ? '    ' : `${String(r.n).padStart(3)})`} ${r.me.padEnd(wMe)}${r.bot}`).join('\n');
-  $('log').scrollTop = 1e6;
+  // Tuodun ottelun selauksessa siirtolista on tekstinä Peli-paneelissa. Oman sarakkeen leveys
+  // pisimmästä siirrosta, jotta tuplat mahtuvat.
+  if (review) {
+    const wMe = Math.max(16, ...game.log.map(r => r.me.length)) + 3;
+    $('log').textContent = game.log.map(r => `${r.n === '' ? '    ' : `${String(r.n).padStart(3)})`} ${r.me.padEnd(wMe)}${r.bot}`).join('\n');
+    $('log').scrollTop = 1e6;
+  }
   $('review').hidden = !review;
-  $('actions').hidden = !!review;
+  $('actions').hidden = !!review || isView;
+  $('viewBar').hidden = !isView;
+  renderPanels();
   if (review) renderReview();
   if (document.activeElement !== $('xgid')) $('xgid').value = currentXGID();
 }
@@ -1200,6 +1361,7 @@ $('limit').addEventListener('change', e => {
   const progress = pen[0] + pen[1] > 0 || (game.half > 0 && !game.over);
   if (progress && !confirm(T.limitConfirm)) { e.target.value = String(match.limit); return; }
   match.limit = v; pen[0] = 0; pen[1] = 0; match.crawford = false;
+  startMatch();
   newGame();
 });
 
@@ -1239,10 +1401,11 @@ function loadXGID(text) {
 
 // Asema laudalle pelattavaksi: XGID tai tuodun ottelun asema. x on { s, cube, turn, dice }.
 function setPosition(x, logText, msg) {
+  sel = { when: null, d: null };
   game = {
     ...game, s: x.s, cube: x.cube, over: false, base: null, partial: [], partialDice: [], hitsMarks: [],
-    lastBot: [], botMoves: null, botUsed: [], lastNote: null, dice: x.dice, diceOwner: x.turn,
-    order: x.dice ? [...x.dice] : [], log: [...game.log, { n: '', me: logText, bot: '' }],
+    lastBot: [], botMoves: null, botUsed: [], dice: x.dice, diceOwner: x.turn,
+    order: x.dice ? [...x.dice] : [], log: [...game.log.map(({ n, me, bot }) => ({ n, me, bot })), { n: '', me: logText, bot: '' }],
     msg, when: Date.now(), limit: match.limit, decisions: [], stall: newStall(), turnAct: null,
   };
   if (x.turn === 0) {
@@ -1359,7 +1522,7 @@ function showStep() {
     dice: a?.kind === 'roll' && !stopped ? [...a.dice] : null, diceOwner: side === h ? 0 : 1,
     order: [], botUsed: [], partial: [], partialDice: [], hitsMarks: [], base: null, plays: null,
     lastBot: [], botMoves: null, log, moveNo: n, half: 0, errors: [], analysed: 0, totalLoss: 0,
-    lastNote: null, msg, mark: a?.mark ?? null,
+    msg, mark: a?.mark ?? null,
   };
   render();
 }
@@ -1443,6 +1606,13 @@ function applyLook() {
   const vars = { '--bg': P.background, '--panel': P.card, '--ink': P.text, '--muted': P.muted,
     '--frame': P.outline, '--accent': P.button, '--on-accent': P.onButton, '--link': P.accent };
   for (const [k, v] of Object.entries(vars)) root.setProperty(k, v);
+  // Peli-paneelin nappulamerkit laudan nappuloiden väreissä, Arvio-paneelin vihreä ja punainen
+  // ympäristön vaaleuden mukaan.
+  const L = boardLook(prefs.style, isDark());
+  root.setProperty('--dot-me', L.self.fill);
+  root.setProperty('--dot-bot', L.opp.fill);
+  root.setProperty('--good', P.light ? '#2b7a36' : '#7fd18b');
+  root.setProperty('--bad', P.light ? '#b3261e' : '#f2867c');
   document.documentElement.style.colorScheme = P.light ? 'light' : 'dark';
   document.body.classList.toggle('home-left', prefs.left);
   document.body.classList.toggle('portrait', prefs.portrait);
@@ -1538,6 +1708,12 @@ darkQuery?.addEventListener?.('change', () => { applyLook(); render(); });
 document.addEventListener('keydown', ev => {
   if (ev.target.closest?.('input, select, textarea') || ev.altKey || ev.metaKey) return;
   const key = ev.key.toLowerCase();
+  // Rivin aseman katselussa nuolet ylös ja alas askeltavat listaa ja Esc palaa peliin.
+  if (!review && sel.d !== null) {
+    if (key === 'escape') { ev.preventDefault(); resume(); }
+    else if (key === 'arrowdown' || key === 'arrowup') { ev.preventDefault(); stepSel(key === 'arrowdown' ? 1 : -1); }
+    if (viewing()) return;
+  }
   // Selauksessa nuolet askeltavat ja Home ja End vievät pelin alkuun ja loppuun.
   if (review && !ev.ctrlKey) {
     const moves = { arrowleft: review.i - 1, arrowright: review.i + 1, home: 0, end: review.steps.length - 1 };
@@ -1557,13 +1733,60 @@ document.addEventListener('keydown', ev => {
   } else if (key === 's') swapDice();
 });
 
+// Paneelien koko (Tommin toive 10.11.2026): sivusarakkeen ja Tulokset-paneelin leveys erottimesta
+// raahaamalla, paneelin korkeus sen oikeasta alakulmasta. Kaksoisklikkaus erottimeen palauttaa
+// oletusleveyden. Koot säilyvät selaimessa avaimella ab-paneelit.
+const sizes = store.get('ab-paneelit', {});
+const SIZED = ['gamePanel', 'evalPanel', 'resultsPanel', 'settingsPanel'];
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(Math.max(lo, hi), v));
+function applySizes() {
+  const root = document.documentElement.style;
+  if (sizes.side) root.setProperty('--side-w', `${sizes.side}px`); else root.removeProperty('--side-w');
+  if (sizes.res) root.setProperty('--res-w', `${sizes.res}px`); else root.removeProperty('--res-w');
+  for (const id of SIZED) $(id).style.height = sizes.h?.[id] ?? '';
+}
+function splitter(el, key, measure) {
+  el.addEventListener('pointerdown', ev => {
+    ev.preventDefault();
+    el.setPointerCapture(ev.pointerId);
+    el.classList.add('drag');
+    const move = e => { sizes[key] = Math.round(measure(e.clientX)); applySizes(); };
+    const up = () => {
+      el.classList.remove('drag');
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      store.set('ab-paneelit', sizes);
+    };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+  });
+  el.addEventListener('dblclick', () => { delete sizes[key]; applySizes(); store.set('ab-paneelit', sizes); });
+}
+splitter($('splitSide'), 'side', x => {
+  const b = document.querySelector('.layout').getBoundingClientRect();
+  return clamp(prefs.left ? x - b.left : b.right - x, 240, b.width - 360);
+});
+splitter($('splitBelow'), 'res', x => {
+  const b = document.querySelector('.below').getBoundingClientRect();
+  return clamp(x - b.left, 180, b.width - 240);
+});
+applySizes();
+// Selaimen oma koonmuutos kirjoittaa korkeuden elementin tyyliin. Se luetaan talteen.
+if (typeof ResizeObserver === 'function') {
+  const ro = new ResizeObserver(() => {
+    const h = {};
+    for (const id of SIZED) if ($(id).style.height) h[id] = $(id).style.height;
+    if (JSON.stringify(h) !== JSON.stringify(sizes.h ?? {})) { sizes.h = h; store.set('ab-paneelit', sizes); }
+  });
+  for (const id of SIZED) ro.observe($(id));
+}
+
 applyStatic();
 fillLimits();
 fillLook();
-fillPlayed();
 applyLook();
-$('lang').addEventListener('click', () => {
-  switchLang(); fillLimits(); fillLook(); fillPlayed();
+$('lang').addEventListener('change', e => {
+  setLang(e.target.value); fillLimits(); fillLook(); fillGameSel();
   if (review) { fillReview(); $('reviewGame').value = String(review.gi); showStep(); } else render();
 });
 newGame();

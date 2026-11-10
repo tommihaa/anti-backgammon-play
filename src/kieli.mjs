@@ -1,5 +1,6 @@
-// Selainlaudan tekstit suomeksi ja englanniksi. Kieli valitaan osoitteen ?lang=fi|en-parametrista,
-// sitten tallennetusta valinnasta ja lopuksi selaimen kielestä (suomi vain suomenkieliselle selaimelle).
+// Selainlaudan tekstit suomeksi, englanniksi, saksaksi ja ranskaksi. Kieli valitaan osoitteen
+// ?lang=fi|en|de|fr-parametrista, sitten tallennetusta valinnasta ja lopuksi selaimen kielestä
+// (muuten englanti).
 
 const fi = {
   points: n => (n === 1 ? 'rangaistuspisteen' : `${n} rangaistuspistettä`),
@@ -55,7 +56,7 @@ const fi = {
   soundsOn: 'Pelin äänet',
   sounds: { dice: 'Nopat', checker: 'Nappulat', cube: 'Tuplauskuutio', miss: 'Napautus pisteeseen, jolta ei voi siirtää', gong: 'Gongi seuraavalle pelille' },
   toggles: {
-    analysis: 'Näytä analyysi siirron jälkeen', forced: 'Aseta pakkosiirrot puolestani', arrows: 'Näytä nuolet omasta siirrosta',
+    analysis: 'Tutor-tila: näytä arvio jokaisen siirtoni jälkeen', forced: 'Aseta pakkosiirrot puolestani', arrows: 'Näytä nuolet omasta siirrosta',
     botArrows: 'Näytä nuolet botin siirrosta', press: 'Näytä painettu piste',
     diceSubmit: 'Vahvista siirto noppia klikkaamalla', diceSwap: 'Vaihda noppien järjestys klikkaamalla',
     diceRoll: 'Heitä klikkaamalla botin noppia', nextOnDice: 'Seuraava peli noppien paikalle',
@@ -71,17 +72,29 @@ const fi = {
   noteGood: (p, x) => `Siirtosi ${p}: hyvä (ero verkon parhaaseen ${x}).`,
   noteSame: p => `Siirtosi ${p}: sama kuin verkon paras.`,
   noteWait: p => `Siirtosi ${p}: analysoidaan.`,
-  topTitle: n => `Verkon ${n === 3 ? 'kolme' : 'kaksi'} parasta:`,
   plyLabel: 'Botin syvyys',
   plyOption: v => (v === 0 ? '0-ply (nopea)' : v === 1 ? '1-ply' : '2-ply (hidas)'),
   summaryTitle: 'Pelin analyysi',
   summaryNone: 'Analysoitavia siirtoja ei ollut.',
-  decisionsTitle: 'Siirrot ja kuutiopäätökset',
-  decisionsHelp: 'Voitto on siirtäjän todennäköisyys välttää ulos joutuminen ensin ilman kuutiota, verkon arviona pelin syvyydellä. Verkon valinta on sen paras siirto tai kuutiopäätös.',
-  decisionsHead: ['#', 'Pelaaja', 'Päätös', 'Voitto', 'Verkon valinta', 'Ero'],
   decisionsNone: 'Siirtokohtainen analyysi tallentuu peleistä, jotka on pelattu tämän päivityksen jälkeen.',
-  decisionsWait: (k, n) => `Analysoitu ${k} / ${n}.`,
-  noDouble: 'Ei tuplausta', forcedMove: 'pakkosiirto', sameBest: 'sama', cubeDiff: 'eri',
+  noDouble: 'Ei tuplausta', sameBest: 'sama', cubeDiff: 'eri',
+  gameOption: (no, score, d, l) => `${no ? `Peli ${no}` : 'Peli'}${score ? ` (${score[0]}–${score[1]})` : ''}, ${d ? fi.playedOption(d, l) : 'nykyinen'}`,
+  viewing: (n, who, t) => `Näet rivin ${n} aseman ennen päätöstä (${who}${t ? `: ${t}` : ''}). Palaa peliin napilla tai Esc-näppäimellä. Nuolet ylös ja alas selaavat rivejä.`,
+  evalReview: 'Tuodun ottelun selauksessa arviota ei näytetä.',
+  evalPick: 'Valitse siirto Peli-paneelin listasta nähdäksesi sen arvion.',
+  evalTutorOff: 'Tutor-tila on pois päältä, joten siirtojesi arvio näkyy pelin päätyttyä.',
+  evalNone: 'Arvio näkyy ensimmäisen siirtosi jälkeen.',
+  evalBotLater: 'Botin siirrot analysoidaan pelin päätyttyä.',
+  evalCubeLater: 'Kuutiopäätösten arvio näkyy pelin päätyttyä, jotta se ei kerro kesken pelin, kannattaako tuplata.',
+  evalTitle: (n, who, t) => `Siirto ${n}, ${who}: ${t}`,
+  evalForced: 'Pakkosiirto: vaihtoehtoja ei ollut.',
+  evalDance: 'Laillista siirtoa ei ollut.',
+  evalWait: 'Analysoidaan.',
+  evalHead: ['Siirto', 'Voitto', 'Equity', 'Ero'],
+  evalHelp: 'Voitto on siirtäjän todennäköisyys välttää ulos joutuminen ensin ilman kuutiota, verkon arviona pelin syvyydellä. Equity on 2 × voitto − 1. Ero on etäisyys verkon parhaaseen siirtoon.',
+  cubeHead: ['Päätös', 'Voitto', 'Verkon valinta', 'Vertailu'],
+  pr: v => v.toFixed(1).replace('.', ','), prNone: '–',
+  clearConfirm: 'Tyhjennetäänkö pelattujen pelien historia? Nykyinen peli ja ottelun pisteet säilyvät.',
   pct: x => `${(100 * x).toFixed(1).replace('.', ',')} %`,
   playedOption: (d, l) => `${d.toLocaleString('fi-FI', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}, ${l === null ? 'rahapeli' : `ottelu ${l}`}`,
   summary: (n, t, m, counts) => `Analysoituja siirtoja ${n}, virheiden summa ${t} equityä, keskimäärin ${m} siirtoa kohden. ${counts}.`,
@@ -91,14 +104,17 @@ const fi = {
     roll: 'Heitä', done: 'Valmis', undo: 'Kumoa', pass: 'Jatka', take: 'Ota vastaan', drop: 'Luovu',
     offerDraw: 'Tarjoa tasapeliä', acceptDraw: 'Hyväksy tasapeli', declineDraw: 'Kieltäydy',
     penalty: 'Rangaistuspisteet', match: 'Ottelu', you: 'Sinä', bot: 'Botti',
-    cube: 'Kuution arvo', row: 'Rivi', moves: 'Siirrot', playedTitle: 'Pelatut pelit', rules: 'Säännöt', board: 'Pelilauta',
+    cube: 'Kuution arvo', row: 'Rivi', rules: 'Säännöt', board: 'Pelilauta',
+    gamePanel: 'Peli', evalPanel: 'Arvio', resultsPanel: 'Tulokset', settingsPanel: 'Asetukset',
+    resume: 'Palaa peliin', clearHistory: 'Tyhjennä historia', gamesPlayed: 'Pelatut pelit',
+    matchPR: 'Ottelun PR', gamePR: 'Pelin PR',
     playing: 'Pelaaminen', resign: 'Luovuta', soundsTitle: 'Äänet',
     position: 'Asema (XGID)', xgidCopy: 'Kopioi', xgidSet: 'Aseta',
     importTitle: 'Tuo ottelu', importFileLabel: 'Tiedosto (.mat tai .sgf)', importPasteLabel: 'Tai liitä teksti',
     importGo: 'Tuo', reviewGameLabel: 'Peli', reviewYouLabel: 'Sinä', reviewMark: 'Seuraava merkki',
     reviewPlay: 'Jatka tästä', reviewClose: 'Sulje',
     look: 'Ulkoasu', styleLabel: 'Lauta', homeLabel: 'Kotialue', portraitLabel: 'Pystylauta kapealla ruudulla',
-    other: 'English',
+    langLabel: 'Kieli',
   },
 };
 
@@ -156,7 +172,7 @@ const en = {
   soundsOn: 'Game sounds',
   sounds: { dice: 'Dice', checker: 'Checkers', cube: 'Doubling cube', miss: "Tap on a point you can't move from", gong: 'Gong for the next game' },
   toggles: {
-    analysis: 'Show the analysis after my move', forced: 'Place forced checkers for me', arrows: 'Show arrows for my move',
+    analysis: 'Tutor mode: show the evaluation after each of my moves', forced: 'Place forced checkers for me', arrows: 'Show arrows for my move',
     botArrows: "Show arrows for the bot's move", press: "Show which point I'm pressing",
     diceSubmit: 'Submit the move by tapping the dice', diceSwap: 'Swap the dice by tapping them',
     diceRoll: "Roll by tapping the bot's dice", nextOnDice: 'Next game where the dice were',
@@ -172,17 +188,29 @@ const en = {
   noteGood: (p, x) => `Your move ${p}: good (${x} from the network's best).`,
   noteSame: p => `Your move ${p}: same as the network's best.`,
   noteWait: p => `Your move ${p}: analysing.`,
-  topTitle: n => `The network's top ${n === 3 ? 'three' : 'two'}:`,
   plyLabel: 'Bot depth',
   plyOption: v => (v === 0 ? '0-ply (fast)' : v === 1 ? '1-ply' : '2-ply (slow)'),
   summaryTitle: 'Game analysis',
   summaryNone: 'There were no moves to analyse.',
-  decisionsTitle: 'Moves and cube decisions',
-  decisionsHelp: "Win is the mover's chance of not being the first to leave, without the cube, as the network evaluates it at the game's depth. Network shows its best move or cube decision.",
-  decisionsHead: ['#', 'Player', 'Decision', 'Win', 'Network', 'Diff'],
   decisionsNone: 'The move-by-move analysis is stored for games played after this update.',
-  decisionsWait: (k, n) => `Analysed ${k} / ${n}.`,
-  noDouble: 'No double', forcedMove: 'forced', sameBest: 'same', cubeDiff: 'differs',
+  noDouble: 'No double', sameBest: 'same', cubeDiff: 'differs',
+  gameOption: (no, score, d, l) => `${no ? `Game ${no}` : 'Game'}${score ? ` (${score[0]}–${score[1]})` : ''}, ${d ? en.playedOption(d, l) : 'current'}`,
+  viewing: (n, who, t) => `You see the position of row ${n} before the decision (${who}${t ? `: ${t}` : ''}). Go back to the game with the button or Esc. The up and down arrows step through the rows.`,
+  evalReview: 'There is no evaluation while you browse an imported match.',
+  evalPick: 'Pick a move in the Game panel list to see its evaluation.',
+  evalTutorOff: 'Tutor mode is off, so the evaluation of your moves appears when the game ends.',
+  evalNone: 'The evaluation appears after your first move.',
+  evalBotLater: "The bot's moves are analysed when the game ends.",
+  evalCubeLater: 'Cube decisions are evaluated when the game ends, so that the evaluation does not tell you during the game whether to double.',
+  evalTitle: (n, who, t) => `Move ${n}, ${who}: ${t}`,
+  evalForced: 'Forced move: there were no alternatives.',
+  evalDance: 'There was no legal move.',
+  evalWait: 'Analysing.',
+  evalHead: ['Move', 'Win', 'Equity', 'Diff'],
+  evalHelp: "Win is the mover's chance of not being the first to leave, without the cube, as the network evaluates it at the game's depth. Equity is 2 × win − 1, and Diff is the distance to the network's best move.",
+  cubeHead: ['Decision', 'Win', 'Network', 'Comparison'],
+  pr: v => v.toFixed(1), prNone: '–',
+  clearConfirm: 'Clear the history of played games? The current game and the match score stay.',
   pct: x => `${(100 * x).toFixed(1)}%`,
   playedOption: (d, l) => `${d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}, ${l === null ? 'money game' : `match to ${l}`}`,
   summary: (n, t, m, counts) => `Moves analysed ${n}, total error ${t} equity, ${m} per move. ${counts}.`,
@@ -192,39 +220,279 @@ const en = {
     roll: 'Roll', done: 'Done', undo: 'Undo', pass: 'Continue', take: 'Take', drop: 'Pass',
     offerDraw: 'Offer a draw', acceptDraw: 'Accept the draw', declineDraw: 'Decline',
     penalty: 'Penalty points', match: 'Match', you: 'You', bot: 'Bot',
-    cube: 'Cube value', row: 'Row', moves: 'Moves', playedTitle: 'Played games', rules: 'Rules', board: 'Game board',
+    cube: 'Cube value', row: 'Row', rules: 'Rules', board: 'Game board',
+    gamePanel: 'Game', evalPanel: 'Evaluation', resultsPanel: 'Results', settingsPanel: 'Settings',
+    resume: 'Back to the game', clearHistory: 'Clear history', gamesPlayed: 'Games played',
+    matchPR: 'Match PR', gamePR: 'Game PR',
     playing: 'Playing', resign: 'Resign', soundsTitle: 'Sounds',
     position: 'Position (XGID)', xgidCopy: 'Copy', xgidSet: 'Set',
     importTitle: 'Import match', importFileLabel: 'File (.mat or .sgf)', importPasteLabel: 'Or paste the text',
     importGo: 'Import', reviewGameLabel: 'Game', reviewYouLabel: 'You', reviewMark: 'Next mark',
     reviewPlay: 'Play from here', reviewClose: 'Close',
     look: 'Appearance', styleLabel: 'Board', homeLabel: 'Home board', portraitLabel: 'Portrait board on a narrow screen',
-    other: 'Suomi',
+    langLabel: 'Language',
   },
 };
 
-function pick() {
-  const q = new URLSearchParams(location.search).get('lang');
-  if (q === 'fi' || q === 'en') return q;
-  try { const s = localStorage.getItem('ab-kieli'); if (s === 'fi' || s === 'en') return s; } catch { /* ei tallennusta */ }
-  return (navigator.language ?? '').toLowerCase().startsWith('fi') ? 'fi' : 'en';
-}
+// Saksa ja ranska (Tommin tilaus 10.11.2026). Ranskassa kaksoispisteen, kysymysmerkin ja
+// prosenttimerkin edessä on sitova välilyönti ( ) ranskan typografian mukaan.
+const comma = (x, k) => x.toFixed(k).replace('.', ',');
+const NB = ' ';
 
-// Kielinapin lippu on sen kielen, johon nappi vaihtaa. Liput ovat SVG:nä, koska Windows ei
-// piirrä lippuemojeja vaan näyttää kirjaimet.
-const FLAGS = {
-  fi: '<svg viewBox="0 0 18 11" width="22" height="13" aria-hidden="true"><rect width="18" height="11" fill="#fff"/><rect x="5" width="3" height="11" fill="#002f6c"/><rect y="4" width="18" height="3" fill="#002f6c"/></svg>',
-  en: '<svg viewBox="0 0 60 30" width="26" height="13" aria-hidden="true"><clipPath id="uk-t"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><rect width="60" height="30" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#uk-t)" stroke="#c8102e" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#c8102e" stroke-width="6"/></svg>',
+const de = {
+  points: n => (n === 1 ? 'einen Strafpunkt' : `${n} Strafpunkte`),
+  opening: (a, b, meFirst, crawford) => `Eröffnungswurf: du ${a}, Bot ${b}. `
+    + (meFirst ? 'Du beginnst.' : 'Der Bot beginnt.')
+    + (crawford ? ' Crawford-Spiel: In diesem Spiel gibt es keinen Dopplerwürfel.' : ''),
+  noLegal: d => `Du hast ${d} gewürfelt. Es gibt keinen legalen Zug.`,
+  youRolled: d => `Du hast ${d} gewürfelt.`,
+  botThinking: 'Der Bot überlegt.',
+  botDoubles: (v, pts) => `Der Bot verdoppelt auf ${v}. Nimmst du an? Wenn du ablehnst, bekommst du ${pts}.`,
+  botPlayed: (d, m) => `Der Bot würfelte ${d} und zog ${m}.`,
+  botDanced: d => `Der Bot würfelte ${d} und konnte nicht ziehen.`,
+  botTime: (ply, ms) => `Die ${ply}-ply-Suche dauerte ${comma(ms / 1000, 1)} s.`,
+  draw: rows => `${rows} Reihen gespielt: Das Spiel endet remis. Niemand bekommt Strafpunkte.`,
+  crawfordReplay: 'Das Crawford-Spiel wird ohne Dopplerwürfel wiederholt.',
+  drawAgreed: 'Remis vereinbart. Niemand bekommt Strafpunkte.',
+  botOffersDraw: 'Der Bot bietet ein Remis an. Nimmst du an? Dann bekommt niemand Strafpunkte.',
+  botDeclinedDraw: 'Der Bot hat das Remis abgelehnt. Würfle.',
+  youDeclinedDraw: 'Du hast das Remis abgelehnt. Der Bot überlegt.',
+  youExited: pts => `Du hast deinen letzten Stein abgetragen. Du bekommst ${pts}.`,
+  botExited: pts => `Der Bot hat seinen letzten Stein abgetragen und bekommt ${pts}. Du hast das Spiel gewonnen.`,
+  matchLost: (l, a, b) => ` Du hast ${l} erreicht und das Match ${a}–${b} verloren.`,
+  matchWon: (l, a, b) => ` Der Bot hat ${l} erreicht. Du hast das Match ${a}–${b} gewonnen.`,
+  youDropped: pts => `Du hast das Spiel verlassen. Du bekommst ${pts}.`,
+  botDropped: pts => `Der Bot lehnt ab und bekommt ${pts}. Du hast das Spiel gewonnen.`,
+  botTook: v => `Der Bot nimmt an. Der Würfel steht jetzt auf ${v}. Würfle.`,
+  youTook: v => `Du hast angenommen. Der Würfel steht jetzt auf ${v}. Der Bot überlegt.`,
+  logDouble: v => `Verdoppelt ${v}`, logTake: 'Nimmt an', logDrop: 'Lehnt ab', logResign: 'Gibt auf',
+  logOfferDraw: 'Bietet Remis an', logAccept: 'Nimmt an', logDecline: 'Lehnt ab',
+  confirm: ' Bestätige den Zug mit Fertig.',
+  card: (name, p, turn) => `${name}${turn ? ' (am Zug)' : ''}: ${p} ${p === 1 ? 'Strafpunkt' : 'Strafpunkte'}`,
+  styles: { x22: 'Monte Carlo X-22', mcVariant: 'Monte Carlo variant', deco: 'Deco', maple: 'Ahorn',
+    walnut: 'Nussbaum', oakLeather: 'Eiche und Leder', olive: 'Olive' },
+  home: { right: 'rechts', left: 'links' },
+  resignConfirm: pts => `Dieses Spiel aufgeben? Du bekommst ${pts}.`,
+  xgidBad: 'Das ist keine gültige XGID.', xgidLoaded: 'Stellung aus der ID gesetzt.',
+  xgidCopied: 'In die Zwischenablage kopiert.', xgidSelect: 'Kopiere den markierten Text mit Strg+C.',
+  logImport: 'Stellung aus XGID',
+  importBad: 'Im Text wurde kein Match gefunden. Der Import liest einen DailyGammon-Export (.mat) und eine .sgf-Datei.',
+  importLoaded: (a, b, n) => `Match ${a} gegen ${b} importiert, ${n} ${n === 1 ? 'Spiel' : 'Spiele'}.`,
+  reviewBusy: 'Warte, bis der Bot gezogen hat, und importiere dann.',
+  reviewGameOption: (k, a, b, marked) => `Spiel ${k} (${a}-${b})${marked ? ' ✱' : ''}`,
+  reviewStep: (i, n) => `Stellung ${i} / ${n}.`,
+  reviewNext: (name, act) => `Als Nächstes ${name}: ${act}.`,
+  reviewEnd: 'Das Spiel ist zu Ende.',
+  reviewWins: n => `Gewinnt ${n} (laut Datei)`,
+  reviewDance: 'kein Zug',
+  reviewStopped: 'Dieses Spiel beginnt nicht aus der normalen Anfangsstellung (Nackgammon oder Double Repeat), daher kann es ab hier nicht nachgespielt werden.',
+  reviewMarkText: t => `Notiz: ${t}`,
+  reviewNoMark: 'Keine weiteren markierten Stellungen.',
+  reviewPlaying: 'Du spielst aus der importierten Stellung gegen den Bot weiter.',
+  logReview: 'Stellung aus importiertem Match',
+  soundsOn: 'Spielgeräusche',
+  sounds: { dice: 'Würfel', checker: 'Steine', cube: 'Dopplerwürfel', miss: 'Tippen auf einen Punkt ohne möglichen Zug', gong: 'Gong für das nächste Spiel' },
+  toggles: {
+    analysis: 'Tutor-Modus: Bewertung nach jedem meiner Züge zeigen', forced: 'Erzwungene Teilzüge für mich setzen', arrows: 'Pfeile für meinen Zug zeigen',
+    botArrows: 'Pfeile für den Zug des Bots zeigen', press: 'Gedrückten Punkt zeigen',
+    diceSubmit: 'Zug durch Tippen auf die Würfel bestätigen', diceSwap: 'Würfel durch Tippen tauschen',
+    diceRoll: 'Durch Tippen auf die Würfel des Bots würfeln', nextOnDice: 'Nächstes Spiel an der Stelle der Würfel',
+  },
+  newMatch: 'Neues Match', nextGame: 'Nächstes Spiel',
+  double: v => `Verdoppeln (${v})`, crawfordCube: 'Crawford-Spiel, kein Würfel',
+  penScore: (p, l) => (l === null ? String(p) : `${p} / ${l}`),
+  limitOption: l => (l === null ? 'Geldspiel' : l === 1 ? '1 Punkt' : `${l} Punkte`),
+  limitConfirm: 'Eine neue Länge beginnt ein neues Match, und der aktuelle Stand geht verloren. Fortfahren?',
+  levels: ['grober Fehler', 'Fehler', 'ungenau'],
+  num: x => comma(x, 3),
+  noteBad: (p, lv, x) => `Dein Zug ${p}: ${lv} (${x} hinter dem besten Zug des Netzes).`,
+  noteGood: (p, x) => `Dein Zug ${p}: gut (${x} hinter dem besten Zug des Netzes).`,
+  noteSame: p => `Dein Zug ${p}: gleich dem besten Zug des Netzes.`,
+  noteWait: p => `Dein Zug ${p}: wird analysiert.`,
+  plyLabel: 'Suchtiefe des Bots',
+  plyOption: v => (v === 0 ? '0-ply (schnell)' : v === 1 ? '1-ply' : '2-ply (langsam)'),
+  summaryTitle: 'Spielanalyse',
+  summaryNone: 'Es gab keine Züge zu analysieren.',
+  decisionsNone: 'Die Analyse pro Zug wird für Spiele gespeichert, die nach diesem Update gespielt wurden.',
+  noDouble: 'Keine Verdopplung', sameBest: 'gleich', cubeDiff: 'abweichend',
+  gameOption: (no, score, d, l) => `${no ? `Spiel ${no}` : 'Spiel'}${score ? ` (${score[0]}–${score[1]})` : ''}, ${d ? de.playedOption(d, l) : 'aktuell'}`,
+  viewing: (n, who, t) => `Du siehst die Stellung von Reihe ${n} vor der Entscheidung (${who}${t ? `: ${t}` : ''}). Mit der Schaltfläche oder Esc kehrst du zum Spiel zurück. Die Pfeiltasten nach oben und unten blättern durch die Reihen.`,
+  evalReview: 'Beim Durchsehen eines importierten Matches gibt es keine Bewertung.',
+  evalPick: 'Wähle einen Zug in der Liste des Spiel-Panels, um seine Bewertung zu sehen.',
+  evalTutorOff: 'Der Tutor-Modus ist aus, daher erscheint die Bewertung deiner Züge am Spielende.',
+  evalNone: 'Die Bewertung erscheint nach deinem ersten Zug.',
+  evalBotLater: 'Die Züge des Bots werden am Spielende analysiert.',
+  evalCubeLater: 'Würfelentscheidungen werden am Spielende bewertet, damit die Bewertung während des Spiels nicht verrät, ob sich eine Verdopplung lohnt.',
+  evalTitle: (n, who, t) => `Zug ${n}, ${who}: ${t}`,
+  evalForced: 'Erzwungener Zug: Es gab keine Alternativen.',
+  evalDance: 'Es gab keinen legalen Zug.',
+  evalWait: 'Wird analysiert.',
+  evalHead: ['Zug', 'Sieg', 'Equity', 'Diff.'],
+  evalHelp: 'Sieg ist die Wahrscheinlichkeit des Ziehenden, nicht als Erster das Spiel zu verlassen, ohne Würfel und nach der Bewertung des Netzes in der Suchtiefe des Spiels. Equity ist 2 × Sieg − 1. Diff. ist der Abstand zum besten Zug des Netzes.',
+  cubeHead: ['Entscheidung', 'Sieg', 'Netz', 'Vergleich'],
+  pr: v => comma(v, 1), prNone: '–',
+  clearConfirm: 'Den Verlauf der gespielten Spiele löschen? Das aktuelle Spiel und der Matchstand bleiben erhalten.',
+  pct: x => `${comma(100 * x, 1)} %`,
+  playedOption: (d, l) => `${d.toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}, ${l === null ? 'Geldspiel' : `Match bis ${l}`}`,
+  summary: (n, t, m, counts) => `Analysierte Züge ${n}, Fehlersumme ${t} Equity, ${m} pro Zug. ${counts}.`,
+  summaryItem: (n, p, x) => `Zug ${n}, ${p}: ${x}. Die besten Züge des Netzes:`,
+  static: {
+    sub: 'Backgammon, bei dem der Erste, der das Spiel verlässt, einen Strafpunkt bekommt. Dein Gegner ist ein neuronales Netz, mit Dopplerwürfel.',
+    roll: 'Würfeln', done: 'Fertig', undo: 'Rückgängig', pass: 'Weiter', take: 'Annehmen', drop: 'Ablehnen',
+    offerDraw: 'Remis anbieten', acceptDraw: 'Remis annehmen', declineDraw: 'Ablehnen',
+    penalty: 'Strafpunkte', match: 'Match', you: 'Du', bot: 'Bot',
+    cube: 'Würfelwert', row: 'Reihe', rules: 'Regeln', board: 'Spielbrett',
+    gamePanel: 'Spiel', evalPanel: 'Bewertung', resultsPanel: 'Ergebnisse', settingsPanel: 'Einstellungen',
+    resume: 'Zurück zum Spiel', clearHistory: 'Verlauf löschen', gamesPlayed: 'Gespielte Spiele',
+    matchPR: 'Match-PR', gamePR: 'Spiel-PR',
+    playing: 'Spielen', resign: 'Aufgeben', soundsTitle: 'Töne',
+    position: 'Stellung (XGID)', xgidCopy: 'Kopieren', xgidSet: 'Setzen',
+    importTitle: 'Match importieren', importFileLabel: 'Datei (.mat oder .sgf)', importPasteLabel: 'Oder Text einfügen',
+    importGo: 'Importieren', reviewGameLabel: 'Spiel', reviewYouLabel: 'Du', reviewMark: 'Nächste Markierung',
+    reviewPlay: 'Von hier spielen', reviewClose: 'Schließen',
+    look: 'Aussehen', styleLabel: 'Brett', homeLabel: 'Heimfeld', portraitLabel: 'Hochformat auf schmalem Bildschirm',
+    langLabel: 'Sprache',
+  },
 };
 
+const fr = {
+  points: n => (n === 1 ? 'un point de pénalité' : `${n} points de pénalité`),
+  opening: (a, b, meFirst, crawford) => `Lancer d'ouverture${NB}: vous ${a}, bot ${b}. `
+    + (meFirst ? 'Vous commencez.' : 'Le bot commence.')
+    + (crawford ? ` Partie Crawford${NB}: pas de videau dans cette partie.` : ''),
+  noLegal: d => `Vous avez obtenu ${d}. Aucun coup légal.`,
+  youRolled: d => `Vous avez obtenu ${d}.`,
+  botThinking: 'Le bot réfléchit.',
+  botDoubles: (v, pts) => `Le bot double à ${v}. Acceptez-vous${NB}? Si vous refusez, vous recevez ${pts}.`,
+  botPlayed: (d, m) => `Le bot a obtenu ${d} et a joué ${m}.`,
+  botDanced: d => `Le bot a obtenu ${d} et n'a pas pu jouer.`,
+  botTime: (ply, ms) => `La recherche ${ply}-ply a pris ${comma(ms / 1000, 1)}${NB}s.`,
+  draw: rows => `${rows} rangées jouées${NB}: la partie est nulle. Personne ne reçoit de points de pénalité.`,
+  crawfordReplay: 'La partie Crawford est rejouée sans videau.',
+  drawAgreed: 'Partie nulle acceptée. Personne ne reçoit de points de pénalité.',
+  botOffersDraw: `Le bot propose la nulle. Acceptez-vous${NB}? Personne ne recevrait alors de points de pénalité.`,
+  botDeclinedDraw: 'Le bot a refusé la nulle. Lancez les dés.',
+  youDeclinedDraw: 'Vous avez refusé la nulle. Le bot réfléchit.',
+  youExited: pts => `Vous avez sorti votre dernière dame. Vous recevez ${pts}.`,
+  botExited: pts => `Le bot a sorti sa dernière dame et reçoit ${pts}. Vous avez gagné la partie.`,
+  matchLost: (l, a, b) => ` Vous avez atteint ${l} et perdu le match ${a}–${b}.`,
+  matchWon: (l, a, b) => ` Le bot a atteint ${l}. Vous avez gagné le match ${a}–${b}.`,
+  youDropped: pts => `Vous avez quitté la partie. Vous recevez ${pts}.`,
+  botDropped: pts => `Le bot refuse et reçoit ${pts}. Vous avez gagné la partie.`,
+  botTook: v => `Le bot accepte. Le videau est maintenant à ${v}. Lancez les dés.`,
+  youTook: v => `Vous avez accepté. Le videau est maintenant à ${v}. Le bot réfléchit.`,
+  logDouble: v => `Double ${v}`, logTake: 'Accepte', logDrop: 'Refuse', logResign: 'Abandonne',
+  logOfferDraw: 'Propose la nulle', logAccept: 'Accepte', logDecline: 'Refuse',
+  confirm: ' Confirmez le coup avec Terminé.',
+  card: (name, p, turn) => `${name}${turn ? ' (au trait)' : ''}${NB}: ${p} ${p <= 1 ? 'point de pénalité' : 'points de pénalité'}`,
+  styles: { x22: 'Monte Carlo X-22', mcVariant: 'Monte Carlo variant', deco: 'Deco', maple: 'Érable',
+    walnut: 'Noyer', oakLeather: 'Chêne et cuir', olive: 'Olivier' },
+  home: { right: 'à droite', left: 'à gauche' },
+  resignConfirm: pts => `Abandonner cette partie${NB}? Vous recevez ${pts}.`,
+  xgidBad: "Ce n'est pas un XGID valide.", xgidLoaded: "Position définie à partir de l'ID.",
+  xgidCopied: 'Copié dans le presse-papiers.', xgidSelect: 'Copiez le texte sélectionné avec Ctrl+C.',
+  logImport: 'Position depuis XGID',
+  importBad: "Aucun match trouvé dans le texte. L'import lit un export DailyGammon (.mat) et un fichier .sgf.",
+  importLoaded: (a, b, n) => `Match ${a} contre ${b} importé, ${n} ${n === 1 ? 'partie' : 'parties'}.`,
+  reviewBusy: 'Attendez que le bot ait joué, puis importez.',
+  reviewGameOption: (k, a, b, marked) => `Partie ${k} (${a}-${b})${marked ? ' ✱' : ''}`,
+  reviewStep: (i, n) => `Position ${i} / ${n}.`,
+  reviewNext: (name, act) => `Ensuite ${name}${NB}: ${act}.`,
+  reviewEnd: 'La partie est terminée.',
+  reviewWins: n => `Gagne ${n} (selon le fichier)`,
+  reviewDance: 'pas de coup',
+  reviewStopped: "Cette partie ne commence pas à la position initiale habituelle (nackgammon ou double repeat), elle ne peut donc pas être rejouée à partir d'ici.",
+  reviewMarkText: t => `Note${NB}: ${t}`,
+  reviewNoMark: 'Plus de positions marquées.',
+  reviewPlaying: 'Vous continuez contre le bot depuis la position importée.',
+  logReview: 'Position du match importé',
+  soundsOn: 'Sons du jeu',
+  sounds: { dice: 'Dés', checker: 'Dames', cube: 'Videau', miss: 'Toucher une case sans coup possible', gong: 'Gong pour la partie suivante' },
+  toggles: {
+    analysis: `Mode tuteur${NB}: afficher l'évaluation après chacun de mes coups`, forced: 'Placer les déplacements forcés pour moi', arrows: 'Afficher les flèches de mon coup',
+    botArrows: 'Afficher les flèches du coup du bot', press: 'Afficher la case touchée',
+    diceSubmit: 'Confirmer le coup en touchant les dés', diceSwap: 'Inverser les dés en les touchant',
+    diceRoll: 'Lancer en touchant les dés du bot', nextOnDice: 'Partie suivante à la place des dés',
+  },
+  newMatch: 'Nouveau match', nextGame: 'Partie suivante',
+  double: v => `Doubler (${v})`, crawfordCube: 'Partie Crawford, pas de videau',
+  penScore: (p, l) => (l === null ? String(p) : `${p} / ${l}`),
+  limitOption: l => (l === null ? "Partie d'argent" : l === 1 ? '1 point' : `${l} points`),
+  limitConfirm: `Une nouvelle longueur commence un nouveau match, et le score actuel est perdu. Continuer${NB}?`,
+  levels: ['grosse erreur', 'erreur', 'douteux'],
+  num: x => comma(x, 3),
+  noteBad: (p, lv, x) => `Votre coup ${p}${NB}: ${lv} (${x} derrière le meilleur coup du réseau).`,
+  noteGood: (p, x) => `Votre coup ${p}${NB}: bon (${x} derrière le meilleur coup du réseau).`,
+  noteSame: p => `Votre coup ${p}${NB}: identique au meilleur coup du réseau.`,
+  noteWait: p => `Votre coup ${p}${NB}: analyse en cours.`,
+  plyLabel: 'Profondeur du bot',
+  plyOption: v => (v === 0 ? '0-ply (rapide)' : v === 1 ? '1-ply' : '2-ply (lent)'),
+  summaryTitle: 'Analyse de la partie',
+  summaryNone: "Il n'y avait aucun coup à analyser.",
+  decisionsNone: "L'analyse coup par coup est enregistrée pour les parties jouées après cette mise à jour.",
+  noDouble: 'Pas de double', sameBest: 'identique', cubeDiff: 'différent',
+  gameOption: (no, score, d, l) => `${no ? `Partie ${no}` : 'Partie'}${score ? ` (${score[0]}–${score[1]})` : ''}, ${d ? fr.playedOption(d, l) : 'actuelle'}`,
+  viewing: (n, who, t) => `Vous voyez la position de la rangée ${n} avant la décision (${who}${t ? `${NB}: ${t}` : ''}). Revenez à la partie avec le bouton ou Échap. Les touches fléchées haut et bas parcourent les rangées.`,
+  evalReview: "Pas d'évaluation pendant la consultation d'un match importé.",
+  evalPick: 'Choisissez un coup dans la liste du panneau Partie pour voir son évaluation.',
+  evalTutorOff: "Le mode tuteur est désactivé, l'évaluation de vos coups apparaît donc à la fin de la partie.",
+  evalNone: "L'évaluation apparaît après votre premier coup.",
+  evalBotLater: 'Les coups du bot sont analysés à la fin de la partie.',
+  evalCubeLater: "Les décisions de videau sont évaluées à la fin de la partie, pour que l'évaluation ne vous dise pas en cours de partie s'il faut doubler.",
+  evalTitle: (n, who, t) => `Coup ${n}, ${who}${NB}: ${t}`,
+  evalForced: `Coup forcé${NB}: il n'y avait pas d'alternative.`,
+  evalDance: "Il n'y avait aucun coup légal.",
+  evalWait: 'Analyse en cours.',
+  evalHead: ['Coup', 'Victoire', 'Équité', 'Écart'],
+  evalHelp: "Victoire est la probabilité pour le joueur au trait de ne pas quitter la partie le premier, sans videau, selon l'évaluation du réseau à la profondeur de la partie. L'équité vaut 2 × victoire − 1. L'écart est la distance au meilleur coup du réseau.",
+  cubeHead: ['Décision', 'Victoire', 'Réseau', 'Comparaison'],
+  pr: v => comma(v, 1), prNone: '–',
+  clearConfirm: `Effacer l'historique des parties jouées${NB}? La partie en cours et le score du match sont conservés.`,
+  pct: x => `${comma(100 * x, 1)}${NB}%`,
+  playedOption: (d, l) => `${d.toLocaleString('fr-FR', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}, ${l === null ? "partie d'argent" : `match en ${l}`}`,
+  summary: (n, t, m, counts) => `Coups analysés ${n}, erreur totale ${t} d'équité, ${m} par coup. ${counts}.`,
+  summaryItem: (n, p, x) => `Coup ${n}, ${p}${NB}: ${x}. Les meilleurs coups du réseau${NB}:`,
+  static: {
+    sub: 'Un backgammon où le premier joueur à quitter la partie reçoit un point de pénalité. Votre adversaire est un réseau de neurones, avec le videau.',
+    roll: 'Lancer', done: 'Terminé', undo: 'Annuler', pass: 'Continuer', take: 'Accepter', drop: 'Refuser',
+    offerDraw: 'Proposer la nulle', acceptDraw: 'Accepter la nulle', declineDraw: 'Refuser',
+    penalty: 'Points de pénalité', match: 'Match', you: 'Vous', bot: 'Bot',
+    cube: 'Valeur du videau', row: 'Rangée', rules: 'Règles', board: 'Plateau de jeu',
+    gamePanel: 'Partie', evalPanel: 'Évaluation', resultsPanel: 'Résultats', settingsPanel: 'Réglages',
+    resume: 'Retour à la partie', clearHistory: "Effacer l'historique", gamesPlayed: 'Parties jouées',
+    matchPR: 'PR du match', gamePR: 'PR de la partie',
+    playing: 'Jeu', resign: 'Abandonner', soundsTitle: 'Sons',
+    position: 'Position (XGID)', xgidCopy: 'Copier', xgidSet: 'Appliquer',
+    importTitle: 'Importer un match', importFileLabel: 'Fichier (.mat ou .sgf)', importPasteLabel: 'Ou collez le texte',
+    importGo: 'Importer', reviewGameLabel: 'Partie', reviewYouLabel: 'Vous', reviewMark: 'Marque suivante',
+    reviewPlay: "Jouer à partir d'ici", reviewClose: 'Fermer',
+    look: 'Apparence', styleLabel: 'Plateau', homeLabel: 'Jan intérieur', portraitLabel: 'Plateau vertical sur écran étroit',
+    langLabel: 'Langue',
+  },
+};
+
+const LANGS = { fi, en, de, fr };
+// Kielivalikon nimet kunkin kielen omalla kielellä.
+export const LANG_NAMES = { fi: 'Suomi', en: 'English', de: 'Deutsch', fr: 'Français' };
+const known = c => typeof c === 'string' && Object.hasOwn(LANGS, c);
+
+function pick() {
+  const q = new URLSearchParams(location.search).get('lang');
+  if (known(q)) return q;
+  try { const s = localStorage.getItem('ab-kieli'); if (known(s)) return s; } catch { /* ei tallennusta */ }
+  const nav = (navigator.language ?? '').toLowerCase().slice(0, 2);
+  return known(nav) ? nav : 'en';
+}
+
 export let LANG = pick();
-export let T = LANG === 'fi' ? fi : en;
+export let T = LANGS[LANG];
 
 // Vaihtaa kielen lennossa, jotta kesken oleva peli säilyy. Jo näytetty tilaviesti jää vanhalle
 // kielelle seuraavaan tapahtumaan asti.
-export function switchLang() {
-  LANG = LANG === 'fi' ? 'en' : 'fi';
-  T = LANG === 'fi' ? fi : en;
+export function setLang(code) {
+  if (!known(code)) return;
+  LANG = code;
+  T = LANGS[code];
   try { localStorage.setItem('ab-kieli', LANG); } catch { /* ei tallennusta */ }
   applyStatic();
 }
@@ -235,5 +503,17 @@ export function applyStatic() {
   for (const e of document.querySelectorAll('[data-t]')) e.textContent = T.static[e.dataset.t];
   for (const e of document.querySelectorAll('[data-lang]')) e.hidden = e.dataset.lang !== LANG;
   document.getElementById('board').setAttribute('aria-label', T.static.board);
-  document.getElementById('flag').innerHTML = FLAGS[LANG === 'fi' ? 'en' : 'fi'];
+  document.getElementById('gameSel').setAttribute('aria-label', T.static.gamePanel);
+  const sel = document.getElementById('lang');
+  if (!sel.options.length) {
+    for (const [code, name] of Object.entries(LANG_NAMES)) {
+      const o = document.createElement('option');
+      o.value = code;
+      o.lang = code;
+      o.textContent = name;
+      sel.appendChild(o);
+    }
+  }
+  sel.value = LANG;
+  sel.setAttribute('aria-label', T.static.langLabel);
 }
