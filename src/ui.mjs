@@ -1740,7 +1740,7 @@ document.addEventListener('keydown', ev => {
 // leveydet sekä paneelien korkeudet, jotta tabletin säätö ei muuta pöytäkoneen asettelua.
 // Paneeli siirtyy otsikosta raahaamalla, leveys erottimesta ja korkeus paneelin oikeasta
 // alakulmasta. Kaksoisklikkaus erottimeen palauttaa oletusleveyden. Asetukset-paneelia ei voi
-// piilottaa, koska piilotus perutaan siellä. Tila on selaimessa avaimella ab-asettelu. Vanha
+// piilottaa, koska siinä ovat pelin asetukset. Säätö toimii vain muokkaustilassa (alempana). Tila on selaimessa avaimella ab-asettelu. Vanha
 // avain ab-paneelit (yksi asettelu kaikille muodoille) jätetään lukematta.
 const PANELS = ['gamePanel', 'evalPanel', 'resultsPanel', 'settingsPanel'];
 const HIDEABLE = ['gamePanel', 'evalPanel', 'resultsPanel'];
@@ -1827,6 +1827,7 @@ function belowSplit(id) {
 }
 function splitter(el, set, reset) {
   el.addEventListener('pointerdown', ev => {
+    if (!editing) return;
     ev.preventDefault();
     el.setPointerCapture(ev.pointerId);
     el.classList.add('drag');
@@ -1840,7 +1841,7 @@ function splitter(el, set, reset) {
     el.addEventListener('pointermove', move);
     el.addEventListener('pointerup', up);
   });
-  el.addEventListener('dblclick', () => { reset(); applyLayout(); saveLayout(); });
+  el.addEventListener('dblclick', () => { if (!editing) return; reset(); applyLayout(); saveLayout(); });
 }
 splitter($('splitSide'), x => {
   const b = document.querySelector('.layout').getBoundingClientRect();
@@ -1875,7 +1876,7 @@ function dropAt(id, x, y) {
 for (const id of PANELS) {
   const head = $(id).querySelector('h2');
   head.addEventListener('pointerdown', ev => {
-    if (ev.button !== 0 || window.matchMedia('(max-width: 760px)').matches) return;
+    if (!editing || ev.button !== 0 || window.matchMedia('(max-width: 760px)').matches) return;
     // Kuuntelu on ikkunassa eikä osoittimen kaappauksella, koska paneelin siirto DOMissa
     // vapauttaa kaappauksen ja pudotus jäisi kuulematta.
     const x0 = ev.clientX, y0 = ev.clientY;
@@ -1907,29 +1908,62 @@ for (const id of PANELS) {
   });
 }
 
-// Ulkoasu-kohdan asetteluosa: näytön muoto, paneelien näkyvyys ja oletuksen palautus.
+// Muokkauspalkin asetteluosa: näytön muoto, piilotetut paneelit ja oletuksen palautus.
+// Muokkaustila (Tommin valinta 10.11.2026): asettelu on lukittu, kunnes yläreunan Muokkaa
+// asettelua avaa sen. Tila ei tallennu, joten sivu aukeaa aina lukittuna. Muokkauspalkissa ovat
+// näytön muoto, piilotetut paneelit palautusnappeineen ja oletuksen palautus.
+let editing = false;
+function setEditing(on) {
+  editing = on;
+  document.body.classList.toggle('editing', on);
+  $('editBar').hidden = !on;
+  $('editLayout').textContent = on ? T.editDone : T.editLayout;
+  $('editLayout').setAttribute('aria-pressed', String(on));
+}
+const setHidden = (id, hide) => {
+  lay.hidden = hide ? [...new Set([...lay.hidden, id])] : lay.hidden.filter(o => o !== id);
+  applyLayout();
+  fillLayout();
+  saveLayout();
+};
+for (const id of HIDEABLE) {
+  const b = document.createElement('button');
+  b.className = 'hide-btn';
+  b.textContent = '×';
+  b.dataset.hide = id;
+  b.addEventListener('click', () => setHidden(id, true));
+  $(id).appendChild(b);
+}
 function fillLayout() {
+  $('editLayout').textContent = editing ? T.editDone : T.editLayout;
   $('shapeMsg').textContent = T.layoutShape(T.shapes[shape]);
-  const box = $('panelToggles');
-  box.textContent = '';
   for (const id of HIDEABLE) {
-    const label = document.createElement('label');
-    label.className = 'wide';
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.checked = visible(id);
-    input.dataset.panel = id;
-    input.addEventListener('change', () => {
-      lay.hidden = input.checked ? lay.hidden.filter(o => o !== id) : [...lay.hidden, id];
-      applyLayout();
-      saveLayout();
-    });
-    const span = document.createElement('span');
-    span.textContent = T.showPanel(T.static[id]);
-    label.append(input, span);
-    box.appendChild(label);
+    const b = $(id).querySelector('.hide-btn');
+    b.title = T.hidePanel(T.static[id]);
+    b.setAttribute('aria-label', b.title);
+  }
+  const box = $('hiddenList');
+  box.textContent = '';
+  const gone = HIDEABLE.filter(id => !visible(id));
+  if (!gone.length) return;
+  const label = document.createElement('span');
+  label.className = 'caption';
+  label.textContent = T.hiddenPanels;
+  box.appendChild(label);
+  for (const id of gone) {
+    const b = document.createElement('button');
+    b.textContent = `${T.static[id]} +`;
+    b.title = T.showPanel(T.static[id]);
+    b.setAttribute('aria-label', b.title);
+    b.dataset.show = id;
+    b.addEventListener('click', () => setHidden(id, false));
+    box.appendChild(b);
   }
 }
+$('editLayout').addEventListener('click', () => setEditing(!editing));
+document.addEventListener('keydown', ev => {
+  if (editing && ev.key === 'Escape' && !ev.target.closest?.('input, select, textarea')) setEditing(false);
+});
 $('resetLayout').addEventListener('click', () => {
   delete layouts[shape];
   lay = profile(shape);
