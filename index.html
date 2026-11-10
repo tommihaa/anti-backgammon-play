@@ -27,6 +27,13 @@
   main { --board-max: calc((100vh - 250px) * 1.487); margin: 0 auto; padding: 16px;
     max-width: max(1400px, calc(var(--board-max) + 12px + var(--side-w, 380px) + 32px)); }
   body.no-side main { max-width: max(900px, calc(var(--board-max) + 32px)); }
+  /* Muokkaustilassa lauta pienenee puoleen ja laudan alla oleva tilarivi ja napit piiloutuvat,
+     jotta alarivin paneelit näkyvät ilman vieritystä (Tommin valinta 10.11.2026). */
+  body.editing main { max-width: max(700px, calc(var(--board-max) * .5 + 12px + var(--side-w, 380px) + 32px)); }
+  body.editing.no-side main { max-width: max(600px, calc(var(--board-max) * .5 + 32px)); }
+  body.editing #status, body.editing #analysis, body.editing #actions, body.editing #review,
+    body.editing #viewBar { display: none; }
+  body.editing .below > .panel { flex-basis: 200px; }
   h1 { font-size: 1.6rem; margin: 0 0 4px; }
   .sub { color: var(--muted); margin: 0 0 12px; }
   /* Paneelijako (Tommin valinta 10.11.2026, asettelu C): Peli ja Arvio laudan vieressä, Tulokset
@@ -353,7 +360,8 @@
         pelatut pelit sekä ottelun ja valitun pelin PR. PR on siirtojesi keskimääräinen virhe
         kertaa 500 kuten XG:ssä. Kuutiopäätökset eivät ole siinä mukana. Pienempi on parempi.
         Tyhjennä historia poistaa pelatut pelit selaimesta. Asettelu on lukittu, kunnes painat
-        yläreunan nappia Muokkaa asettelua. Muokkaustilassa paneelin siirrät raahaamalla sen
+        yläreunan nappia Muokkaa asettelua. Muokkaustilassa lauta pienenee ja laudan alla olevat
+        napit piiloutuvat, jotta kaikki paneelit näkyvät. Paneelin siirrät raahaamalla sen
         otsikosta laudan viereen tai alle. Leveyttä muutat raahaamalla paneelien välistä erotinta ja
         korkeutta paneelin oikeasta alakulmasta. Kaksoisklikkaus erottimeen palauttaa
         oletusleveyden. Paneelin kulman × piilottaa Peli-, Arvio- tai Tulokset-paneelin.
@@ -444,8 +452,8 @@
         panel shows the match, the penalty points, the games played in the match and the PR of the
         match and of the chosen game. PR is the average error of your moves times 500, as in XG,
         without cube decisions. Lower is better. Clear history removes the played games from the
-        browser. The layout is locked until you press Edit layout at the top. In edit mode you move
-        a panel by dragging its title next to the board or below it. You change the width of the
+        browser. The layout is locked until you press Edit layout at the top. In edit mode the board shrinks
+        and the buttons below it are hidden, so that all panels are in view. You move a panel by dragging its title next to the board or below it. You change the width of the
         panels by dragging the divider between them and the height from the lower right corner of a
         panel. A double click on a divider brings back the default width. The × in the corner of a
         panel hides the Game, Evaluation or Results panel, and Hidden in the edit bar brings it back.
@@ -542,7 +550,8 @@
         gespielten Spiele und die PR des Matches und des gewählten Spiels. PR ist der
         durchschnittliche Fehler deiner Züge mal 500 wie in XG, ohne Würfelentscheidungen. Niedriger
         ist besser. Verlauf löschen entfernt die gespielten Spiele aus dem Browser. Das Layout ist
-        gesperrt, bis du oben Layout bearbeiten drückst. Im Bearbeitungsmodus verschiebst du ein
+        gesperrt, bis du oben Layout bearbeiten drückst. Im Bearbeitungsmodus wird das Brett kleiner
+        und die Knöpfe darunter verschwinden, damit alle Panels sichtbar sind. Du verschiebst ein
         Panel, indem du seinen Titel neben oder unter das Brett ziehst. Die Breite der Panels änderst
         du, indem du den Trenner zwischen ihnen ziehst, die Höhe an der unteren rechten Ecke eines
         Panels. Ein Doppelklick auf einen Trenner stellt die Standardbreite wieder her. Das × in der
@@ -647,7 +656,8 @@
         choisie. Le PR est l'erreur moyenne de vos coups multipliée par 500, comme dans XG, sans les
         décisions de videau. Plus il est bas, mieux c'est. Effacer l'historique supprime les parties
         jouées du navigateur. La disposition est verrouillée jusqu'à ce que vous appuyiez en haut
-        sur Modifier la disposition. En mode modification, vous déplacez un panneau en faisant
+        sur Modifier la disposition. En mode modification, le plateau rétrécit et les boutons
+        en dessous sont masqués, pour que tous les panneaux soient visibles. Vous déplacez un panneau en faisant
         glisser son titre à côté du plateau ou en dessous. Vous changez la largeur des panneaux en faisant glisser le séparateur
         entre eux et la hauteur depuis le coin inférieur droit d'un panneau. Un double clic sur un
         séparateur rétablit la largeur par défaut. Le × dans le coin masque le panneau Partie,

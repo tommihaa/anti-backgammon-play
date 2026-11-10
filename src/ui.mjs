@@ -1919,6 +1919,7 @@ function setEditing(on) {
   $('editBar').hidden = !on;
   $('editLayout').textContent = on ? T.editDone : T.editLayout;
   $('editLayout').setAttribute('aria-pressed', String(on));
+  syncBoardH();
 }
 const setHidden = (id, hide) => {
   lay.hidden = hide ? [...new Set([...lay.hidden, id])] : lay.hidden.filter(o => o !== id);
