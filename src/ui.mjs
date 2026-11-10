@@ -1733,60 +1733,238 @@ document.addEventListener('keydown', ev => {
   } else if (key === 's') swapDice();
 });
 
-// Paneelien koko (Tommin toive 10.11.2026): sivusarakkeen ja Tulokset-paneelin leveys erottimesta
-// raahaamalla, paneelin korkeus sen oikeasta alakulmasta. Kaksoisklikkaus erottimeen palauttaa
-// oletusleveyden. Koot säilyvät selaimessa avaimella ab-paneelit.
-const sizes = store.get('ab-paneelit', {});
-const SIZED = ['gamePanel', 'evalPanel', 'resultsPanel', 'settingsPanel'];
+// Paneelien asettelu (Tommin toiveet 10.11.2026). Sivu tunnistaa näytön muodon ikkunan
+// kuvasuhteesta ja käyttää sen asettelua: leveä vaakanäyttö (vähintään 1,6), tavallinen
+// vaakanäyttö (1–1,6) ja pystynäyttö (alle 1). Kullekin muodolle tallentuvat erikseen paneelien
+// paikat (laudan vieressä tai alla), piilotetut paneelit, sivusarakkeen ja alarivin paneelien
+// leveydet sekä paneelien korkeudet, jotta tabletin säätö ei muuta pöytäkoneen asettelua.
+// Paneeli siirtyy otsikosta raahaamalla, leveys erottimesta ja korkeus paneelin oikeasta
+// alakulmasta. Kaksoisklikkaus erottimeen palauttaa oletusleveyden. Asetukset-paneelia ei voi
+// piilottaa, koska piilotus perutaan siellä. Tila on selaimessa avaimella ab-asettelu. Vanha
+// avain ab-paneelit (yksi asettelu kaikille muodoille) jätetään lukematta.
+const PANELS = ['gamePanel', 'evalPanel', 'resultsPanel', 'settingsPanel'];
+const HIDEABLE = ['gamePanel', 'evalPanel', 'resultsPanel'];
+const SHAPES = ['wide', 'normal', 'tall'];
+const LAYOUT_DEFAULTS = {
+  wide: { side: ['gamePanel', 'evalPanel'], below: ['resultsPanel', 'settingsPanel'] },
+  normal: { side: ['gamePanel', 'evalPanel'], below: ['resultsPanel', 'settingsPanel'] },
+  tall: { side: [], below: ['evalPanel', 'gamePanel', 'resultsPanel', 'settingsPanel'] },
+};
+const shapeOf = () => {
+  const r = window.innerWidth / Math.max(1, window.innerHeight);
+  return r >= 1.6 ? 'wide' : r >= 1 ? 'normal' : 'tall';
+};
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(Math.max(lo, hi), v));
-function applySizes() {
-  const root = document.documentElement.style;
-  if (sizes.side) root.setProperty('--side-w', `${sizes.side}px`); else root.removeProperty('--side-w');
-  if (sizes.res) root.setProperty('--res-w', `${sizes.res}px`); else root.removeProperty('--res-w');
-  for (const id of SIZED) $(id).style.height = sizes.h?.[id] ?? '';
+const layouts = store.get('ab-asettelu', {});
+function profile(shape) {
+  const d = LAYOUT_DEFAULTS[shape];
+  const p = layouts[shape] && typeof layouts[shape] === 'object' ? layouts[shape] : {};
+  // Jokainen paneeli on täsmälleen yhdessä paikassa. Tuntematon jätetään pois, puuttuva alle.
+  const seen = new Set();
+  const keep = a => (Array.isArray(a) ? a : []).filter(id => PANELS.includes(id) && !seen.has(id) && seen.add(id));
+  const side = keep(p.side ?? d.side), below = keep(p.below ?? d.below);
+  for (const id of PANELS) if (!seen.has(id)) below.push(id);
+  const hidden = (Array.isArray(p.hidden) ? p.hidden : []).filter(id => HIDEABLE.includes(id));
+  const num = v => (Number.isFinite(v) && v > 0 ? Math.round(v) : undefined);
+  const w = {}, h = {};
+  for (const id of PANELS) {
+    if (num(p.w?.[id])) w[id] = num(p.w[id]);
+    if (typeof p.h?.[id] === 'string' && /^\d+(\.\d+)?px$/.test(p.h[id])) h[id] = p.h[id];
+  }
+  return layouts[shape] = { side, below, hidden, sideW: num(p.sideW), w, h };
 }
-function splitter(el, key, measure) {
+let shape = shapeOf();
+let lay = profile(shape);
+let dragging = null;
+let builtKey = '';
+const saveLayout = () => store.set('ab-asettelu', layouts);
+const visible = id => !lay.hidden.includes(id);
+
+function applyLayout() {
+  const root = document.documentElement.style;
+  if (lay.sideW) root.setProperty('--side-w', `${lay.sideW}px`); else root.removeProperty('--side-w');
+  // DOM rakennetaan uudelleen vain, kun järjestys tai näkyvyys muuttuu. Muuten raahattava erotin
+  // poistuisi kesken raahauksen.
+  const key = JSON.stringify([lay.side, lay.below, lay.hidden]);
+  if (key !== builtKey) {
+    builtKey = key;
+    const side = document.querySelector('.side'), below = document.querySelector('.below');
+    const rules = below.querySelector('.rules');
+    for (const s of below.querySelectorAll(':scope > .split')) s.remove();
+    for (const id of lay.side) side.appendChild($(id));
+    let prev = null;
+    for (const id of lay.below) {
+      // Erotin näkyvien alarivin paneelien väliin säätää vasemman paneelin leveyttä.
+      if (prev && visible(id)) below.insertBefore(belowSplit(prev), rules);
+      below.insertBefore($(id), rules);
+      if (visible(id)) prev = id;
+    }
+  }
+  for (const id of PANELS) {
+    const el = $(id);
+    el.hidden = !visible(id);
+    el.style.height = lay.h[id] ?? '';
+    el.style.flex = lay.below.includes(id) && lay.w[id] ? `0 0 ${lay.w[id]}px` : '';
+  }
+  document.body.classList.toggle('no-side', !dragging && !lay.side.some(visible));
+  syncBoardH();
+}
+// Laudan vieressä paneelit jakavat laudan sarakkeen korkeuden (CSS-muuttuja --board-h).
+function syncBoardH() {
+  const h = Math.round(document.querySelector('.boardcol').getBoundingClientRect().height);
+  document.documentElement.style.setProperty('--board-h', `${h}px`);
+}
+function belowSplit(id) {
+  const el = document.createElement('div');
+  el.className = 'split';
+  el.setAttribute('role', 'separator');
+  el.setAttribute('aria-orientation', 'vertical');
+  splitter(el, x => {
+    const b = $(id).getBoundingClientRect(), all = document.querySelector('.below').getBoundingClientRect();
+    lay.w[id] = Math.round(clamp(x - b.left, 180, all.right - b.left - 200));
+  }, () => { delete lay.w[id]; });
+  return el;
+}
+function splitter(el, set, reset) {
   el.addEventListener('pointerdown', ev => {
     ev.preventDefault();
     el.setPointerCapture(ev.pointerId);
     el.classList.add('drag');
-    const move = e => { sizes[key] = Math.round(measure(e.clientX)); applySizes(); };
+    const move = e => { set(e.clientX); applyLayout(); };
     const up = () => {
       el.classList.remove('drag');
       el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerup', up);
-      store.set('ab-paneelit', sizes);
+      saveLayout();
     };
     el.addEventListener('pointermove', move);
     el.addEventListener('pointerup', up);
   });
-  el.addEventListener('dblclick', () => { delete sizes[key]; applySizes(); store.set('ab-paneelit', sizes); });
+  el.addEventListener('dblclick', () => { reset(); applyLayout(); saveLayout(); });
 }
-splitter($('splitSide'), 'side', x => {
+splitter($('splitSide'), x => {
   const b = document.querySelector('.layout').getBoundingClientRect();
-  return clamp(prefs.left ? x - b.left : b.right - x, 240, b.width - 360);
+  lay.sideW = Math.round(clamp(prefs.left ? x - b.left : b.right - x, 240, b.width - 360));
+}, () => { delete lay.sideW; });
+
+// Siirto: paneeli seuraa osoitinta laudan viereen tai alle, kun otsikkoa on raahattu 6 px.
+// Paikka lasketaan lähimmästä näkyvästä paneelista: sivusarakkeessa pystysuunnassa, alarivissä
+// rivin ja vaakasuunnan mukaan.
+function dropAt(id, x, y) {
+  const zones = [['side', document.querySelector('.side')], ['below', document.querySelector('.below')]];
+  const inside = r => x >= r.left - 16 && x <= r.right + 16 && y >= r.top - 16 && y <= r.bottom + 16;
+  const hit = zones.find(([, z]) => inside(z.getBoundingClientRect()));
+  if (!hit) return false;
+  const [key] = hit;
+  const others = lay[key].filter(o => o !== id && visible(o));
+  let index = others.length;
+  for (let i = 0; i < others.length; i++) {
+    const r = $(others[i]).getBoundingClientRect();
+    const before = key === 'side' ? y < r.top + r.height / 2
+      : y < r.top || (y <= r.bottom && x < r.left + r.width / 2);
+    if (before) { index = i; break; }
+  }
+  // Uusi järjestys: piilotetut paneelit pysyvät listassa entisillä paikoillaan lopussa.
+  const order = [...others.slice(0, index), id, ...others.slice(index)];
+  const next = { side: lay.side.filter(o => o !== id), below: lay.below.filter(o => o !== id) };
+  next[key] = [...order, ...lay[key].filter(o => o !== id && !visible(o))];
+  if (JSON.stringify(next.side) === JSON.stringify(lay.side) && JSON.stringify(next.below) === JSON.stringify(lay.below)) return false;
+  lay.side = next.side; lay.below = next.below;
+  return true;
+}
+for (const id of PANELS) {
+  const head = $(id).querySelector('h2');
+  head.addEventListener('pointerdown', ev => {
+    if (ev.button !== 0 || window.matchMedia('(max-width: 760px)').matches) return;
+    // Kuuntelu on ikkunassa eikä osoittimen kaappauksella, koska paneelin siirto DOMissa
+    // vapauttaa kaappauksen ja pudotus jäisi kuulematta.
+    const x0 = ev.clientX, y0 = ev.clientY;
+    ev.preventDefault();
+    const move = e => {
+      if (!dragging) {
+        if (Math.hypot(e.clientX - x0, e.clientY - y0) < 6) return;
+        dragging = id;
+        document.body.classList.add('dragging');
+        $(id).classList.add('moving');
+        applyLayout();
+      }
+      if (dropAt(id, e.clientX, e.clientY)) applyLayout();
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      if (!dragging) return;
+      dragging = null;
+      document.body.classList.remove('dragging');
+      $(id).classList.remove('moving');
+      applyLayout();
+      saveLayout();
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  });
+}
+
+// Ulkoasu-kohdan asetteluosa: näytön muoto, paneelien näkyvyys ja oletuksen palautus.
+function fillLayout() {
+  $('shapeMsg').textContent = T.layoutShape(T.shapes[shape]);
+  const box = $('panelToggles');
+  box.textContent = '';
+  for (const id of HIDEABLE) {
+    const label = document.createElement('label');
+    label.className = 'wide';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = visible(id);
+    input.dataset.panel = id;
+    input.addEventListener('change', () => {
+      lay.hidden = input.checked ? lay.hidden.filter(o => o !== id) : [...lay.hidden, id];
+      applyLayout();
+      saveLayout();
+    });
+    const span = document.createElement('span');
+    span.textContent = T.showPanel(T.static[id]);
+    label.append(input, span);
+    box.appendChild(label);
+  }
+}
+$('resetLayout').addEventListener('click', () => {
+  delete layouts[shape];
+  lay = profile(shape);
+  applyLayout();
+  fillLayout();
+  saveLayout();
 });
-splitter($('splitBelow'), 'res', x => {
-  const b = document.querySelector('.below').getBoundingClientRect();
-  return clamp(x - b.left, 180, b.width - 240);
+window.addEventListener('resize', () => {
+  syncBoardH();
+  const s = shapeOf();
+  if (s === shape) return;
+  shape = s;
+  lay = profile(shape);
+  applyLayout();
+  fillLayout();
 });
-applySizes();
-// Selaimen oma koonmuutos kirjoittaa korkeuden elementin tyyliin. Se luetaan talteen.
+applyLayout();
 if (typeof ResizeObserver === 'function') {
+  // Selaimen oma koonmuutos kirjoittaa korkeuden elementin tyyliin. Se luetaan talteen.
   const ro = new ResizeObserver(() => {
     const h = {};
-    for (const id of SIZED) if ($(id).style.height) h[id] = $(id).style.height;
-    if (JSON.stringify(h) !== JSON.stringify(sizes.h ?? {})) { sizes.h = h; store.set('ab-paneelit', sizes); }
+    for (const id of PANELS) if ($(id).style.height) h[id] = $(id).style.height;
+    if (JSON.stringify(h) !== JSON.stringify(lay.h)) { lay.h = h; saveLayout(); }
   });
-  for (const id of SIZED) ro.observe($(id));
+  for (const id of PANELS) ro.observe($(id));
+  new ResizeObserver(syncBoardH).observe(document.querySelector('.boardcol'));
 }
 
 applyStatic();
 fillLimits();
 fillLook();
+fillLayout();
 applyLook();
 $('lang').addEventListener('change', e => {
-  setLang(e.target.value); fillLimits(); fillLook(); fillGameSel();
+  setLang(e.target.value); fillLimits(); fillLook(); fillLayout(); fillGameSel();
   if (review) { fillReview(); $('reviewGame').value = String(review.gi); showStep(); } else render();
 });
 newGame();

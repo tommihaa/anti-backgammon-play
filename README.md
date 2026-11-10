@@ -19,7 +19,9 @@ uses the same depth. The Game panel lists the moves of the current game and up t
 games. Picking a row shows the position on the board and its evaluation: for a finished game the
 cubeless win chance, the equity and the difference to the best move, for both players' moves and
 cube decisions. The Results panel shows the match score and the PR of the match and of the game.
-The panels can be resized, and the page is in English, Finnish, German and French.
+The panels can be moved, resized and hidden. The page recognises the shape of the screen and keeps
+a separate layout for wide landscape, landscape and portrait screens. On a large screen the board
+fills the height of the window. The page is in English, Finnish, German and French.
 
 The board follows DG Android: seven board styles, mirroring, a portrait board on narrow screens,
 dark mode, sounds and optional playing toggles. Positions can be copied and set as XGID. Import

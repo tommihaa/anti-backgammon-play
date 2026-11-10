@@ -54,6 +54,9 @@ const fi = {
   reviewPlaying: 'Jatkat tuodun ottelun asemasta bottia vastaan.',
   logReview: 'Asema tuodusta ottelusta',
   soundsOn: 'Pelin äänet',
+  layoutShape: s => `Näytön muoto: ${s}. Paneelien paikat, koot ja näkyvyys tallentuvat tälle muodolle.`,
+  shapes: { wide: 'leveä vaakanäyttö', normal: 'vaakanäyttö', tall: 'pystynäyttö' },
+  showPanel: p => `Näytä ${p}`,
   sounds: { dice: 'Nopat', checker: 'Nappulat', cube: 'Tuplauskuutio', miss: 'Napautus pisteeseen, jolta ei voi siirtää', gong: 'Gongi seuraavalle pelille' },
   toggles: {
     analysis: 'Tutor-tila: näytä arvio jokaisen siirtoni jälkeen', forced: 'Aseta pakkosiirrot puolestani', arrows: 'Näytä nuolet omasta siirrosta',
@@ -114,6 +117,7 @@ const fi = {
     importGo: 'Tuo', reviewGameLabel: 'Peli', reviewYouLabel: 'Sinä', reviewMark: 'Seuraava merkki',
     reviewPlay: 'Jatka tästä', reviewClose: 'Sulje',
     look: 'Ulkoasu', styleLabel: 'Lauta', homeLabel: 'Kotialue', portraitLabel: 'Pystylauta kapealla ruudulla',
+    resetLayout: 'Palauta asettelun oletus',
     langLabel: 'Kieli',
   },
 };
@@ -170,6 +174,9 @@ const en = {
   reviewPlaying: 'You continue from the imported position against the bot.',
   logReview: 'Position from imported match',
   soundsOn: 'Game sounds',
+  layoutShape: s => `Screen shape: ${s}. Panel places, sizes and visibility are saved for this shape.`,
+  shapes: { wide: 'wide landscape', normal: 'landscape', tall: 'portrait' },
+  showPanel: p => `Show ${p}`,
   sounds: { dice: 'Dice', checker: 'Checkers', cube: 'Doubling cube', miss: "Tap on a point you can't move from", gong: 'Gong for the next game' },
   toggles: {
     analysis: 'Tutor mode: show the evaluation after each of my moves', forced: 'Place forced checkers for me', arrows: 'Show arrows for my move',
@@ -230,6 +237,7 @@ const en = {
     importGo: 'Import', reviewGameLabel: 'Game', reviewYouLabel: 'You', reviewMark: 'Next mark',
     reviewPlay: 'Play from here', reviewClose: 'Close',
     look: 'Appearance', styleLabel: 'Board', homeLabel: 'Home board', portraitLabel: 'Portrait board on a narrow screen',
+    resetLayout: 'Reset layout',
     langLabel: 'Language',
   },
 };
@@ -291,6 +299,9 @@ const de = {
   reviewPlaying: 'Du spielst aus der importierten Stellung gegen den Bot weiter.',
   logReview: 'Stellung aus importiertem Match',
   soundsOn: 'Spielgeräusche',
+  layoutShape: s => `Bildschirmform: ${s}. Platz, Größe und Sichtbarkeit der Panels werden für diese Form gespeichert.`,
+  shapes: { wide: 'breites Querformat', normal: 'Querformat', tall: 'Hochformat' },
+  showPanel: p => `${p} anzeigen`,
   sounds: { dice: 'Würfel', checker: 'Steine', cube: 'Dopplerwürfel', miss: 'Tippen auf einen Punkt ohne möglichen Zug', gong: 'Gong für das nächste Spiel' },
   toggles: {
     analysis: 'Tutor-Modus: Bewertung nach jedem meiner Züge zeigen', forced: 'Erzwungene Teilzüge für mich setzen', arrows: 'Pfeile für meinen Zug zeigen',
@@ -351,6 +362,7 @@ const de = {
     importGo: 'Importieren', reviewGameLabel: 'Spiel', reviewYouLabel: 'Du', reviewMark: 'Nächste Markierung',
     reviewPlay: 'Von hier spielen', reviewClose: 'Schließen',
     look: 'Aussehen', styleLabel: 'Brett', homeLabel: 'Heimfeld', portraitLabel: 'Hochformat auf schmalem Bildschirm',
+    resetLayout: 'Layout zurücksetzen',
     langLabel: 'Sprache',
   },
 };
@@ -407,6 +419,9 @@ const fr = {
   reviewPlaying: 'Vous continuez contre le bot depuis la position importée.',
   logReview: 'Position du match importé',
   soundsOn: 'Sons du jeu',
+  layoutShape: s => `Forme de l'écran${NB}: ${s}. La place, la taille et la visibilité des panneaux sont enregistrées pour cette forme.`,
+  shapes: { wide: 'paysage large', normal: 'paysage', tall: 'portrait' },
+  showPanel: p => `Afficher ${p}`,
   sounds: { dice: 'Dés', checker: 'Dames', cube: 'Videau', miss: 'Toucher une case sans coup possible', gong: 'Gong pour la partie suivante' },
   toggles: {
     analysis: `Mode tuteur${NB}: afficher l'évaluation après chacun de mes coups`, forced: 'Placer les déplacements forcés pour moi', arrows: 'Afficher les flèches de mon coup',
@@ -467,6 +482,7 @@ const fr = {
     importGo: 'Importer', reviewGameLabel: 'Partie', reviewYouLabel: 'Vous', reviewMark: 'Marque suivante',
     reviewPlay: "Jouer à partir d'ici", reviewClose: 'Fermer',
     look: 'Apparence', styleLabel: 'Plateau', homeLabel: 'Jan intérieur', portraitLabel: 'Plateau vertical sur écran étroit',
+    resetLayout: 'Rétablir la disposition',
     langLabel: 'Langue',
   },
 };

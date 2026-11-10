@@ -22,23 +22,44 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink);
     font: 16px/1.45 Georgia, "Times New Roman", serif; }
-  main { max-width: 1400px; margin: 0 auto; padding: 16px; }
+  /* Sivun leveys: vähintään 1400 px, isolla näytöllä niin leveä että lauta (kuvasuhde 733:493)
+     täyttää ikkunan korkeuden otsikon, tilarivin ja nappien jälkeen (noin 250 px). */
+  main { --board-max: calc((100vh - 250px) * 1.487); margin: 0 auto; padding: 16px;
+    max-width: max(1400px, calc(var(--board-max) + 12px + var(--side-w, 380px) + 32px)); }
+  body.no-side main { max-width: max(900px, calc(var(--board-max) + 32px)); }
   h1 { font-size: 1.6rem; margin: 0 0 4px; }
   .sub { color: var(--muted); margin: 0 0 12px; }
   /* Paneelijako (Tommin valinta 10.11.2026, asettelu C): Peli ja Arvio laudan vieressä, Tulokset
      ja Asetukset laudan alla. Kotialue vasemmalla peilaa asettelun. Sivusarakkeen ja alarivin
-     leveys säädetään raahattavalla erottimella, paneelin korkeus sen kulmasta. */
+     leveys säädetään raahattavalla erottimella, paneelin korkeus sen kulmasta. Paneelin voi
+     siirtää otsikosta raahaamalla ja piilottaa. Asettelu tallentuu näytön muodon mukaan
+     (Tommin toive 10.11.2026, src/ui.mjs). Laudan vieressä paneelit jakavat laudan korkeuden. */
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) 12px var(--side-w, 380px);
     grid-template-rows: auto 1fr; grid-template-areas: "board split side" "below split side"; align-items: start; }
   body.home-left .layout { grid-template-columns: var(--side-w, 380px) 12px minmax(0, 1fr);
     grid-template-areas: "side split board" "side split below"; }
+  body.no-side .layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "board" "below"; }
+  body.no-side .layout > .split, body.no-side .side { display: none; }
   .boardcol { grid-area: board; min-width: 0; }
-  .side { grid-area: side; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-  .below { grid-area: below; display: grid; grid-template-columns: var(--res-w, minmax(0, 1fr)) 12px minmax(0, 1fr);
-    align-items: start; margin-top: 4px; min-width: 0; }
-  .below > .rules { grid-column: 1 / -1; }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 12px; min-width: 0;
+    min-height: var(--board-h, 0px); }
+  .below { grid-area: below; display: flex; flex-wrap: wrap; align-items: flex-start; row-gap: 12px;
+    margin-top: 4px; min-width: 0; }
+  .below > .panel { flex: 1 1 280px; }
+  .below > .rules { flex: 1 1 100%; }
   .split { grid-area: split; cursor: col-resize; align-self: stretch; touch-action: none; position: relative; min-height: 40px; }
-  .below > .split { grid-area: auto; }
+  .below > .split { grid-area: auto; flex: 0 0 12px; }
+  .panel[hidden] { display: none !important; }
+  .panel h2 { cursor: grab; touch-action: none; user-select: none; }
+  .panel.moving { opacity: .55; outline: 2px solid var(--accent); }
+  body.dragging, body.dragging .panel h2 { cursor: grabbing; }
+  body.dragging .side, body.dragging .below { outline: 2px dashed var(--frame); outline-offset: 3px;
+    border-radius: 8px; }
+  body.dragging .side { min-height: max(120px, var(--board-h, 0px)); }
+  body.dragging .below { min-height: 120px; }
+  @media (min-width: 761px) {
+    .side > .panel:not([style*="height"]), .side > #gamePanel:not([style*="height"]) { flex: 1 1 0; height: auto; }
+  }
   .split::after { content: ''; position: absolute; left: 5px; top: 0; bottom: 0; width: 2px; border-radius: 1px;
     background: var(--frame); opacity: .35; }
   .split:hover::after, .split.drag::after { opacity: 1; }
@@ -83,8 +104,10 @@
     .layout, body.home-left .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto;
       grid-template-areas: "board" "side" "below"; }
     .split { display: none; }
-    .below { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 12px; }
-    #evalPanel { order: -1; }
+    .side { min-height: 0; }
+    .below { flex-direction: column; align-items: stretch; gap: 12px; margin-top: 12px; }
+    .below > .panel { flex: none !important; }
+    .side > #evalPanel { order: -1; }
     body.portrait .card { display: block; }
   }
   .look { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; margin-top: 8px; }
@@ -213,7 +236,6 @@
           <button id="clearHistory" data-t="clearHistory">Tyhjennä historia</button>
         </div>
       </section>
-      <div class="split" id="splitBelow" role="separator" aria-orientation="vertical"></div>
       <section class="panel" id="settingsPanel">
         <h2 data-t="settingsPanel">Asetukset</h2>
       <details open>
@@ -245,6 +267,9 @@
           <label for="home" data-t="homeLabel">Kotialue</label><select id="home"></select>
           <label class="wide"><input type="checkbox" id="portrait"><span data-t="portraitLabel">Pystylauta kapealla ruudulla</span></label>
         </div>
+        <p class="caption" id="shapeMsg"></p>
+        <div class="look" id="panelToggles"></div>
+        <div class="row xgid-row"><button id="resetLayout" data-t="resetLayout">Palauta asettelun oletus</button></div>
       </details>
       <details>
         <summary data-t="soundsTitle">Äänet</summary>
@@ -294,7 +319,8 @@
         tai aloittaa seuraavan pelin ja S vaihtaa noppien järjestyksen. Siirtolista on Peli-paneelissa.
         Pip-luvut ovat numeroriveillä muurin kohdalla, botin ylhäällä ja omasi alhaalla. Luovuta on
         Tulokset-paneelissa ja kysyy varmistuksen.</p>
-        <p>Laudan vieressä ovat Peli- ja Arvio-paneelit ja laudan alla Tulokset ja Asetukset.
+        <p>Oletuksena laudan vieressä ovat Peli- ja Arvio-paneelit ja laudan alla Tulokset ja
+        Asetukset. Pystynäytöllä kaikki paneelit ovat laudan alla.
         Peli-paneelin valitsimessa ovat nykyinen peli ja enintään 30 pelattua peliä. Listan rivi
         näyttää laudalla aseman ennen siirtoa tai kuutiopäätöstä, heiton ja pelatun siirron nuolet.
         Arvio-paneeli näyttää samalla rivin arvion. Päättyneen pelin riveillä näkyvät
@@ -303,9 +329,13 @@
         palauttaa pelin laudalle. Tulokset-paneelissa ovat ottelu, rangaistuspisteet, ottelun
         pelatut pelit sekä ottelun ja valitun pelin PR. PR on siirtojesi keskimääräinen virhe
         kertaa 500 kuten XG:ssä. Kuutiopäätökset eivät ole siinä mukana. Pienempi on parempi.
-        Tyhjennä historia poistaa pelatut pelit selaimesta. Paneelien leveyttä muutat raahaamalla
-        niiden välistä erotinta ja korkeutta paneelin oikeasta alakulmasta. Kaksoisklikkaus
-        erottimeen palauttaa oletusleveyden. Koot säilyvät selaimessa.</p>
+        Tyhjennä historia poistaa pelatut pelit selaimesta. Paneelin siirrät raahaamalla sen
+        otsikosta laudan viereen tai alle. Leveyttä muutat raahaamalla paneelien välistä erotinta ja
+        korkeutta paneelin oikeasta alakulmasta. Kaksoisklikkaus erottimeen palauttaa
+        oletusleveyden. Ulkoasu-kohdassa piilotat Peli-, Arvio- tai Tulokset-paneelin ja palautat
+        asettelun oletukseen. Sivu tunnistaa näytön muodon (leveä vaakanäyttö, vaakanäyttö tai
+        pystynäyttö) ja tallentaa paneelien paikat, koot ja näkyvyyden kullekin muodolle erikseen
+        selaimeen.</p>
         <p>Asetukset-paneelin Pelaaminen-kohdassa valitset botin syvyyden. 0-ply on verkon suora arvio ja nopea.
         1-ply ja 2-ply katsovat botin siirron jälkeen kaikki heittosi eteenpäin ja pelaavat
         vahvemmin, mutta 2-ply vie koneesta riippuen sekunteja siirtoa kohden. Oletus on 2-ply, ja botin viesti kertoo, kauanko haku kesti. Siirtojesi analyysi
@@ -321,7 +351,7 @@
         napin laudan keskelle pelin päätyttyä.</p>
         <p>Ulkoasu-kohdasta valitset laudan (Monte Carlo X-22, Monte Carlo variant, Deco, vaahtera,
         pähkinä, tammi ja nahka tai oliivi), kotialueen puolen ja pystylaudan. Kotialue vasemmalla
-        peilaa laudan ja siirtää Peli- ja Arvio-paneelit vasemmalle. Pystylauta näyttää kapealla ruudulla botin
+        peilaa laudan ja siirtää laudan vieressä olevat paneelit vasemmalle. Pystylauta näyttää kapealla ruudulla botin
         kortin laudan yläpuolella ja omasi alapuolella. Tumma tila seuraa laitteen asetusta.
         Valinnat säilyvät selaimessa.</p>
         <p>Äänet-kohdan Pelin äänet on oletuksena pois. Päällä nopat ja nappulat kolahtavat puuhun,
@@ -379,8 +409,8 @@
         starts the next game and S swaps the dice. The move list is in the Game panel. The pip counts are on the
         number rows at the bar, the bot's at the top and yours at the bottom. Resign is in the Results
         panel, and it asks you to confirm.</p>
-        <p>The Game and Evaluation panels are next to the board, and Results and Settings are below
-        it. The selector in the Game panel holds the current game and up to 30 played games. A row in
+        <p>By default the Game and Evaluation panels are next to the board, and Results and Settings
+        are below it. On a portrait screen all panels are below the board. The selector in the Game panel holds the current game and up to 30 played games. A row in
         the list shows the position before the move or cube decision on the board, with the roll and
         arrows for the move played, and the Evaluation panel shows its evaluation. On the rows of a
         finished game you see the cubeless win chance, the equity and the difference to the
@@ -389,9 +419,12 @@
         panel shows the match, the penalty points, the games played in the match and the PR of the
         match and of the chosen game. PR is the average error of your moves times 500, as in XG,
         without cube decisions. Lower is better. Clear history removes the played games from the
-        browser. You change the width of the panels by dragging the divider between them and the
-        height from the lower right corner of a panel. A double click on a divider brings back the
-        default width. The sizes are kept in the browser.</p>
+        browser. You move a panel by dragging its title next to the board or below it. You change
+        the width of the panels by dragging the divider between them and the height from the lower
+        right corner of a panel. A double click on a divider brings back the default width. Under
+        Appearance you can hide the Game, Evaluation or Results panel and reset the layout. The page
+        recognises the shape of the screen (wide landscape, landscape or portrait) and keeps the
+        places, sizes and visibility of the panels for each shape separately in the browser.</p>
         <p>Under Playing in the Settings panel you choose the bot's depth. 0-ply is the network's direct evaluation and
         fast. 1-ply and 2-ply look ahead through all your rolls after the bot's move and play
         stronger, but 2-ply can take seconds per move depending on your computer. The default is 2-ply, and the bot's message tells how long the search took. Your moves are
@@ -406,7 +439,7 @@
         Next game where the dice were puts the button in the middle of the board when a game ends.</p>
         <p>Under Appearance you choose the board (Monte Carlo X-22, Monte Carlo variant, Deco, maple,
         walnut, oak leather or olive), the side of your home board and the portrait board. Home board
-        on the left mirrors the board and moves the Game and Evaluation panels to the left. The portrait board shows the
+        on the left mirrors the board and moves the panels next to the board to the left. The portrait board shows the
         bot's card above the board and yours below it on a narrow screen. Dark mode follows the
         device setting. Your choices are kept in the browser.</p>
         <p>Game sounds under Sounds is off by default. When it is on, the dice and the checkers knock
@@ -470,7 +503,8 @@
         Zugliste ist im Spiel-Panel. Die Pip-Zahlen stehen in den Zahlenreihen an der Bar, die des
         Bots oben und deine unten. Aufgeben ist im Ergebnisse-Panel und fragt nach einer
         Bestätigung.</p>
-        <p>Die Panels Spiel und Bewertung stehen neben dem Brett, Ergebnisse und Einstellungen darunter.
+        <p>Standardmäßig stehen die Panels Spiel und Bewertung neben dem Brett, Ergebnisse und
+        Einstellungen darunter. Im Hochformat stehen alle Panels unter dem Brett.
         Die Auswahl im Spiel-Panel enthält das aktuelle Spiel und bis zu 30 gespielte Spiele. Eine
         Reihe der Liste zeigt auf dem Brett die Stellung vor dem Zug oder der Würfelentscheidung mit
         dem Wurf und Pfeilen für den gespielten Zug. Das Bewertung-Panel zeigt dazu ihre Bewertung.
@@ -480,10 +514,14 @@
         wieder aufs Brett. Das Ergebnisse-Panel zeigt das Match, die Strafpunkte, die im Match
         gespielten Spiele und die PR des Matches und des gewählten Spiels. PR ist der
         durchschnittliche Fehler deiner Züge mal 500 wie in XG, ohne Würfelentscheidungen. Niedriger
-        ist besser. Verlauf löschen entfernt die gespielten Spiele aus dem Browser. Die Breite der
+        ist besser. Verlauf löschen entfernt die gespielten Spiele aus dem Browser. Ein Panel
+        verschiebst du, indem du seinen Titel neben oder unter das Brett ziehst. Die Breite der
         Panels änderst du, indem du den Trenner zwischen ihnen ziehst, die Höhe an der unteren rechten
-        Ecke eines Panels. Ein Doppelklick auf einen Trenner stellt die Standardbreite wieder her. Die
-        Größen bleiben im Browser gespeichert.</p>
+        Ecke eines Panels. Ein Doppelklick auf einen Trenner stellt die Standardbreite wieder her.
+        Unter Aussehen blendest du die Panels Spiel, Bewertung oder Ergebnisse aus und setzt das
+        Layout zurück. Die Seite erkennt die Bildschirmform (breites Querformat, Querformat oder
+        Hochformat) und speichert Platz, Größe und Sichtbarkeit der Panels für jede Form getrennt im
+        Browser.</p>
         <p>Unter Spielen im Einstellungen-Panel wählst du die Suchtiefe des Bots. 0-ply ist die direkte
         Bewertung des Netzes und schnell. 1-ply und 2-ply schauen nach dem Zug des Bots alle deine
         Würfe voraus und spielen stärker, aber 2-ply kann je nach Rechner Sekunden pro Zug dauern.
@@ -502,7 +540,7 @@
         endet.</p>
         <p>Unter Aussehen wählst du das Brett (Monte Carlo X-22, Monte Carlo variant, Deco, Ahorn,
         Nussbaum, Eiche und Leder oder Olive), die Seite deines Heimfelds und das Hochformat. Heimfeld
-        links spiegelt das Brett und setzt die Panels Spiel und Bewertung nach links. Das Hochformat
+        links spiegelt das Brett und setzt die Panels neben dem Brett nach links. Das Hochformat
         zeigt auf einem schmalen Bildschirm die Karte des Bots über dem Brett und deine darunter. Der
         dunkle Modus folgt der Geräteeinstellung. Deine Auswahl bleibt im Browser gespeichert.</p>
         <p>Spielgeräusche unter Töne ist standardmäßig aus. Wenn es an ist, klopfen Würfel und Steine
@@ -567,7 +605,8 @@
         panneau Partie. Les comptes de pips sont sur les rangées de numéros au niveau de la barre,
         celui du bot en haut et le vôtre en bas. Abandonner se trouve dans le panneau Résultats et
         demande une confirmation.</p>
-        <p>Les panneaux Partie et Évaluation sont à côté du plateau, Résultats et Réglages en dessous.
+        <p>Par défaut, les panneaux Partie et Évaluation sont à côté du plateau, Résultats et
+        Réglages en dessous. Sur un écran portrait, tous les panneaux sont sous le plateau.
         Le sélecteur du panneau Partie contient la partie en cours et jusqu'à 30 parties jouées. Une
         rangée de la liste affiche sur le plateau la position avant le coup ou la décision de videau,
         avec le lancer et des flèches pour le coup joué. Le panneau Évaluation affiche alors son
@@ -578,10 +617,13 @@
         points de pénalité, les parties jouées dans le match et le PR du match et de la partie
         choisie. Le PR est l'erreur moyenne de vos coups multipliée par 500, comme dans XG, sans les
         décisions de videau. Plus il est bas, mieux c'est. Effacer l'historique supprime les parties
-        jouées du navigateur. Vous changez la largeur des panneaux en faisant glisser le séparateur
+        jouées du navigateur. Vous déplacez un panneau en faisant glisser son titre à côté du
+        plateau ou en dessous. Vous changez la largeur des panneaux en faisant glisser le séparateur
         entre eux et la hauteur depuis le coin inférieur droit d'un panneau. Un double clic sur un
-        séparateur rétablit la largeur par défaut. Les tailles sont conservées dans le
-        navigateur.</p>
+        séparateur rétablit la largeur par défaut. Sous Apparence, vous masquez le panneau Partie,
+        Évaluation ou Résultats et rétablissez la disposition. La page reconnaît la forme de l'écran
+        (paysage large, paysage ou portrait) et conserve dans le navigateur la place, la taille et la
+        visibilité des panneaux pour chaque forme séparément.</p>
         <p>Sous Jeu, dans le panneau Réglages, vous choisissez la profondeur du bot. Le 0-ply est
         l'évaluation directe du réseau et il est rapide. Le 1-ply et le 2-ply examinent tous vos
         lancers après le coup du bot et jouent plus fort, mais le 2-ply peut prendre plusieurs
@@ -599,8 +641,8 @@
         des dés met le bouton au milieu du plateau à la fin d'une partie.</p>
         <p>Sous Apparence, vous choisissez le plateau (Monte Carlo X-22, Monte Carlo variant, Deco,
         érable, noyer, chêne et cuir ou olivier), le côté de votre jan intérieur et le plateau
-        vertical. Le jan intérieur à gauche inverse le plateau et place les panneaux Partie et
-        Évaluation à gauche. Le plateau vertical affiche sur un écran étroit la carte du bot
+        vertical. Le jan intérieur à gauche inverse le plateau et place les panneaux à côté
+        du plateau à gauche. Le plateau vertical affiche sur un écran étroit la carte du bot
         au-dessus du plateau et la vôtre en dessous. Le mode sombre suit le réglage de l'appareil.
         Vos choix sont conservés dans le navigateur.</p>
         <p>Sons du jeu, sous Sons, est désactivé par défaut. Activé, les dés et les dames frappent le
