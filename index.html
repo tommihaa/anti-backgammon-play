@@ -208,6 +208,17 @@
     max-height: calc(100vh - 90px); overflow: auto; background: var(--panel); border: 1px solid var(--frame);
     border-radius: 8px; padding: 4px 14px 12px; box-shadow: 0 6px 24px rgb(0 0 0 / .3); }
   .rules-body p { margin: 10px 0; }
+  /* Säännöt-ohjeen väliotsikot ja värit (Tommin valinta 13.11.2026): kaksi pääosiota, väliotsikot
+     linkkivärillä (tummassa tilassa korosteväri on leipätekstin sävy), napit ja näppäimet merkkeinä ja siirtolistan värisanat listan omilla väreillä. */
+  .rules-body h3 { margin: 18px 0 4px; padding-bottom: 3px; font-size: .78rem; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--frame); }
+  .rules-body h3:first-child { margin-top: 10px; }
+  .rules-body h4 { margin: 14px 0 -4px; font-size: 1rem; color: var(--link); }
+  .rules-body kbd { font: inherit; font-size: .85em; padding: 0 5px; border: 1px solid var(--frame);
+    border-bottom-width: 2px; border-radius: 4px; white-space: nowrap;
+    background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  .rules-body .c-good { color: var(--good); font-weight: 600; }
+  .rules-body .c-bad { color: var(--bad); font-weight: 600; }
   /* Kielivalikko lippuineen: Windowsin Chrome ei piirrä lippuemojeja, joten liput ovat SVG:tä
      (src/kieli.mjs). */
   .langmenu { position: relative; }
@@ -274,72 +285,88 @@
       <details class="menu" id="rulesMenu"><summary data-t="rules">Säännöt</summary>
       <div class="menu-body rules-body">
         <div data-lang="fi">
+        <h3>Säännöt</h3>
+        <h4>Pelin idea</h4>
         <p>Lauta, nopat ja siirrot ovat backgammonin. Pelistä poistuu ensimmäisenä se, joka pelaa
         viimeisen nappulansa ulos tai luovuttaa. Hän saa kuution arvon verran rangaistuspisteitä.
         Gammonia ei ole.</p>
+        <h4>Kuutio</h4>
         <p>Kuutio aloittaa keskeltä arvolla 1 ja kumpi tahansa voi tuplata ensimmäisenä. Tuplaa
         ennen heittoa, kun uskot vastustajan joutuvan ulos ensin. Tuplaat klikkaamalla korostettua
-        kuutiota. Tuplaus kysyy vahvistuksen, samoin Ota vastaan ja Luovu. Vastaanottaja saa kuution
+        kuutiota. Tuplaus kysyy vahvistuksen, samoin <kbd>Ota vastaan</kbd> ja <kbd>Luovu</kbd>. Vastaanottaja saa kuution
         omistukseensa kaksinkertaisella arvolla ja vain omistaja voi tuplata seuraavaksi. Luopuja
         saa kuution nykyarvon verran rangaistuspisteitä. Kuution suurin arvo on 64, eikä siitä voi
         enää tuplata.</p>
+        <h4>Ottelu</h4>
         <p>Ottelu pelataan valittuun rangaistuspisteiden rajaan, oletuksena seitsemään. Rajan
         saavuttaja häviää ottelun. Kun jompikumpi on yhden pisteen päässä rajasta, seuraava peli on
         Crawford-peli ilman kuutiota. Sen jälkeen kuutio on taas käytössä. Rahapelissä rajaa ei ole,
         ja pisteet kertyvät. Pituuden vaihto aloittaa uuden ottelun.</p>
+        <h4>Tasapeli</h4>
         <p>Jos peli ei ole päättynyt 300 rivin jälkeen, se päättyy tasapeliin eikä kumpikaan saa
         rangaistuspisteitä. Rivi on kaksi puolisiirtoa, kuten siirtolistassa. Tasapeliin päättynyt
         Crawford-peli pelataan uudelleen ilman kuutiota.</p>
-        <p>Voit tarjota tasapeliä omalla vuorollasi ennen heittoa muurin keskellä olevalla ½-napilla. Samalla
+        <p>Voit tarjota tasapeliä omalla vuorollasi ennen heittoa muurin keskellä olevalla <kbd>½</kbd>-napilla. Samalla
         vuorolla voit joko tuplata tai tarjota tasapeliä. Tarjouksen voi tehdä kerran vuorossa.
         Hyväksytty tarjous päättää pelin tasapeliin kuten 300 rivin raja. Botti hyväksyy, kun pelin
         jatkaminen ei sen arvion mukaan olisi sille edullista (sietoraja 0,02 kuution arvosta).
         Arviossa on otettu huomioon, että lähestyvä 300 rivin raja pienentää johtajan etua. Botti
         tarjoaa itse vain jumiutuneessa pelissä eli kun pip-lukujen summa ei ole laskenut 100
         rivissä tai botin arvio on pysynyt 50 riviä välillä 35–65 %.</p>
+        <h3>Laudan käyttö</h3>
+        <h4>Siirtäminen ja napit</h4>
         <p>Sinä pelaat vaaleilla nappuloilla pisteeltä 24 kohti pistettä 1. Klikkaa nappulaa, niin se
         siirtyy ensimmäisen käyttämättömän nopan verran. Jos sillä nopalla ei ole laillista siirtoa,
         niin nappula siirtyy seuraavan verran. Nopat ovat sen pelaajan puolella, jonka heitto se on.
         Käytetty noppa harmaantuu. Tuplilla noppia on neljä. Kun muurilla on nappulasi, niin
         laudan nappulan klikkaus tuo muurin nappulat ensin sisään ja siirtää sitten klikatun
-        nappulan. Kumoa (↶) peruu viimeisen osasiirron. Pelin napit ovat laudan päällä: Heitä
-        oman puoliskosi keskellä, Tarjoa tasapeliä (½) muurin keskellä sekä Kumoa ja Valmis (✓)
-        noppiesi vasemmalla ja oikealla puolella. Kun laillista siirtoa ei ole, ✓ jatkaa. Laudalle
+        nappulan. Kumoa (<kbd>↶</kbd>) peruu viimeisen osasiirron.</p>
+        <p>Pelin napit ovat laudan päällä: <kbd>Heitä</kbd>
+        oman puoliskosi keskellä, Tarjoa tasapeliä (<kbd>½</kbd>) muurin keskellä sekä Kumoa ja Valmis (<kbd>✓</kbd>)
+        noppiesi vasemmalla ja oikealla puolella. Kun laillista siirtoa ei ole, <kbd>✓</kbd> jatkaa. Laudalle
         automaattisesti asetettua pakkosiirtoa ei voi kumota. Muut napit ovat sillä puoliskolla, jolla omat
         noppasi eivät ole. Pelin tilarivi on laudan yläpuolella.
-        Asema (XGID) -kohdan Kopioi antaa aseman XGID-tunnisteena, jonka XG ja gnubg lukevat. Kun
-        liität tunnisteen kenttään ja painat Aseta, niin lauta siirtyy siihen asemaan. Ottelun
-        pisteet ja pituus pysyvät ennallaan. Isot kirjaimet ovat sinun nappulasi.
-        Tuo ottelu -kohta lukee DailyGammonin viennin (.mat) tai .sgf-tiedoston, myös DG Androidin
-        merkityin asemin. Valitse tiedosto tai liitä teksti ja paina Tuo. Ottelua selataan nuolilla
-        tai näppäimillä vasen ja oikea. Seuraava merkki hyppää merkittyyn asemaan. Valitse
-        Sinä-valikosta, kumpi pelaaja olet. Jatka tästä pelaa asemasta bottia vastaan. Sulje
-        palauttaa keskeytetyn pelisi. Nackgammonia ja double repeatin toistettua peliä ei voi toistaa.
-        Näppäimistöllä Ctrl+Z kumoaa, välilyönti heittää, Enter vahvistaa valmiin siirron, jatkaa
-        tai aloittaa seuraavan pelin ja S vaihtaa noppien järjestyksen. Siirtolista on Peli-paneelissa.
-        Pip-luvut ovat numeroriveillä muurin kohdalla, botin ylhäällä ja omasi alhaalla. Luovuta on
+        Pip-luvut ovat numeroriveillä muurin kohdalla, botin ylhäällä ja omasi alhaalla. <kbd>Luovuta</kbd> on
         Tulokset-paneelissa ja kysyy varmistuksen.</p>
+        <h4>Näppäimet</h4>
+        <p>Näppäimistöllä <kbd>Ctrl+Z</kbd> kumoaa, <kbd>välilyönti</kbd> heittää, <kbd>Enter</kbd> vahvistaa valmiin siirron, jatkaa
+        tai aloittaa seuraavan pelin ja <kbd>S</kbd> vaihtaa noppien järjestyksen.</p>
+        <h4>Asema (XGID) ja ottelun tuonti</h4>
+        <p>Asema (XGID) -kohdan <kbd>Kopioi</kbd> antaa aseman XGID-tunnisteena, jonka XG ja gnubg lukevat. Kun
+        liität tunnisteen kenttään ja painat <kbd>Aseta</kbd>, niin lauta siirtyy siihen asemaan. Ottelun
+        pisteet ja pituus pysyvät ennallaan. Isot kirjaimet ovat sinun nappulasi.</p>
+        <p>Tuo ottelu -kohta lukee DailyGammonin viennin (.mat) tai .sgf-tiedoston, myös DG Androidin
+        merkityin asemin. Valitse tiedosto tai liitä teksti ja paina <kbd>Tuo</kbd>. Ottelua selataan nuolilla
+        tai näppäimillä vasen ja oikea. <kbd>Seuraava merkki</kbd> hyppää merkittyyn asemaan. Valitse
+        Sinä-valikosta, kumpi pelaaja olet. <kbd>Jatka tästä</kbd> pelaa asemasta bottia vastaan. <kbd>Sulje</kbd>
+        palauttaa keskeytetyn pelisi. Nackgammonia ja double repeatin toistettua peliä ei voi toistaa.</p>
+        <h4>Paneelit ja siirtolista</h4>
         <p>Oletuksena laudan vieressä ovat Peli-, Arvio- ja Tulokset-paneelit. Asetukset ja Säännöt
-        avautuvat yläreunan napeista. Valikko sulkeutuu samasta napista, Esc-näppäimellä tai
-        klikkauksella sen ulkopuolelle. Kielen valitset yläreunan lipuista. Pystynäytöllä kaikki paneelit ovat laudan alla.
+        avautuvat yläreunan napeista. Valikko sulkeutuu samasta napista, <kbd>Esc</kbd>-näppäimellä tai
+        klikkauksella sen ulkopuolelle. Kielen valitset yläreunan lipuista. Pystynäytöllä kaikki paneelit ovat laudan alla.</p>
+        <p>Siirtolista on Peli-paneelissa.
         Peli-paneelin valitsimessa ovat nykyinen peli ja enintään 30 pelattua peliä. Listan rivi
         näyttää laudalla aseman ennen siirtoa tai kuutiopäätöstä, heiton ja pelatun siirron nuolet.
         Arvio-paneeli näyttää samalla rivin arvion. Päättyneen pelin riveillä näkyvät
         voittotodennäköisyys ilman kuutiota, equity ja ero verkon parhaaseen siirtoon. Paras on
-        vihreä ja huonommat punaisia. Nuolet ylös ja alas selaavat rivejä. Palaa peliin tai Esc
-        palauttaa pelin laudalle. Tulokset-paneelissa ovat ottelu, rangaistuspisteet, ottelun
+        <span class="c-good">vihreä</span> ja huonommat <span class="c-bad">punaisia</span>. Nuolet ylös ja alas selaavat rivejä. <kbd>Palaa peliin</kbd> tai <kbd>Esc</kbd>
+        palauttaa pelin laudalle.</p>
+        <p>Tulokset-paneelissa ovat ottelu, rangaistuspisteet, ottelun
         pelatut pelit sekä ottelun ja valitun pelin PR. PR on siirtojesi keskimääräinen virhe
         kertaa 500 kuten XG:ssä. Kuutiopäätökset eivät ole siinä mukana. Pienempi on parempi.
-        Tyhjennä historia poistaa pelatut pelit selaimesta. Asettelu on lukittu, kunnes painat
-        yläreunan nappia Muokkaa asettelua. Muokkaustilassa lauta pienenee ja laudan napit ja
+        <kbd>Tyhjennä historia</kbd> poistaa pelatut pelit selaimesta.</p>
+        <h4>Asettelun muokkaus</h4>
+        <p>Asettelu on lukittu, kunnes painat
+        yläreunan nappia <kbd>Muokkaa asettelua</kbd>. Muokkaustilassa lauta pienenee ja laudan napit ja
         tilarivi piiloutuvat, jotta kaikki paneelit näkyvät. Paneelin siirrät raahaamalla sen
         otsikosta laudan viereen tai alle. Leveyttä muutat raahaamalla paneelien välistä erotinta ja
         korkeutta paneelin oikeasta alakulmasta. Kaksoisklikkaus erottimeen palauttaa
-        oletusleveyden. Paneelin kulman × piilottaa Peli-, Arvio- tai Tulokset-paneelin.
-        Muokkauspalkin Piilotetut-kohta tuo sen takaisin. Palauta asettelun oletus palauttaa
-        asettelun. Valmis tai Esc lukitsee asettelun. Sivu tunnistaa näytön muodon (leveä vaakanäyttö, vaakanäyttö tai
+        oletusleveyden. Paneelin kulman <kbd>×</kbd> piilottaa Peli-, Arvio- tai Tulokset-paneelin.
+        Muokkauspalkin Piilotetut-kohta tuo sen takaisin. <kbd>Palauta asettelun oletus</kbd> palauttaa
+        asettelun. <kbd>Valmis</kbd> tai <kbd>Esc</kbd> lukitsee asettelun. Sivu tunnistaa näytön muodon (leveä vaakanäyttö, vaakanäyttö tai
         pystynäyttö) ja tallentaa paneelien paikat, koot ja näkyvyyden kullekin muodolle erikseen
         selaimeen.</p>
+        <h4>Asetukset: pelaaminen, ulkoasu, äänet</h4>
         <p>Asetukset-valikon Pelaaminen-kohdassa valitset botin syvyyden. 0-ply on verkon suora arvio ja nopea.
         1-ply ja 2-ply katsovat botin siirron jälkeen kaikki heittosi eteenpäin ja pelaavat
         vahvemmin, mutta 2-ply vie koneesta riippuen sekunteja siirtoa kohden. Oletus on 2-ply, ja botin viesti kertoo, kauanko haku kesti. Siirtojesi analyysi
@@ -362,11 +389,13 @@
         kuutio kolahtaa kun tuplaat tai otat vastaan ja gongi soi seuraavan pelin alkaessa.
         Napautus pisteeseen, jolta ei voi siirtää, antaa kaksoiskolahduksen, kun Näytä painettu
         piste on päällä. Ruuduilla jätät yksittäisen äänen pois. Äänet ovat DG Androidista.</p>
+        <h4>Siirtoanalyysi</h4>
         <p>Jokaista siirtoasi verrataan verkon parhaaseen siirtoon verkon omalla arviolla botin
         syvyydellä. Ero on
         equityä ilman kuutiota. Peli-paneelin siirtolistassa ?! on epätarkka (vähintään 0,04), ? virhe
-        (0,08) ja ?? vakava virhe (0,16). Pelin päätyttyä siirto on listassa vihreä, kun se menetti
-        yli 0,020, ja punainen, kun se menetti yli 0,080. Kuutiopäätöksiä ei väritetä. Kun Pelaaminen-kohdan Tutor-tila on päällä, niin
+        (0,08) ja ?? vakava virhe (0,16). Pelin päätyttyä siirto on listassa <span class="c-good">vihreä</span>, kun se menetti
+        yli 0,020, ja <span class="c-bad">punainen</span>, kun se menetti yli 0,080. Kuutiopäätöksiä ei väritetä.</p>
+        <p>Kun Pelaaminen-kohdan Tutor-tila on päällä, niin
         Arvio-paneeli näyttää jokaisen siirtosi jälkeen arvion ja verkon parhaat siirrot eroineen.
         Pelin aikana näet vain eroja parhaaseen siirtoon etkä aseman arviota, joten analyysi ei
         kerro, kannattaako tuplata. Botin siirrot ja kuutiopäätökset arvioidaan pelin päätyttyä.
@@ -374,70 +403,86 @@
         kohdalla verkon kolme parasta.</p>
         </div>
         <div data-lang="en" hidden>
+        <h3>Rules</h3>
+        <h4>The idea</h4>
         <p>Board, dice and movement are normal backgammon. The first player to leave the game, by
         bearing off the last checker or by resigning, gets penalty points equal to the cube value.
         There are no gammons.</p>
+        <h4>The cube</h4>
         <p>The cube starts in the middle at 1, and either player may double first. Double before
         rolling when you think your opponent must leave first. You double by clicking the highlighted
-        cube. Doubling asks you to confirm, and so do Take and Pass. The player who takes owns the cube at
+        cube. Doubling asks you to confirm, and so do <kbd>Take</kbd> and <kbd>Pass</kbd>. The player who takes owns the cube at
         twice the value, and only the owner can double next. A player who passes gets penalty points
         equal to the current cube value. The highest cube value is 64.</p>
+        <h4>The match</h4>
         <p>The match is played to the chosen number of penalty points, seven by default. The player
         who reaches the limit loses the match. When either player is one point away, the next game is
         the Crawford game without the cube. After that the cube is back in play. In a money game
         there is no limit, and the points add up. Changing the length starts a new match.</p>
+        <h4>Draws</h4>
         <p>If the game has not ended after 300 rows, it is a draw, and nobody gets penalty points. A
         row is two half-moves, as in the move list. A Crawford game that ends in a draw is replayed
         without the cube.</p>
-        <p>You can offer a draw on your turn before rolling with the ½ button in the middle of the bar. On one turn you can
+        <p>You can offer a draw on your turn before rolling with the <kbd>½</kbd> button in the middle of the bar. On one turn you can
         either double or offer a draw. You can offer once per turn. An accepted offer ends the game
         in a draw, as the 300-row limit does. The bot accepts when continuing would not be in its
         favour by its own estimate (tolerance 0.02 of the cube value). The estimate takes into account
         that the approaching 300-row limit shrinks the leader's edge. The bot offers a draw itself
         only in a stuck game: the pip count total has not dropped in 100 rows, or the bot's estimate
         has stayed between 35 and 65 % for 50 rows.</p>
+        <h3>Using the board</h3>
+        <h4>Moving and buttons</h4>
         <p>You play the light checkers from point 24 towards point 1. Click a checker to move it by
         the first unused die. If that die has no legal move for it, the checker moves by the next
         one. The dice are on the side of the player who rolled them. A used die turns grey, and
         doubles show four dice. When you have a checker on the bar, clicking a checker on the board
-        first brings the bar checkers in and then moves the clicked one. Undo (↶) takes back the last
-        part of the move. The game buttons are on the board: Roll in the middle of your half, Offer a
-        draw (½) in the middle of the bar and Undo (↶) and Done (✓) to the left and right of your
-        dice. When there is no legal move, ✓ continues. A forced move placed on the board
+        first brings the bar checkers in and then moves the clicked one. Undo (<kbd>↶</kbd>) takes back the last
+        part of the move.</p>
+        <p>The game buttons are on the board: <kbd>Roll</kbd> in the middle of your half, Offer a
+        draw (<kbd>½</kbd>) in the middle of the bar and Undo (<kbd>↶</kbd>) and Done (<kbd>✓</kbd>) to the left and right of your
+        dice. When there is no legal move, <kbd>✓</kbd> continues. A forced move placed on the board
         automatically cannot be undone. The other buttons are on the half where your dice are not. The status line of the game
-        is above the board.
-        Copy under Position (XGID) gives the position as an XGID, which XG and gnubg read. When you
-        paste an ID into the field and press Set, the board moves to that position. The match
-        score and length stay as they are. Capital letters are your checkers.
-        Import match reads a DailyGammon export (.mat) or an .sgf file, also with the positions
-        marked in DG Android. Choose a file or paste the text and press Import. Step through the
-        match with the arrow buttons or the left and right keys, and Next mark jumps to a marked
-        position. Pick which player you are under You. Play from here continues from the position
-        against the bot, and Close brings back your paused game. Nackgammon and the replayed game
-        of double repeat cannot be replayed.
-        On the keyboard Ctrl+Z undoes, Space rolls, Enter submits a complete move, continues or
-        starts the next game and S swaps the dice. The move list is in the Game panel. The pip counts are on the
-        number rows at the bar, the bot's at the top and yours at the bottom. Resign is in the Results
+        is above the board. The pip counts are on the
+        number rows at the bar, the bot's at the top and yours at the bottom. <kbd>Resign</kbd> is in the Results
         panel, and it asks you to confirm.</p>
+        <h4>Keyboard</h4>
+        <p>On the keyboard <kbd>Ctrl+Z</kbd> undoes, <kbd>Space</kbd> rolls, <kbd>Enter</kbd> submits a complete move, continues or
+        starts the next game and <kbd>S</kbd> swaps the dice.</p>
+        <h4>Position (XGID) and match import</h4>
+        <p><kbd>Copy</kbd> under Position (XGID) gives the position as an XGID, which XG and gnubg read. When you
+        paste an ID into the field and press <kbd>Set</kbd>, the board moves to that position. The match
+        score and length stay as they are. Capital letters are your checkers.</p>
+        <p>Import match reads a DailyGammon export (.mat) or an .sgf file, also with the positions
+        marked in DG Android. Choose a file or paste the text and press <kbd>Import</kbd>. Step through the
+        match with the arrow buttons or the left and right keys, and <kbd>Next mark</kbd> jumps to a marked
+        position. Pick which player you are under You. <kbd>Play from here</kbd> continues from the position
+        against the bot, and <kbd>Close</kbd> brings back your paused game. Nackgammon and the replayed game
+        of double repeat cannot be replayed.</p>
+        <h4>Panels and move list</h4>
         <p>By default the Game, Evaluation and Results panels are next to the board. Settings and
-        Rules open from the buttons at the top. A menu closes from the same button, with Esc or with
-        a click outside it. You choose the language from the flags at the top. On a portrait screen all panels are below the board. The selector in the Game panel holds the current game and up to 30 played games. A row in
+        Rules open from the buttons at the top. A menu closes from the same button, with <kbd>Esc</kbd> or with
+        a click outside it. You choose the language from the flags at the top. On a portrait screen all panels are below the board.</p>
+        <p>The move list is in the Game panel. The selector in the Game panel holds the current game and up to 30 played games. A row in
         the list shows the position before the move or cube decision on the board, with the roll and
         arrows for the move played, and the Evaluation panel shows its evaluation. On the rows of a
         finished game you see the cubeless win chance, the equity and the difference to the
-        network's best move. The best is green and worse moves are red. The up and down arrows step
-        through the rows. Back to the game or Esc brings the game back to the board. The Results
+        network's best move. The best is <span class="c-good">green</span> and worse moves are <span class="c-bad">red</span>. The up and down arrows step
+        through the rows. <kbd>Back to the game</kbd> or <kbd>Esc</kbd> brings the game back to the board.</p>
+        <p>The Results
         panel shows the match, the penalty points, the games played in the match and the PR of the
         match and of the chosen game. PR is the average error of your moves times 500, as in XG,
-        without cube decisions. Lower is better. Clear history removes the played games from the
-        browser. The layout is locked until you press Edit layout at the top. In edit mode the board shrinks
+        without cube decisions. Lower is better. <kbd>Clear history</kbd> removes the played games from the
+        browser.</p>
+        <h4>Editing the layout</h4>
+        <p>The layout is locked until you press <kbd>Edit layout</kbd> at the top. In edit mode the board shrinks
         and the buttons on it and the status line are hidden, so that all panels are in view. You move a panel by dragging its title next to the board or below it. You change the width of the
         panels by dragging the divider between them and the height from the lower right corner of a
-        panel. A double click on a divider brings back the default width. The × in the corner of a
+        panel. A double click on a divider brings back the default width. The <kbd>×</kbd> in the corner of a
         panel hides the Game, Evaluation or Results panel, and Hidden in the edit bar brings it back.
-        Reset layout restores the default. Done or Esc locks the layout. The page
+        <kbd>Reset layout</kbd> restores the default. <kbd>Done</kbd> or <kbd>Esc</kbd> locks the layout. The page
         recognises the shape of the screen (wide landscape, landscape or portrait) and keeps the
         places, sizes and visibility of the panels for each shape separately in the browser.</p>
+        <h4>Settings: playing, appearance, sounds</h4>
         <p>Under Playing in the Settings menu you choose the bot's depth. 0-ply is the network's direct evaluation and
         fast. 1-ply and 2-ply look ahead through all your rolls after the bot's move and play
         stronger, but 2-ply can take seconds per move depending on your computer. The default is 2-ply, and the bot's message tells how long the search took. Your moves are
@@ -459,11 +504,13 @@
         on wood, the cube knocks when you double or take and a gong sounds when the next game starts.
         A tap on a point you can't move from gives a double knock when Show which point I'm pressing
         is on. The boxes leave out one sound at a time. The sounds come from DG Android.</p>
+        <h4>Move analysis</h4>
         <p>Each of your moves is compared with the network's best move, using the network's own
         evaluation at the bot's depth. The difference is cubeless equity. In the move list of the Game panel ?! is
         doubtful (at least 0.04), ? an error (0.08) and ?? a blunder (0.16). When the game has ended, a
-        move in the list is green when it lost more than 0.020 and red when it lost more than 0.080.
-        Cube decisions are not coloured. When Tutor mode under
+        move in the list is <span class="c-good">green</span> when it lost more than 0.020 and <span class="c-bad">red</span> when it lost more than 0.080.
+        Cube decisions are not coloured.</p>
+        <p>When Tutor mode under
         Playing is on, the Evaluation panel shows the verdict and the network's best moves with
         their differences after each of your moves. During the game you see only differences from
         the best move and never the evaluation of the position, so the analysis does not tell you
@@ -472,25 +519,30 @@
         errors, each with the network's top three.</p>
         </div>
         <div data-lang="de" hidden>
+        <h3>Regeln</h3>
+        <h4>Die Idee</h4>
         <p>Brett, Würfel und Züge sind wie im normalen Backgammon. Wer das Spiel zuerst verlässt,
         indem er den letzten Stein abträgt oder aufgibt, bekommt so viele Strafpunkte, wie der
         Dopplerwürfel zeigt. Gammons gibt es nicht.</p>
+        <h4>Der Dopplerwürfel</h4>
         <p>Der Würfel beginnt in der Mitte auf 1, und jeder Spieler darf als Erster verdoppeln.
         Verdopple vor dem Würfeln, wenn du glaubst, dass dein Gegner das Spiel zuerst verlassen muss.
         Du verdoppelst mit einem Klick auf den hervorgehobenen Würfel. Das Verdoppeln fragt nach
-        einer Bestätigung, ebenso Annehmen und Ablehnen.
+        einer Bestätigung, ebenso <kbd>Annehmen</kbd> und <kbd>Ablehnen</kbd>.
         Wer annimmt, besitzt den Würfel zum doppelten Wert, und nur der Besitzer darf als Nächster
         verdoppeln. Wer ablehnt, bekommt Strafpunkte in Höhe des aktuellen Würfelwerts. Der höchste
         Würfelwert ist 64.</p>
+        <h4>Das Match</h4>
         <p>Das Match wird bis zur gewählten Zahl von Strafpunkten gespielt, standardmäßig sieben. Wer
         die Grenze erreicht, verliert das Match. Wenn ein Spieler einen Punkt davon entfernt ist, ist
         das nächste Spiel das Crawford-Spiel ohne Würfel. Danach ist der Würfel wieder im Spiel. Im
         Geldspiel gibt es keine Grenze, und die Punkte summieren sich. Eine neue Länge beginnt ein
         neues Match.</p>
+        <h4>Remis</h4>
         <p>Wenn das Spiel nach 300 Reihen nicht beendet ist, endet es remis, und niemand bekommt
         Strafpunkte. Eine Reihe sind zwei Halbzüge wie in der Zugliste. Ein Crawford-Spiel, das
         remis endet, wird ohne Würfel wiederholt.</p>
-        <p>Du kannst in deinem Zug vor dem Würfeln mit dem ½-Knopf in der Mitte der Bar ein Remis anbieten. In einem Zug
+        <p>Du kannst in deinem Zug vor dem Würfeln mit dem <kbd>½</kbd>-Knopf in der Mitte der Bar ein Remis anbieten. In einem Zug
         kannst du entweder verdoppeln oder ein Remis anbieten. Du kannst einmal pro Zug anbieten. Ein
         angenommenes Angebot beendet das Spiel remis wie die Grenze von 300 Reihen. Der Bot nimmt an,
         wenn das Weiterspielen nach seiner eigenen Schätzung nicht zu seinem Vorteil wäre (Toleranz
@@ -498,55 +550,65 @@
         den Vorsprung des Führenden verkleinert. Der Bot bietet selbst nur in einem festgefahrenen
         Spiel ein Remis an: Die Summe der Pips ist in 100 Reihen nicht gesunken, oder die Schätzung
         des Bots lag 50 Reihen lang zwischen 35 und 65 %.</p>
+        <h3>Bedienung des Bretts</h3>
+        <h4>Ziehen und Knöpfe</h4>
         <p>Du spielst die hellen Steine von Punkt 24 in Richtung Punkt 1. Klicke einen Stein an, um
         ihn um den ersten unbenutzten Würfel zu ziehen. Hat dieser Würfel für ihn keinen legalen Zug,
         zieht der Stein um den nächsten. Die Würfel liegen auf der Seite des Spielers, der sie
         geworfen hat. Ein benutzter Würfel wird grau, und bei einem Pasch gibt es vier Würfel. Wenn
         du einen Stein auf der Bar hast, bringt ein Klick auf einen Stein auf dem Brett zuerst die
-        Steine von der Bar herein und zieht dann den angeklickten. Rückgängig (↶) nimmt den letzten Teil
-        des Zuges zurück. Die Knöpfe des Spiels liegen auf dem Brett: Würfeln in der Mitte deiner
-        Hälfte, Remis anbieten (½) in der Mitte der Bar und Rückgängig (↶) und Fertig (✓) links und
-        rechts von deinen Würfeln. Wenn es keinen legalen Zug gibt, setzt ✓ fort. Ein automatisch
+        Steine von der Bar herein und zieht dann den angeklickten. Rückgängig (<kbd>↶</kbd>) nimmt den letzten Teil
+        des Zuges zurück.</p>
+        <p>Die Knöpfe des Spiels liegen auf dem Brett: <kbd>Würfeln</kbd> in der Mitte deiner
+        Hälfte, Remis anbieten (<kbd>½</kbd>) in der Mitte der Bar und Rückgängig (<kbd>↶</kbd>) und Fertig (<kbd>✓</kbd>) links und
+        rechts von deinen Würfeln. Wenn es keinen legalen Zug gibt, setzt <kbd>✓</kbd> fort. Ein automatisch
         gesetzter erzwungener Zug kann nicht rückgängig gemacht werden. Die übrigen Knöpfe liegen auf der Hälfte ohne deine Würfel. Die
-        Statuszeile des Spiels steht über dem Brett.
-        Kopieren unter Stellung (XGID) gibt die Stellung als XGID aus, die XG und gnubg lesen. Wenn
-        du eine ID in das Feld einfügst und Setzen drückst, wechselt das Brett zu dieser Stellung.
-        Matchstand und Länge bleiben, wie sie sind. Großbuchstaben sind deine Steine.
-        Match importieren liest einen DailyGammon-Export (.mat) oder eine .sgf-Datei, auch mit den in
-        DG Android markierten Stellungen. Wähle eine Datei oder füge den Text ein und drücke
-        Importieren. Blättere mit den Pfeiltasten auf dem Bildschirm oder den Tasten links und rechts
-        durch das Match. Nächste Markierung springt zu einer markierten Stellung. Wähle unter Du,
-        welcher Spieler du bist. Von hier spielen setzt das Spiel aus der Stellung gegen den Bot fort,
-        und Schließen bringt dein unterbrochenes Spiel zurück. Nackgammon und das wiederholte Spiel
-        von Double Repeat können nicht nachgespielt werden.
-        Auf der Tastatur macht Strg+Z rückgängig, die Leertaste würfelt, Enter bestätigt einen
-        vollständigen Zug, setzt fort oder beginnt das nächste Spiel und S tauscht die Würfel. Die
-        Zugliste ist im Spiel-Panel. Die Pip-Zahlen stehen in den Zahlenreihen an der Bar, die des
-        Bots oben und deine unten. Aufgeben ist im Ergebnisse-Panel und fragt nach einer
+        Statuszeile des Spiels steht über dem Brett. Die Pip-Zahlen stehen in den Zahlenreihen an der Bar, die des
+        Bots oben und deine unten. <kbd>Aufgeben</kbd> ist im Ergebnisse-Panel und fragt nach einer
         Bestätigung.</p>
+        <h4>Tastatur</h4>
+        <p>Auf der Tastatur macht <kbd>Strg+Z</kbd> rückgängig, die <kbd>Leertaste</kbd> würfelt, <kbd>Enter</kbd> bestätigt einen
+        vollständigen Zug, setzt fort oder beginnt das nächste Spiel und <kbd>S</kbd> tauscht die Würfel.</p>
+        <h4>Stellung (XGID) und Matchimport</h4>
+        <p><kbd>Kopieren</kbd> unter Stellung (XGID) gibt die Stellung als XGID aus, die XG und gnubg lesen. Wenn
+        du eine ID in das Feld einfügst und <kbd>Setzen</kbd> drückst, wechselt das Brett zu dieser Stellung.
+        Matchstand und Länge bleiben, wie sie sind. Großbuchstaben sind deine Steine.</p>
+        <p>Match importieren liest einen DailyGammon-Export (.mat) oder eine .sgf-Datei, auch mit den in
+        DG Android markierten Stellungen. Wähle eine Datei oder füge den Text ein und drücke
+        <kbd>Importieren</kbd>. Blättere mit den Pfeiltasten auf dem Bildschirm oder den Tasten links und rechts
+        durch das Match. <kbd>Nächste Markierung</kbd> springt zu einer markierten Stellung. Wähle unter Du,
+        welcher Spieler du bist. <kbd>Von hier spielen</kbd> setzt das Spiel aus der Stellung gegen den Bot fort,
+        und <kbd>Schließen</kbd> bringt dein unterbrochenes Spiel zurück. Nackgammon und das wiederholte Spiel
+        von Double Repeat können nicht nachgespielt werden.</p>
+        <h4>Panels und Zugliste</h4>
         <p>Standardmäßig stehen die Panels Spiel, Bewertung und Ergebnisse neben dem Brett.
         Einstellungen und Regeln öffnen sich über die Knöpfe oben. Ein Menü schließt sich über
-        denselben Knopf, mit Esc oder mit einem Klick daneben. Die Sprache wählst du oben über die Flaggen. Im Hochformat stehen alle Panels unter dem Brett.
+        denselben Knopf, mit <kbd>Esc</kbd> oder mit einem Klick daneben. Die Sprache wählst du oben über die Flaggen. Im Hochformat stehen alle Panels unter dem Brett.</p>
+        <p>Die Zugliste ist im Spiel-Panel.
         Die Auswahl im Spiel-Panel enthält das aktuelle Spiel und bis zu 30 gespielte Spiele. Eine
         Reihe der Liste zeigt auf dem Brett die Stellung vor dem Zug oder der Würfelentscheidung mit
         dem Wurf und Pfeilen für den gespielten Zug. Das Bewertung-Panel zeigt dazu ihre Bewertung.
         In den Reihen eines beendeten Spiels siehst du die Siegchance ohne Würfel, die Equity und den
-        Abstand zum besten Zug des Netzes. Der beste ist grün, schlechtere sind rot. Die Pfeiltasten
-        nach oben und unten blättern durch die Reihen. Zurück zum Spiel oder Esc bringt das Spiel
-        wieder aufs Brett. Das Ergebnisse-Panel zeigt das Match, die Strafpunkte, die im Match
+        Abstand zum besten Zug des Netzes. Der beste ist <span class="c-good">grün</span>, schlechtere sind <span class="c-bad">rot</span>. Die Pfeiltasten
+        nach oben und unten blättern durch die Reihen. <kbd>Zurück zum Spiel</kbd> oder <kbd>Esc</kbd> bringt das Spiel
+        wieder aufs Brett.</p>
+        <p>Das Ergebnisse-Panel zeigt das Match, die Strafpunkte, die im Match
         gespielten Spiele und die PR des Matches und des gewählten Spiels. PR ist der
         durchschnittliche Fehler deiner Züge mal 500 wie in XG, ohne Würfelentscheidungen. Niedriger
-        ist besser. Verlauf löschen entfernt die gespielten Spiele aus dem Browser. Das Layout ist
-        gesperrt, bis du oben Layout bearbeiten drückst. Im Bearbeitungsmodus wird das Brett kleiner
+        ist besser. <kbd>Verlauf löschen</kbd> entfernt die gespielten Spiele aus dem Browser.</p>
+        <h4>Layout bearbeiten</h4>
+        <p>Das Layout ist
+        gesperrt, bis du oben <kbd>Layout bearbeiten</kbd> drückst. Im Bearbeitungsmodus wird das Brett kleiner
         und die Knöpfe darauf und die Statuszeile verschwinden, damit alle Panels sichtbar sind. Du verschiebst ein
         Panel, indem du seinen Titel neben oder unter das Brett ziehst. Die Breite der Panels änderst
         du, indem du den Trenner zwischen ihnen ziehst, die Höhe an der unteren rechten Ecke eines
-        Panels. Ein Doppelklick auf einen Trenner stellt die Standardbreite wieder her. Das × in der
+        Panels. Ein Doppelklick auf einen Trenner stellt die Standardbreite wieder her. Das <kbd>×</kbd> in der
         Ecke blendet das Panel Spiel, Bewertung oder Ergebnisse aus, und Ausgeblendet in der
-        Bearbeitungsleiste holt es zurück. Layout zurücksetzen stellt den Standard wieder her. Fertig
-        oder Esc sperrt das Layout. Die Seite erkennt die Bildschirmform (breites Querformat, Querformat oder
+        Bearbeitungsleiste holt es zurück. <kbd>Layout zurücksetzen</kbd> stellt den Standard wieder her. <kbd>Fertig</kbd>
+        oder <kbd>Esc</kbd> sperrt das Layout. Die Seite erkennt die Bildschirmform (breites Querformat, Querformat oder
         Hochformat) und speichert Platz, Größe und Sichtbarkeit der Panels für jede Form getrennt im
         Browser.</p>
+        <h4>Einstellungen: Spielen, Aussehen, Töne</h4>
         <p>Unter Spielen im Einstellungen-Menü wählst du die Suchtiefe des Bots. 0-ply ist die direkte
         Bewertung des Netzes und schnell. 1-ply und 2-ply schauen nach dem Zug des Bots alle deine
         Würfe voraus und spielen stärker, aber 2-ply kann je nach Rechner Sekunden pro Zug dauern.
@@ -573,12 +635,14 @@
         nächste Spiel beginnt. Ein Tippen auf einen Punkt ohne möglichen Zug gibt ein doppeltes
         Klopfen, wenn Gedrückten Punkt zeigen an ist. Mit den Kästchen lässt du einzelne Töne weg.
         Die Töne stammen aus DG Android.</p>
+        <h4>Zuganalyse</h4>
         <p>Jeder deiner Züge wird mit dem besten Zug des Netzes verglichen, nach der eigenen Bewertung
         des Netzes in der Suchtiefe des Bots. Der Unterschied ist Equity ohne Würfel. In der Zugliste
         des Spiel-Panels ist ?! ungenau (mindestens 0,04), ? ein Fehler (0,08) und ?? ein grober
-        Fehler (0,16). Nach dem Spielende ist ein Zug in der Liste grün, wenn er mehr als 0,020
-        verloren hat, und rot, wenn er mehr als 0,080 verloren hat. Würfelentscheidungen werden nicht
-        eingefärbt. Wenn der Tutor-Modus unter Spielen an ist, zeigt das Bewertung-Panel nach
+        Fehler (0,16). Nach dem Spielende ist ein Zug in der Liste <span class="c-good">grün</span>, wenn er mehr als 0,020
+        verloren hat, und <span class="c-bad">rot</span>, wenn er mehr als 0,080 verloren hat. Würfelentscheidungen werden nicht
+        eingefärbt.</p>
+        <p>Wenn der Tutor-Modus unter Spielen an ist, zeigt das Bewertung-Panel nach
         jedem deiner Züge das Urteil und die besten Züge des Netzes mit ihren Abständen. Während des
         Spiels siehst du nur Abstände zum besten Zug und nie die Bewertung der Stellung, daher sagt
         dir die Analyse nicht, ob du verdoppeln sollst. Die Züge des Bots und die
@@ -587,25 +651,30 @@
         Zügen des Netzes.</p>
         </div>
         <div data-lang="fr" hidden>
+        <h3>Règles</h3>
+        <h4>Le principe</h4>
         <p>Le plateau, les dés et les déplacements sont ceux du backgammon. Le premier joueur à
         quitter la partie, en sortant sa dernière dame ou en abandonnant, reçoit autant de points de
         pénalité que la valeur du videau. Il n'y a pas de gammon.</p>
+        <h4>Le videau</h4>
         <p>Le videau commence au centre à 1, et chaque joueur peut doubler le premier. Doublez avant
         de lancer les dés quand vous pensez que votre adversaire devra quitter la partie le premier.
         Vous doublez en cliquant sur le videau mis en évidence. Le double demande une confirmation,
-        tout comme Accepter et Refuser.
+        tout comme <kbd>Accepter</kbd> et <kbd>Refuser</kbd>.
         Le joueur qui accepte possède le videau à la valeur double, et seul le propriétaire peut
         doubler ensuite. Le joueur qui refuse reçoit autant de points de pénalité que la valeur
         actuelle du videau. La valeur maximale du videau est 64.</p>
+        <h4>Le match</h4>
         <p>Le match se joue jusqu'au nombre de points de pénalité choisi, sept par défaut. Le joueur
         qui atteint la limite perd le match. Quand un joueur est à un point de la limite, la partie
         suivante est la partie Crawford, sans videau. Ensuite le videau revient en jeu. En partie
         d'argent il n'y a pas de limite et les points s'additionnent. Changer la longueur commence
         un nouveau match.</p>
+        <h4>La nulle</h4>
         <p>Si la partie n'est pas terminée après 300 rangées, elle est nulle et personne ne reçoit
         de points de pénalité. Une rangée correspond à deux demi-coups, comme dans la liste des
         coups. Une partie Crawford nulle est rejouée sans videau.</p>
-        <p>Vous pouvez proposer la nulle pendant votre tour, avant de lancer les dés, avec le bouton ½ au
+        <p>Vous pouvez proposer la nulle pendant votre tour, avant de lancer les dés, avec le bouton <kbd>½</kbd> au
         milieu de la barre. Pendant un même tour, vous pouvez soit doubler, soit proposer la nulle. Vous pouvez
         proposer une fois par tour. Une proposition acceptée termine la partie par une nulle, comme
         la limite de 300 rangées. Le bot accepte quand continuer ne serait pas à son avantage selon sa
@@ -613,55 +682,66 @@
         fait que l'approche de la limite de 300 rangées réduit l'avance du meneur. Le bot ne propose
         lui-même la nulle que dans une partie bloquée&nbsp;: le total des pips n'a pas baissé en 100
         rangées, ou l'estimation du bot est restée entre 35 et 65&nbsp;% pendant 50 rangées.</p>
+        <h3>Utiliser le plateau</h3>
+        <h4>Déplacements et boutons</h4>
         <p>Vous jouez les dames claires de la case 24 vers la case 1. Cliquez sur une dame pour la
         déplacer du premier dé inutilisé. Si ce dé ne lui permet aucun coup légal, la dame se déplace
         du suivant. Les dés sont du côté du joueur qui les a lancés. Un dé utilisé devient gris, et un
         double affiche quatre dés. Quand vous avez une dame sur la barre, un clic sur une dame du
-        plateau fait d'abord entrer les dames de la barre, puis déplace la dame cliquée. Annuler
-        reprend la dernière partie du coup. Les boutons du jeu sont sur le plateau&nbsp;: Lancer au
-        milieu de votre moitié, Proposer la nulle (½) au milieu de la barre et Annuler (↶) et Terminé
-        (✓) à gauche et à droite de vos dés. Quand aucun coup légal n'existe, ✓ continue. Un
+        plateau fait d'abord entrer les dames de la barre, puis déplace la dame cliquée. Annuler (<kbd>↶</kbd>)
+        reprend la dernière partie du coup.</p>
+        <p>Les boutons du jeu sont sur le plateau&nbsp;: <kbd>Lancer</kbd> au
+        milieu de votre moitié, Proposer la nulle (<kbd>½</kbd>) au milieu de la barre et Annuler (<kbd>↶</kbd>) et Terminé
+        (<kbd>✓</kbd>) à gauche et à droite de vos dés. Quand aucun coup légal n'existe, <kbd>✓</kbd> continue. Un
         déplacement forcé placé automatiquement ne peut pas être annulé. Les autres boutons sont sur la moitié où vos dés ne sont
-        pas. La ligne d'état de la partie est au-dessus du plateau.
-        Copier sous Position (XGID) donne la position sous forme de XGID, que lisent XG et gnubg.
-        Quand vous collez un ID dans le champ et appuyez sur Appliquer, le plateau passe à cette
-        position. Le score et la longueur du match restent inchangés. Les majuscules sont vos dames.
-        Importer un match lit un export DailyGammon (.mat) ou un fichier .sgf, y compris les
-        positions marquées dans DG Android. Choisissez un fichier ou collez le texte et appuyez sur
-        Importer. Parcourez le match avec les boutons fléchés ou les touches gauche et droite. Marque
-        suivante saute à une position marquée. Choisissez sous Vous quel joueur vous êtes. Jouer à
-        partir d'ici continue la partie contre le bot depuis la position, et Fermer ramène votre
-        partie interrompue. Le nackgammon et la partie rejouée du double repeat ne peuvent pas être
-        rejoués.
-        Au clavier, Ctrl+Z annule, Espace lance les dés, Entrée confirme un coup complet, continue ou
-        commence la partie suivante et S inverse les dés. La liste des coups se trouve dans le
-        panneau Partie. Les comptes de pips sont sur les rangées de numéros au niveau de la barre,
-        celui du bot en haut et le vôtre en bas. Abandonner se trouve dans le panneau Résultats et
+        pas. La ligne d'état de la partie est au-dessus du plateau. Les comptes de pips sont sur les rangées de numéros au niveau de la barre,
+        celui du bot en haut et le vôtre en bas. <kbd>Abandonner</kbd> se trouve dans le panneau Résultats et
         demande une confirmation.</p>
+        <h4>Clavier</h4>
+        <p>Au clavier, <kbd>Ctrl+Z</kbd> annule, <kbd>Espace</kbd> lance les dés, <kbd>Entrée</kbd> confirme un coup complet, continue ou
+        commence la partie suivante et <kbd>S</kbd> inverse les dés.</p>
+        <h4>Position (XGID) et import de match</h4>
+        <p><kbd>Copier</kbd> sous Position (XGID) donne la position sous forme de XGID, que lisent XG et gnubg.
+        Quand vous collez un ID dans le champ et appuyez sur <kbd>Appliquer</kbd>, le plateau passe à cette
+        position. Le score et la longueur du match restent inchangés. Les majuscules sont vos dames.</p>
+        <p>Importer un match lit un export DailyGammon (.mat) ou un fichier .sgf, y compris les
+        positions marquées dans DG Android. Choisissez un fichier ou collez le texte et appuyez sur
+        <kbd>Importer</kbd>. Parcourez le match avec les boutons fléchés ou les touches gauche et droite. <kbd>Marque
+        suivante</kbd> saute à une position marquée. Choisissez sous Vous quel joueur vous êtes. <kbd>Jouer à
+        partir d'ici</kbd> continue la partie contre le bot depuis la position, et <kbd>Fermer</kbd> ramène votre
+        partie interrompue. Le nackgammon et la partie rejouée du double repeat ne peuvent pas être
+        rejoués.</p>
+        <h4>Panneaux et liste des coups</h4>
         <p>Par défaut, les panneaux Partie, Évaluation et Résultats sont à côté du plateau. Réglages
         et Règles s'ouvrent depuis les boutons en haut. Un menu se ferme avec le même bouton, avec
-        Échap ou par un clic en dehors. Vous choisissez la langue avec les drapeaux en haut. Sur un écran portrait, tous les panneaux sont sous le plateau.
+        <kbd>Échap</kbd> ou par un clic en dehors. Vous choisissez la langue avec les drapeaux en haut. Sur un écran portrait, tous les panneaux sont sous le plateau.</p>
+        <p>La liste des coups se trouve dans le
+        panneau Partie.
         Le sélecteur du panneau Partie contient la partie en cours et jusqu'à 30 parties jouées. Une
         rangée de la liste affiche sur le plateau la position avant le coup ou la décision de videau,
         avec le lancer et des flèches pour le coup joué. Le panneau Évaluation affiche alors son
         évaluation. Sur les rangées d'une partie terminée, vous voyez la probabilité de victoire sans
-        videau, l'équité et l'écart avec le meilleur coup du réseau. Le meilleur est en vert, les
-        moins bons en rouge. Les touches fléchées haut et bas parcourent les rangées. Retour à la
-        partie ou Échap remet la partie sur le plateau. Le panneau Résultats affiche le match, les
+        videau, l'équité et l'écart avec le meilleur coup du réseau. Le meilleur est en <span class="c-good">vert</span>, les
+        moins bons en <span class="c-bad">rouge</span>. Les touches fléchées haut et bas parcourent les rangées. <kbd>Retour à la
+        partie</kbd> ou <kbd>Échap</kbd> remet la partie sur le plateau.</p>
+        <p>Le panneau Résultats affiche le match, les
         points de pénalité, les parties jouées dans le match et le PR du match et de la partie
         choisie. Le PR est l'erreur moyenne de vos coups multipliée par 500, comme dans XG, sans les
-        décisions de videau. Plus il est bas, mieux c'est. Effacer l'historique supprime les parties
-        jouées du navigateur. La disposition est verrouillée jusqu'à ce que vous appuyiez en haut
-        sur Modifier la disposition. En mode modification, le plateau rétrécit et ses boutons
+        décisions de videau. Plus il est bas, mieux c'est. <kbd>Effacer l'historique</kbd> supprime les parties
+        jouées du navigateur.</p>
+        <h4>Modifier la disposition</h4>
+        <p>La disposition est verrouillée jusqu'à ce que vous appuyiez en haut
+        sur <kbd>Modifier la disposition</kbd>. En mode modification, le plateau rétrécit et ses boutons
         et la ligne d'état sont masqués, pour que tous les panneaux soient visibles. Vous déplacez un panneau en faisant
         glisser son titre à côté du plateau ou en dessous. Vous changez la largeur des panneaux en faisant glisser le séparateur
         entre eux et la hauteur depuis le coin inférieur droit d'un panneau. Un double clic sur un
-        séparateur rétablit la largeur par défaut. Le × dans le coin masque le panneau Partie,
-        Évaluation ou Résultats, et Masqués dans la barre de modification le fait revenir. Rétablir
-        la disposition revient à la disposition par défaut. Terminé ou Échap verrouille la
+        séparateur rétablit la largeur par défaut. Le <kbd>×</kbd> dans le coin masque le panneau Partie,
+        Évaluation ou Résultats, et Masqués dans la barre de modification le fait revenir. <kbd>Rétablir
+        la disposition</kbd> revient à la disposition par défaut. <kbd>Terminé</kbd> ou <kbd>Échap</kbd> verrouille la
         disposition. La page reconnaît la forme de l'écran
         (paysage large, paysage ou portrait) et conserve dans le navigateur la place, la taille et la
         visibilité des panneaux pour chaque forme séparément.</p>
+        <h4>Réglages&nbsp;: jeu, apparence, sons</h4>
         <p>Sous Jeu, dans le menu Réglages, vous choisissez la profondeur du bot. Le 0-ply est
         l'évaluation directe du réseau et il est rapide. Le 1-ply et le 2-ply examinent tous vos
         lancers après le coup du bot et jouent plus fort, mais le 2-ply peut prendre plusieurs
@@ -688,11 +768,13 @@
         partie suivante. Toucher une case sans coup possible donne un double coup quand Afficher la
         case touchée est activé. Les cases à cocher retirent un son à la fois. Les sons viennent de
         DG Android.</p>
+        <h4>Analyse des coups</h4>
         <p>Chacun de vos coups est comparé au meilleur coup du réseau, selon la propre évaluation du
         réseau à la profondeur du bot. L'écart est de l'équité sans videau. Dans la liste des coups du
         panneau Partie, ?! signifie douteux (au moins 0,04), ? une erreur (0,08) et ?? une grosse
-        erreur (0,16). Une fois la partie terminée, un coup de la liste est vert s'il a perdu plus de
-        0,020 et rouge s'il a perdu plus de 0,080. Les décisions de videau ne sont pas colorées. Quand le mode tuteur sous Jeu est activé, le panneau Évaluation affiche après
+        erreur (0,16). Une fois la partie terminée, un coup de la liste est <span class="c-good">vert</span> s'il a perdu plus de
+        0,020 et <span class="c-bad">rouge</span> s'il a perdu plus de 0,080. Les décisions de videau ne sont pas colorées.</p>
+        <p>Quand le mode tuteur sous Jeu est activé, le panneau Évaluation affiche après
         chacun de vos coups le verdict et les meilleurs coups du réseau avec leurs écarts. Pendant la
         partie, vous ne voyez que les écarts avec le meilleur coup et jamais l'évaluation de la
         position, donc l'analyse ne vous dit pas s'il faut doubler. Les coups du bot et les décisions
