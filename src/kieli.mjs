@@ -30,12 +30,15 @@ const fi = {
   youTook: v => `Otit kuution vastaan. Arvo on nyt ${v}. Botti miettii.`,
   logDouble: v => `Tuplaa ${v}`, logTake: 'Ottaa', logDrop: 'Luopuu', logResign: 'Luovuttaa',
   logOfferDraw: 'Tarjoaa tasapeliä', logAccept: 'Hyväksyy', logDecline: 'Kieltäytyy',
-  confirm: ' Vahvista siirto napilla Valmis.',
+  confirm: ' Vahvista siirto napilla ✓ (Valmis).',
   card: (name, p, turn) => `${name}${turn ? ' (vuoro)' : ''}: ${p} ${p === 1 ? 'rangaistuspiste' : 'rangaistuspistettä'}`,
   styles: { x22: 'Monte Carlo X-22', mcVariant: 'Monte Carlo variant', deco: 'Deco', maple: 'Vaahtera',
     walnut: 'Pähkinä', oakLeather: 'Tammi ja nahka', olive: 'Oliivi' },
   home: { right: 'oikealla', left: 'vasemmalla' },
   resignConfirm: pts => `Luovutatko pelin? Saat ${pts}.`,
+  doubleConfirm: v => `Tuplaatko kuution? Uusi arvo on ${v}.`,
+  takeConfirm: v => `Otatko kuution vastaan? Uusi arvo on ${v} ja kuutio siirtyy sinulle.`,
+  dropConfirm: pts => `Luovutko? Peli päättyy ja saat ${pts}.`,
   xgidBad: 'Tunniste ei ole kelvollinen XGID.', xgidLoaded: 'Asema asetettu tunnisteesta.',
   xgidCopied: 'Kopioitu leikepöydälle.', xgidSelect: 'Kopioi valittu teksti näppäimillä Ctrl+C.',
   logImport: 'Asema XGID:stä',
@@ -154,12 +157,15 @@ const en = {
   youTook: v => `You took. The cube is now ${v}. The bot is thinking.`,
   logDouble: v => `Doubles ${v}`, logTake: 'Takes', logDrop: 'Passes', logResign: 'Resigns',
   logOfferDraw: 'Offers a draw', logAccept: 'Accepts', logDecline: 'Declines',
-  confirm: ' Confirm the move with Done.',
+  confirm: ' Confirm the move with ✓ (Done).',
   card: (name, p, turn) => `${name}${turn ? ' (to move)' : ''}: ${p} ${p === 1 ? 'penalty point' : 'penalty points'}`,
   styles: { x22: 'Monte Carlo X-22', mcVariant: 'Monte Carlo variant', deco: 'Deco', maple: 'Maple',
     walnut: 'Walnut', oakLeather: 'Oak leather', olive: 'Olive' },
   home: { right: 'right', left: 'left' },
   resignConfirm: pts => `Resign this game? You get ${pts}.`,
+  doubleConfirm: v => `Double the cube? The new value is ${v}.`,
+  takeConfirm: v => `Take the cube? The new value is ${v} and you own the cube.`,
+  dropConfirm: pts => `Pass? The game ends and you get ${pts}.`,
   xgidBad: 'This is not a valid XGID.', xgidLoaded: 'Position set from the ID.',
   xgidCopied: 'Copied to the clipboard.', xgidSelect: 'Copy the selected text with Ctrl+C.',
   logImport: 'Position from XGID',
@@ -283,12 +289,15 @@ const de = {
   youTook: v => `Du hast angenommen. Der Würfel steht jetzt auf ${v}. Der Bot überlegt.`,
   logDouble: v => `Verdoppelt ${v}`, logTake: 'Nimmt an', logDrop: 'Lehnt ab', logResign: 'Gibt auf',
   logOfferDraw: 'Bietet Remis an', logAccept: 'Nimmt an', logDecline: 'Lehnt ab',
-  confirm: ' Bestätige den Zug mit Fertig.',
+  confirm: ' Bestätige den Zug mit ✓ (Fertig).',
   card: (name, p, turn) => `${name}${turn ? ' (am Zug)' : ''}: ${p} ${p === 1 ? 'Strafpunkt' : 'Strafpunkte'}`,
   styles: { x22: 'Monte Carlo X-22', mcVariant: 'Monte Carlo variant', deco: 'Deco', maple: 'Ahorn',
     walnut: 'Nussbaum', oakLeather: 'Eiche und Leder', olive: 'Olive' },
   home: { right: 'rechts', left: 'links' },
   resignConfirm: pts => `Dieses Spiel aufgeben? Du bekommst ${pts}.`,
+  doubleConfirm: v => `Den Würfel verdoppeln? Der neue Wert ist ${v}.`,
+  takeConfirm: v => `Den Würfel annehmen? Der neue Wert ist ${v} und der Würfel gehört dir.`,
+  dropConfirm: pts => `Ablehnen? Das Spiel endet und du bekommst ${pts}.`,
   xgidBad: 'Das ist keine gültige XGID.', xgidLoaded: 'Stellung aus der ID gesetzt.',
   xgidCopied: 'In die Zwischenablage kopiert.', xgidSelect: 'Kopiere den markierten Text mit Strg+C.',
   logImport: 'Stellung aus XGID',
@@ -407,12 +416,15 @@ const fr = {
   youTook: v => `Vous avez accepté. Le videau est maintenant à ${v}. Le bot réfléchit.`,
   logDouble: v => `Double ${v}`, logTake: 'Accepte', logDrop: 'Refuse', logResign: 'Abandonne',
   logOfferDraw: 'Propose la nulle', logAccept: 'Accepte', logDecline: 'Refuse',
-  confirm: ' Confirmez le coup avec Terminé.',
+  confirm: ' Confirmez le coup avec ✓ (Terminé).',
   card: (name, p, turn) => `${name}${turn ? ' (au trait)' : ''}${NB}: ${p} ${p <= 1 ? 'point de pénalité' : 'points de pénalité'}`,
   styles: { x22: 'Monte Carlo X-22', mcVariant: 'Monte Carlo variant', deco: 'Deco', maple: 'Érable',
     walnut: 'Noyer', oakLeather: 'Chêne et cuir', olive: 'Olivier' },
   home: { right: 'à droite', left: 'à gauche' },
   resignConfirm: pts => `Abandonner cette partie${NB}? Vous recevez ${pts}.`,
+  doubleConfirm: v => `Doubler le videau${NB}? La nouvelle valeur est ${v}.`,
+  takeConfirm: v => `Accepter le videau${NB}? La nouvelle valeur est ${v} et le videau est à vous.`,
+  dropConfirm: pts => `Refuser${NB}? La partie se termine et vous recevez ${pts}.`,
   xgidBad: "Ce n'est pas un XGID valide.", xgidLoaded: "Position définie à partir de l'ID.",
   xgidCopied: 'Copié dans le presse-papiers.', xgidSelect: 'Copiez le texte sélectionné avec Ctrl+C.',
   logImport: 'Position depuis XGID',
@@ -536,16 +548,42 @@ export function applyStatic() {
   for (const e of document.querySelectorAll('[data-lang]')) e.hidden = e.dataset.lang !== LANG;
   document.getElementById('board').setAttribute('aria-label', T.static.board);
   document.getElementById('gameSel').setAttribute('aria-label', T.static.gamePanel);
-  const sel = document.getElementById('lang');
-  if (!sel.options.length) {
+  const btn = document.getElementById('lang'), list = document.getElementById('langList');
+  if (!list.children.length) {
     for (const [code, name] of Object.entries(LANG_NAMES)) {
-      const o = document.createElement('option');
-      o.value = code;
+      const o = document.createElement('button');
+      o.type = 'button';
+      o.dataset.code = code;
       o.lang = code;
-      o.textContent = name;
-      sel.appendChild(o);
+      o.setAttribute('role', 'menuitemradio');
+      o.innerHTML = flag(code);
+      o.append(name);
+      list.appendChild(o);
     }
   }
-  sel.value = LANG;
-  sel.setAttribute('aria-label', T.static.langLabel);
+  for (const o of list.children) o.setAttribute('aria-checked', String(o.dataset.code === LANG));
+  btn.innerHTML = flag(LANG);
+  btn.append(LANG_NAMES[LANG]);
+  btn.setAttribute('aria-label', `${T.static.langLabel}: ${LANG_NAMES[LANG]}`);
+}
+
+// Liput kielivalikkoon (Tommin valinta 13.11.2026). Englanti on lingua franca, joten sen lippu
+// on vinottain puolitettu: Ison-Britannian lippu vasemmassa yläkolmiossa ja Yhdysvaltojen
+// oikeassa alakolmiossa. Liput ovat 3:2-laatikossa yksinkertaistettuina.
+let flagN = 0;
+function flag(code) {
+  const box = body => `<svg class="flag" viewBox="0 0 30 20" aria-hidden="true" preserveAspectRatio="none">${body}</svg>`;
+  if (code === 'fi') return box('<rect width="30" height="20" fill="#fff"/><rect x="8" width="5.5" height="20" fill="#002F6C"/><rect y="7.25" width="30" height="5.5" fill="#002F6C"/>');
+  if (code === 'de') return box('<rect width="30" height="7" fill="#000"/><rect y="6.67" width="30" height="6.67" fill="#DD0000"/><rect y="13.33" width="30" height="6.67" fill="#FFCE00"/>');
+  if (code === 'fr') return box('<rect width="10" height="20" fill="#0055A4"/><rect x="10" width="10" height="20" fill="#fff"/><rect x="20" width="10" height="20" fill="#EF4135"/>');
+  const id = `uk${flagN++}`;
+  let stripes = '';
+  for (let k = 0; k < 13; k += 2) stripes += `<rect y="${(k * 20 / 13).toFixed(2)}" width="30" height="${(20 / 13).toFixed(2)}" fill="#B22234"/>`;
+  return box(`<rect width="30" height="20" fill="#fff"/>${stripes}<rect width="12" height="${(7 * 20 / 13).toFixed(2)}" fill="#3C3B6E"/>`
+    + `<clipPath id="${id}"><polygon points="0,0 30,0 0,20"/></clipPath>`
+    + `<g clip-path="url(#${id})"><svg width="30" height="20" viewBox="0 0 60 30" preserveAspectRatio="none">`
+    + '<rect width="60" height="30" fill="#012169"/><path d="M0,0 60,30M60,0 0,30" stroke="#fff" stroke-width="6"/>'
+    + '<path d="M0,0 60,30M60,0 0,30" stroke="#C8102E" stroke-width="2"/><path d="M30,0v30M0,15h60" stroke="#fff" stroke-width="10"/>'
+    + '<path d="M30,0v30M0,15h60" stroke="#C8102E" stroke-width="6"/></svg></g>'
+    + '<path d="M0,20 30,0" stroke="#fff" stroke-width=".8"/>');
 }

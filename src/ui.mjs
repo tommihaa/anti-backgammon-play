@@ -243,6 +243,15 @@ function renderGamePanel() {
   if (review) { $('gameMsg').textContent = ''; return; }
   const x = selRec(), live = x === liveGame();
   $('gameMsg').textContent = live ? '' : x.msg;
+  // Päättyneen pelin siirrot väritetään equity-menetyksen mukaan (Tommin rajat 13.11.2026):
+  // yli 0,020 vihreä (error) ja yli 0,080 punainen (blunder). Kuutiopäätöksistä ei ole
+  // menetyksen suuruutta, joten ne jäävät värittä.
+  const ended = !live || game.over;
+  const lossClass = d => {
+    if (!ended || d?.k !== 'move' || !d.r) return null;
+    const loss = 2 * (d.r.best - d.r.played);
+    return loss > 0.08 ? 'gl-blunder' : loss > 0.02 ? 'gl-error' : null;
+  };
   list.textContent = '';
   navOrder = [];
   let selected = null;
@@ -263,6 +272,8 @@ function renderGamePanel() {
       const t = document.createElement('span');
       t.textContent = e.t;
       b.append(dot, t);
+      const lc = e.d === undefined ? null : lossClass(x.decisions?.[e.d]);
+      if (lc) b.classList.add(lc);
       b.setAttribute('aria-label', `${e.p === 0 ? T.static.you : T.static.bot}: ${e.t}`);
       if (e.d === undefined || !x.decisions?.[e.d]) b.disabled = true;
       else {
@@ -495,6 +506,9 @@ function beginHumanMove() {
   game.base = clone(game.s);
   game.plays = withDice(legalPlays(game.s, 0, game.dice[0], game.dice[1], true), game.dice[0], game.dice[1]);
   game.partial = []; game.partialDice = []; game.hitsMarks = [];
+  // forcedN on automaattisesti asetettujen pakkosiirtojen määrä. Niitä ei voi kumota, koska ne
+  // ovat mukana jokaisessa laillisessa siirrossa (Tommin havainto 13.11.2026).
+  game.forcedN = 0;
   game.diceOwner = 0;
   const [d1, d2] = game.dice;
   game.order = d1 === d2 ? [d1, d1, d1, d1] : [d1, d2];
@@ -504,7 +518,7 @@ function beginHumanMove() {
     game.msg = T.noLegal(`${game.dice[0]}${game.dice[1]}`);
     return;
   }
-  if (opts.forced) placeForced();
+  if (opts.forced) { placeForced(); game.forcedN = game.partial.length; }
 }
 
 // Pakolliset osasiirrot: ne jotka ovat mukana jokaisessa laillisessa siirrossa, monijoukkojen
@@ -641,7 +655,7 @@ function doMove(from, to, die, auto = false) {
 }
 
 function undo() {
-  if (game.turn !== 0 || game.partial.length === 0) return;
+  if (game.turn !== 0 || game.partial.length <= (game.forcedN ?? 0)) return;
   game.partial.pop(); game.partialDice.pop(); game.hitsMarks.pop();
   game.s = clone(game.base);
   for (const [f, t] of game.partial) applyMove(game.s, 0, f, t);
@@ -1103,6 +1117,14 @@ function drawCube() {
   }
   const v = game.cube.value === 1 ? 64 : game.cube.value;
   text(cx, cy + 1, String(v), { 'font-size': CUBE * 0.48, 'font-weight': cl.bold ? 'bold' : 'normal', fill: cl.value(game.cube.value === 1 ? null : v) });
+  if (!canHumanDouble()) return;
+  // Tuplattavissa oleva kuutio korostetaan kuten siirrettävä nappula ja on klikattava (clickCube).
+  el('rect', { x: x - 3, y: y - 3, width: CUBE + 6, height: CUBE + 6, rx: 6, fill: 'none', stroke: 'var(--hl)', 'stroke-width': 2.5, 'pointer-events': 'none' });
+  const hit = el('rect', { x: x - 6, y: y - 6, width: CUBE + 12, height: CUBE + 12, fill: 'transparent', class: 'pt', 'data-cube': '', role: 'button', 'aria-label': T.double(game.cube.value * 2) });
+  const tip = document.createElementNS(NS, 'title');
+  tip.textContent = T.double(game.cube.value * 2);
+  hit.appendChild(tip);
+  hit.addEventListener('click', clickCube);
 }
 
 // Off-lokero: jokainen ulos pelattu on viiva syrjästä katsottuna, viiden ryhmissä, ja luku on
@@ -1273,22 +1295,26 @@ function renderStatus(isView) {
     p.textContent = T.reviewMarkText(game.mark.text);
     box.appendChild(p);
   }
-  $('roll').disabled = game.phase !== 'roll';
+  // Laudan päällä näkyvät vain sillä hetkellä käytettävät napit (Tommin valinta 13.11.2026).
+  // Tuplaus on kuution klikkaus (drawCube), joten sillä ei ole nappia.
   const ready = game.turn === 0 && game.phase === 'move' && nextMoves().length === 0;
-  $('done').style.display = ready ? '' : 'none';
+  const show = (id, on) => { $(id).style.display = on ? '' : 'none'; };
+  // Kuvakenappien nimi on vihjeteksti ja ruudunlukijan nimi.
+  for (const id of ['undo', 'done', 'offerDraw']) { $(id).title = T.static[id]; $(id).setAttribute('aria-label', T.static[id]); }
+  show('roll', game.phase === 'roll');
+  // Tanssissa Valmis (✓) on noppien oikealla puolella Jatka-napin sijaan (13.11.2026).
+  show('done', ready || game.phase === 'pass');
+  show('undo', game.turn === 0 && game.phase === 'move' && game.partial.length > (game.forcedN ?? 0));
+  show('offerDraw', game.phase === 'roll' && game.turnAct === null);
+  show('acceptDraw', game.phase === 'drawOffer');
+  show('declineDraw', game.phase === 'drawOffer');
+  show('take', game.phase === 'offer');
+  show('drop', game.phase === 'offer');
   $('new').textContent = matchOver() ? T.newMatch : T.nextGame;
-  $('new').style.display = game.over ? '' : 'none';
+  // Kun Seuraava peli noppien paikalle on päällä, nappi on laudalle piirretty (drawNextOnDice).
+  show('new', game.over && !opts.nextOnDice);
   $('resign').style.display = game.over ? 'none' : '';
-  $('undo').disabled = !(game.turn === 0 && game.phase === 'move' && game.partial.length > 0);
-  $('pass').style.display = game.phase === 'pass' ? '' : 'none';
-  $('roll').style.display = ['pass', 'offer', 'drawOffer'].includes(game.phase) ? 'none' : '';
-  $('double').style.display = game.phase === 'roll' && canDouble(0) && game.turnAct !== 'offer' ? '' : 'none';
-  $('offerDraw').style.display = game.phase === 'roll' && game.turnAct === null ? '' : 'none';
-  $('acceptDraw').style.display = game.phase === 'drawOffer' ? '' : 'none';
-  $('declineDraw').style.display = game.phase === 'drawOffer' ? '' : 'none';
-  $('double').textContent = T.double(game.cube.value * 2);
-  $('take').style.display = game.phase === 'offer' ? '' : 'none';
-  $('drop').style.display = game.phase === 'offer' ? '' : 'none';
+  placeActions();
   $('cubeVal').textContent = game.crawford ? T.crawfordCube : game.cube.value;
   $('rows').textContent = `${Math.ceil(game.half / 2)} / ${DRAW_ROWS}`;
   $('limit').value = String(match.limit);
@@ -1313,6 +1339,41 @@ function renderStatus(isView) {
   if (document.activeElement !== $('xgid')) $('xgid').value = currentXGID();
 }
 
+// Laudan napit keskikaistan korkeudella (Tommin valinnat 13.11.2026): Heitä oman puoliskon
+// keskellä, Tarjoa tasapeliä (½) muurin keskellä, Kumoa (↶) vasemmanpuoleisen nopan vasemmalla
+// ja Valmis (✓) oikeanpuoleisen oikealla. Muut napit ovat rivinä sen puoliskon keskellä, jolla
+// omat nopat eivät ole. Kun Seuraava peli noppien paikalle on pois, Seuraava peli on botin
+// puoliskolla, jotta kytkimellä on näkyvä ero. Pyöreän napin halkaisija on 36 yksikköä, mutta
+// vähintään 22 px (CSS), joten etäisyys nopista lasketaan laudan todellisesta leveydestä.
+function placeActions() {
+  const at = (id, x) => {
+    $(id).style.left = `${x / W * 100}%`;
+    $(id).style.top = `${MID / Math.round(H) * 100}%`;
+  };
+  const own = game.dice && !game.over && game.diceOwner === 0;
+  const free = (own || (game.over && !opts.nextOnDice) ? LEFT : RIGHT) + 3 * COL;
+  at('roll', X(RIGHT + 3 * COL));
+  at('offerDraw', X(BAR_X, COL) + COL / 2);
+  at('actRow', X(free));
+  const scale = (svg.getBoundingClientRect().width || W) / W;
+  const r = Math.max(36, 22 / scale) / 2;
+  const n = game.dice && game.diceOwner === 0 && ['move', 'pass'].includes(game.phase) ? diceShown().length : 2;
+  const off = (n * DIE + (n - 1) * K * 0.2) / 2 + K * 0.2 + r;
+  const c = X(RIGHT + 3 * COL);
+  at('undo', c - off);
+  at('done', c + off);
+}
+if (typeof ResizeObserver === 'function') new ResizeObserver(() => { if (game) placeActions(); }).observe(svg);
+
+// Kuution klikkaus tuplaa omalla vuorolla ennen heittoa, kun tuplaus on sallittu. Tuplaus,
+// otto ja luopuminen vahvistetaan selaimen ikkunassa (Tommin valinta 13.11.2026), koska kuutio
+// on laudalla ja vahinkoklikkaus olisi peruuttamaton.
+const canHumanDouble = () => game.phase === 'roll' && canDouble(0) && game.turnAct === null;
+function clickCube() {
+  if (!canHumanDouble() || !confirm(T.doubleConfirm(game.cube.value * 2))) return;
+  humanDouble();
+}
+
 // Selauksessa pelaajakortit ja pisteet ovat tuodun pelin: nimet ja pisteet pelin alussa.
 function renderReview() {
   const g = reviewGame(), h = review.h, len = review.m.length || null;
@@ -1333,14 +1394,17 @@ function renderReview() {
 
 $('roll').addEventListener('click', humanRoll);
 $('undo').addEventListener('click', undo);
-$('pass').addEventListener('click', pass);
-$('double').addEventListener('click', humanDouble);
-$('take').addEventListener('click', humanTake);
-$('drop').addEventListener('click', humanDrop);
+$('take').addEventListener('click', () => {
+  if (game.phase === 'offer' && confirm(T.takeConfirm(game.cube.value * 2))) humanTake();
+});
+$('drop').addEventListener('click', () => {
+  if (game.phase === 'offer' && confirm(T.dropConfirm(points(game.cube.value)))) humanDrop();
+});
 $('offerDraw').addEventListener('click', humanOfferDraw);
 $('acceptDraw').addEventListener('click', humanAcceptDraw);
 $('declineDraw').addEventListener('click', humanDeclineDraw);
 $('done').addEventListener('click', () => {
+  if (game.phase === 'pass') { pass(); return; }
   if (game.turn === 0 && game.phase === 'move' && nextMoves().length === 0) finishHuman();
 });
 // Ottelun pituuden vaihto aloittaa uuden ottelun. Jos ottelussa on jo pisteitä tai siirtoja,
@@ -1706,7 +1770,7 @@ darkQuery?.addEventListener?.('change', () => { applyLook(); render(); });
 // Peruuttamattomilla teoilla (otto, luopuminen, luovutus) ei ole näppäintä. Kenttien ja
 // valintojen näppäimet jätetään niille.
 document.addEventListener('keydown', ev => {
-  if (ev.target.closest?.('input, select, textarea') || ev.altKey || ev.metaKey) return;
+  if (ev.target.closest?.('input, select, textarea, details.menu, .langmenu') || ev.altKey || ev.metaKey) return;
   const key = ev.key.toLowerCase();
   // Rivin aseman katselussa nuolet ylös ja alas askeltavat listaa ja Esc palaa peliin.
   if (!review && sel.d !== null) {
@@ -1739,16 +1803,16 @@ document.addEventListener('keydown', ev => {
 // paikat (laudan vieressä tai alla), piilotetut paneelit, sivusarakkeen ja alarivin paneelien
 // leveydet sekä paneelien korkeudet, jotta tabletin säätö ei muuta pöytäkoneen asettelua.
 // Paneeli siirtyy otsikosta raahaamalla, leveys erottimesta ja korkeus paneelin oikeasta
-// alakulmasta. Kaksoisklikkaus erottimeen palauttaa oletusleveyden. Asetukset-paneelia ei voi
-// piilottaa, koska siinä ovat pelin asetukset. Säätö toimii vain muokkaustilassa (alempana). Tila on selaimessa avaimella ab-asettelu. Vanha
+// alakulmasta. Kaksoisklikkaus erottimeen palauttaa oletusleveyden. Asetukset ja Säännöt eivät
+// ole paneeleja vaan otsikkorivin valikoita (13.11.2026). Säätö toimii vain muokkaustilassa (alempana). Tila on selaimessa avaimella ab-asettelu. Vanha
 // avain ab-paneelit (yksi asettelu kaikille muodoille) jätetään lukematta.
-const PANELS = ['gamePanel', 'evalPanel', 'resultsPanel', 'settingsPanel'];
+const PANELS = ['gamePanel', 'evalPanel', 'resultsPanel'];
 const HIDEABLE = ['gamePanel', 'evalPanel', 'resultsPanel'];
 const SHAPES = ['wide', 'normal', 'tall'];
 const LAYOUT_DEFAULTS = {
-  wide: { side: ['gamePanel', 'evalPanel'], below: ['resultsPanel', 'settingsPanel'] },
-  normal: { side: ['gamePanel', 'evalPanel'], below: ['resultsPanel', 'settingsPanel'] },
-  tall: { side: [], below: ['evalPanel', 'gamePanel', 'resultsPanel', 'settingsPanel'] },
+  wide: { side: ['gamePanel', 'evalPanel', 'resultsPanel'], below: [] },
+  normal: { side: ['gamePanel', 'evalPanel', 'resultsPanel'], below: [] },
+  tall: { side: [], below: ['evalPanel', 'gamePanel', 'resultsPanel'] },
 };
 const shapeOf = () => {
   const r = window.innerWidth / Math.max(1, window.innerHeight);
@@ -1789,14 +1853,13 @@ function applyLayout() {
   if (key !== builtKey) {
     builtKey = key;
     const side = document.querySelector('.side'), below = document.querySelector('.below');
-    const rules = below.querySelector('.rules');
     for (const s of below.querySelectorAll(':scope > .split')) s.remove();
     for (const id of lay.side) side.appendChild($(id));
     let prev = null;
     for (const id of lay.below) {
       // Erotin näkyvien alarivin paneelien väliin säätää vasemman paneelin leveyttä.
-      if (prev && visible(id)) below.insertBefore(belowSplit(prev), rules);
-      below.insertBefore($(id), rules);
+      if (prev && visible(id)) below.appendChild(belowSplit(prev));
+      below.appendChild($(id));
       if (visible(id)) prev = id;
     }
   }
@@ -1998,9 +2061,28 @@ fillLimits();
 fillLook();
 fillLayout();
 applyLook();
-$('lang').addEventListener('change', e => {
-  setLang(e.target.value); fillLimits(); fillLook(); fillLayout(); fillGameSel();
+// Otsikkorivin valikot: Asetukset, Säännöt ja kieli. Vain yksi on kerrallaan auki. Klikkaus
+// valikon ulkopuolelle tai Esc sulkee.
+const menus = [...document.querySelectorAll('details.menu')];
+const langOpen = on => { $('langList').hidden = !on; $('lang').setAttribute('aria-expanded', String(on)); };
+function closeMenus(except) {
+  for (const m of menus) if (m !== except) m.open = false;
+  if (except !== 'lang') langOpen(false);
+}
+for (const m of menus) m.addEventListener('toggle', () => { if (m.open) closeMenus(m); });
+$('lang').addEventListener('click', () => { const on = $('langList').hidden; closeMenus('lang'); langOpen(on); });
+$('langList').addEventListener('click', e => {
+  const o = e.target.closest('[data-code]');
+  if (!o) return;
+  langOpen(false);
+  setLang(o.dataset.code); fillLimits(); fillLook(); fillLayout(); fillGameSel();
   if (review) { fillReview(); $('reviewGame').value = String(review.gi); showStep(); } else render();
+});
+document.addEventListener('pointerdown', e => {
+  if (!e.target.closest?.('details.menu, .langmenu')) closeMenus();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && (menus.some(m => m.open) || !$('langList').hidden)) closeMenus();
 });
 newGame();
 

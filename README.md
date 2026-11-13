@@ -18,8 +18,10 @@ network's best moves after each of your moves. The bot plays at 0, 1 or 2 ply, a
 uses the same depth. The Game panel lists the moves of the current game and up to 30 finished
 games. Picking a row shows the position on the board and its evaluation: for a finished game the
 cubeless win chance, the equity and the difference to the best move, for both players' moves and
-cube decisions. The Results panel shows the match score and the PR of the match and of the game.
-Edit layout unlocks the panels so they can be moved, resized and hidden. The page recognises the shape of the screen and keeps
+cube decisions. In a finished game's move list a move that lost more than 0.020 equity is green and
+one that lost more than 0.080 is red. You double by clicking the cube, and the game buttons sit on
+the board next to your dice. The Results panel shows the match score and the PR of the match and of the game.
+Settings and Rules open from the header. Edit layout unlocks the panels so they can be moved, resized and hidden. The page recognises the shape of the screen and keeps
 a separate layout for wide landscape, landscape and portrait screens. On a large screen the board
 fills the height of the window. The page is in English, Finnish, German and French.
 
