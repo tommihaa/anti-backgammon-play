@@ -5,6 +5,10 @@ analysis.
 
 **Play:** https://tommihaa.github.io/anti-backgammon-play/
 
+The board works on phones and tablets in portrait and landscape. You can add it to the home
+screen as an app, and after the first visit it also works offline. The steps for each browser
+are under Rules on the page.
+
 Anti-Backgammon is backgammon where the first to bear off or resign gets penalty points worth
 the cube. Board, dice and movement are normal backgammon. There are no gammons. The match is played to seven penalty
 points with the Crawford rule, and a game still running after 300 rows is a draw. You can offer a

@@ -1631,7 +1631,7 @@ function renderStatus(isView) {
 // ja Valmis (✓) oikeanpuoleisen oikealla. Muut napit ovat rivinä sen puoliskon keskellä, jolla
 // omat nopat eivät ole. Pelin päätyttyä rivi ja tulos ovat botin puoliskolla: Seuraava peli
 // noppien paikalle piirtää oman nappinsa toiselle puoliskolle. Pyöreän napin halkaisija on 36 yksikköä, mutta
-// vähintään 22 px (CSS), joten etäisyys nopista lasketaan laudan todellisesta leveydestä.
+// vähintään --icon-min (CSS: 22 px, kosketusnäytöllä 32 px), joten etäisyys nopista lasketaan laudan todellisesta leveydestä.
 function placeActions() {
   const at = (id, x) => {
     $(id).style.left = `${x / W * 100}%`;
@@ -1644,11 +1644,25 @@ function placeActions() {
   at('actRow', X(free));
   $('actRow').style.width = $('actRow').classList.contains('noted') ? `${(6 * COL - 16) / W * 100}%` : '';
   const scale = (svg.getBoundingClientRect().width || W) / W;
-  const r = Math.max(36, 22 / scale) / 2;
+  const minPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--icon-min')) || 22;
+  const r = Math.max(36, minPx / scale) / 2;
   const n = game.dice && game.diceOwner === 0 && ['move', 'pass'].includes(game.phase) ? diceShown().length : 2;
   const off = (n * DIE + (n - 1) * K * 0.2) / 2 + K * 0.2 + r;
   const c = X(RIGHT + 3 * COL);
-  at('undo', c - off);
+  // Tuplien neljä noppaa ja kosketusnäytön isompi nappi eivät mahdu kapealla laudalla ½-napin ja
+  // noppien väliin (Pixel 8a 14.11.2026): silloin Kumoa pienenee väliin, kuitenkin vähintään 22 px.
+  const half = $('offerDraw').getBoundingClientRect().width / scale / 2 || r;
+  const lo = X(BAR_X, COL) + COL / 2 + half + K * 0.1;
+  const hi = c - off + r;
+  const undo = $('undo').style;
+  if (hi - lo < 2 * r) {
+    const rr = Math.max(22 / scale / 2, (hi - lo) / 2);
+    undo.width = undo.height = `${2 * rr * scale}px`;
+    at('undo', (lo + hi) / 2);
+  } else {
+    undo.width = undo.height = '';
+    at('undo', c - off);
+  }
   at('done', c + off);
 }
 if (typeof ResizeObserver === 'function') new ResizeObserver(() => { if (game) placeActions(); }).observe(svg);
@@ -2056,6 +2070,8 @@ function applyLook() {
   root.setProperty('--good', P.light ? '#2b7a36' : '#7fd18b');
   root.setProperty('--bad', P.light ? '#b3261e' : '#f2867c');
   document.documentElement.style.colorScheme = P.light ? 'light' : 'dark';
+  // Puhelimen tila- ja osoitepalkki sekä asennetun sovelluksen yläpalkki sivun taustan värissä.
+  for (const m of document.querySelectorAll('meta[name="theme-color"]')) m.content = P.background;
   document.body.classList.toggle('home-left', prefs.left);
   document.body.classList.toggle('portrait', prefs.portrait);
 }

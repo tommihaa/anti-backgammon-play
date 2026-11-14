@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Anti-Backgammon</title>
+<!-- Aloitusnäytölle asennus (manifest.json, icons/, sw.js; ikonit tyokalut/ikonit.py). -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#FBF8F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1B1712" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Anti-BG">
 <style>
   /* Ympäristön värit asettaa src/ui.mjs lautatyylistä ja laitteen tummasta tilasta
      (src/ulkoasu.mjs). Nämä ovat oletustyylin X-22 arvot ennen skriptiä. */
@@ -11,7 +19,13 @@
     --bg: #FBF8F4; --panel: #F1EBE4; --ink: #1E1A16; --muted: #4C443B; --frame: #B8AA98;
     --accent: #6B5844; --on-accent: #FBF8F4; --link: #6B5844;
     --hl: #3fcf8e; --last: #e8b44a; --good: #2b7a36; --bad: #b3261e;
+    /* Laudan pyöreiden nappien vähimmäiskoko (src/ui.mjs placeActions lukee tämän). Otsikon ja
+       ottelurivin varaus laudan korkeudesta ja näkymän korkeus, mobiilissa ilman osoitepalkkia. */
+    --icon-min: 22px; --hdr: 215px; --vh: 100vh;
   }
+  @supports (height: 100svh) { :root { --vh: 100svh; } }
+  /* Kosketusnäytöllä laudan pyöreät napit ovat isompia sormelle (Tommin tilaus 14.11.2026). */
+  @media (pointer: coarse) { :root { --icon-min: 32px; } }
   @media (prefers-color-scheme: dark) {
     :root {
       --good: #7fd18b; --bad: #f2867c;
@@ -26,12 +40,12 @@
      backgammondrills.com:n Hypergammon): lauta vasemmalla, kapeat paneelit sen vieressä ja loppusivu
      tyhjää. Lauta (kuvasuhde 733:493) täyttää ikkunan korkeuden otsikon ja tilarivin jälkeen
      (noin 215 px), mutta jättää tilaa sivusarakkeelle. */
-  main { --board-w: max(320px, min(calc((100vh - 215px) * 1.487), calc(100vw - 44px - var(--side-w, 340px))));
+  main { --board-w: max(320px, min(calc((var(--vh) - var(--hdr)) * 1.487), calc(100vw - 44px - var(--side-w, 340px))));
     padding: 16px; width: fit-content; max-width: 100%; }
-  body.no-side main { --board-w: max(320px, min(calc((100vh - 215px) * 1.487), calc(100vw - 32px))); }
+  body.no-side main { --board-w: max(320px, min(calc((var(--vh) - var(--hdr)) * 1.487), calc(100vw - 32px))); }
   /* Muokkaustilassa lauta pienenee puoleen ja laudan alla olevat tekstit ja napit piiloutuvat,
      jotta alarivin paneelit näkyvät ilman vieritystä (Tommin valinta 10.11.2026). */
-  body.editing main { --board-w: max(320px, calc((100vh - 215px) * 1.487 * .5)); }
+  body.editing main { --board-w: max(320px, calc((var(--vh) - var(--hdr)) * 1.487 * .5)); }
   body.editing #analysis, body.editing #actions, body.editing #review,
     body.editing #viewBar { display: none; }
   body.editing .below > .panel { flex-basis: 200px; }
@@ -83,7 +97,11 @@
     background: var(--frame); opacity: .35; }
   .split:hover::after, .split.drag::after { opacity: 1; }
   svg { width: 100%; height: auto; display: block; border-radius: 8px; touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent; }
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none; }
+  /* Kosketuksessa nappien tuplanapautus ei zoomaa eikä pitkä painallus valitse laudan tekstiä. */
+  button, summary, select, label { touch-action: manipulation; }
+  .onboard { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   .panel { background: var(--panel); border: 1px solid var(--frame); border-radius: 8px; padding: 8px 12px;
     resize: none; overflow: auto; min-height: 90px; min-width: 0; }
   .panel h2 { font-size: 1.05rem; margin: 0 0 6px; }
@@ -98,7 +116,7 @@
   .gl-line { display: flex; gap: 6px; align-items: center; width: 100%; text-align: left; padding: 1px 4px;
     border: 0; border-radius: 3px; background: none; color: var(--ink); font: inherit; cursor: pointer; }
   .gl-line:disabled { cursor: default; opacity: 1; }
-  .gl-line:not(:disabled):hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+  @media (hover: hover) { .gl-line:not(:disabled):hover { background: color-mix(in srgb, var(--accent) 12%, transparent); } }
   .gl-line.gl-error { color: var(--good); }
   .gl-line.gl-blunder { color: var(--bad); }
   .gl-line.sel { background: color-mix(in srgb, var(--accent) 24%, transparent); }
@@ -133,6 +151,22 @@
     .below > .panel { flex: none !important; }
     .side > #evalPanel { order: -1; }
     body.portrait .card { display: block; }
+    /* Kapealla pystyruudulla reunus ja otsikko pienenevät, jotta lauta saa leveyden (Tommin
+       tilaus 14.11.2026: mobiilipelaajan optimointi). */
+    main { padding: 10px 8px; }
+    h1 { font-size: 1.3rem; }
+    .sub { font-size: .9rem; margin-bottom: 8px; }
+  }
+  /* Matala vaakaruutu (puhelin vaakasuunnassa): otsikko ja valikot yhdelle riville ja
+     alaotsikko pois, jotta koko lauta mahtuu näkyviin ilman vieritystä. */
+  @media (max-height: 540px) and (orientation: landscape) {
+    :root { --hdr: 64px; --side-w: 260px; }
+    main { padding: 6px 10px; }
+    .head { flex-wrap: nowrap; margin-bottom: 6px; }
+    h1 { font-size: 1.15rem; white-space: nowrap; }
+    .head-tools { flex-wrap: nowrap; }
+    .sub { display: none; }
+    .head-tools .menu-body { max-height: calc(var(--vh) - 56px); }
   }
   .look { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; margin-top: 8px; }
   .resign { margin-top: 10px; width: 100%; }
@@ -208,7 +242,7 @@
   .onboard button { font-size: clamp(11px, 2.2cqw, 17px); padding: .4em .9em; border-width: 2px;
     box-shadow: 0 2px 6px rgb(0 0 0 / .35); }
   .onboard button:not(.primary) { background: var(--bg); }
-  .onboard button.icon { width: max(22px, 4.9cqw); height: max(22px, 4.9cqw); padding: 0; border-radius: 50%;
+  .onboard button.icon { width: max(var(--icon-min), 4.9cqw); height: max(var(--icon-min), 4.9cqw); padding: 0; border-radius: 50%;
     display: grid; place-items: center; line-height: 1; font-size: max(13px, 2.9cqw); font-weight: bold; }
   .onboard[hidden] { display: none; }
   /* Rivin aseman katselussa ohje ja Palaa peliin -nappi ovat keskikaistalla sillä puoliskolla,
@@ -226,7 +260,7 @@
   details.menu[open] > summary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   details.menu[open] > summary::after { content: ' ▴'; color: inherit; }
   .menu-body { position: absolute; z-index: 20; right: 0; top: calc(100% + 6px); width: min(620px, calc(100vw - 32px));
-    max-height: calc(100vh - 90px); overflow: auto; background: var(--panel); border: 1px solid var(--frame);
+    max-height: calc(var(--vh) - 90px); overflow: auto; background: var(--panel); border: 1px solid var(--frame);
     border-radius: 8px; padding: 4px 14px 12px; box-shadow: 0 6px 24px rgb(0 0 0 / .3); }
   /* Tulokset on otsikkorivin valikko Asetusten ja Sääntöjen vieressä eikä enää paneeli
      (Tommin valinta 14.11.2026). */
@@ -241,6 +275,8 @@
   #offerDraw:disabled { pointer-events: none; }
   .results-body { width: min(300px, calc(100vw - 32px)); padding-top: 12px; }
   .rules-body p { margin: 10px 0; }
+  .rules-body ul { margin: 8px 0; padding-left: 22px; }
+  .rules-body li { margin: 4px 0; }
   /* Säännöt-ohjeen väliotsikot ja värit (Tommin valinta 13.11.2026): kaksi pääosiota, väliotsikot
      linkkivärillä (tummassa tilassa korosteväri on leipätekstin sävy), napit ja näppäimet merkkeinä ja siirtolistan värisanat listan omilla väreillä. */
   .rules-body h3 { margin: 18px 0 4px; padding-bottom: 3px; font-size: .78rem; letter-spacing: .08em;
@@ -488,6 +524,24 @@
         kerro, kannattaako tuplata. Botin siirrot ja kuutiopäätökset arvioidaan pelin päätyttyä.
         Pelin lopussa Arvio-paneeli näyttää virheiden summan ja kolme suurinta virhettä, kunkin
         kohdalla verkon kolme parasta.</p>
+        <h4>Puhelin ja tabletti</h4>
+        <p>Kosketusnäytöllä napautus toimii kuten klikkaus, ja laudan pyöreät napit ovat isompia.
+        Lauta toimii pysty- ja vaaka-asennossa. Vaaka-asennossa lauta täyttää ruudun korkeuden ja
+        Peli- ja Arvio-paneelit ovat sen vieressä. Pystyasennossa paneelit ovat laudan alla.</p>
+        <h4>Sovellukseksi aloitusnäytölle</h4>
+        <p>Voit lisätä laudan puhelimen tai tabletin aloitusnäytölle tai tietokoneen työpöydälle.
+        Silloin se avautuu omasta kuvakkeestaan kuin sovellus, ilman selaimen palkkeja. Ensimmäisen
+        avauksen jälkeen lauta toimii myös ilman verkkoa, koska botti ja analyysi lasketaan laitteella.</p>
+        <ul>
+          <li>Chrome, Edge, Brave, Opera tai Vivaldi (Android): valikko <kbd>⋮</kbd> → Lisää aloitusnäyttöön tai Asenna sovellus.</li>
+          <li>Samsung Internet: valikko <kbd>☰</kbd> → Lisää sivu → Aloitusnäyttö.</li>
+          <li>Firefox (Android): valikko <kbd>⋮</kbd> → Lisää aloitusnäyttöön.</li>
+          <li>Safari ja muut selaimet (iPhone ja iPad): Jaa-painike (neliö, josta nuoli ylös) → Lisää Koti-valikkoon.</li>
+          <li>Chrome, Edge, Brave, Opera tai Vivaldi (tietokone): osoiterivin oikean reunan asennuskuvake → Asenna.</li>
+          <li>Safari (Mac): Arkisto-valikko → Lisää Dockiin.</li>
+          <li>Firefox (tietokone) ei tue asentamista, joten lisää sivu kirjanmerkiksi.</li>
+        </ul>
+        <p>Asennettu sovellus päivittyy itsestään, kun avaat sen verkon ollessa käytössä.</p>
         </div>
         <div data-lang="en" hidden>
         <h3>Rules</h3>
@@ -636,6 +690,24 @@
         whether to double. The bot's moves and the cube decisions are evaluated when the game ends.
         At the end of the game the Evaluation panel shows the total error and the three biggest
         errors, each with the network's top three.</p>
+        <h4>Phone and tablet</h4>
+        <p>On a touch screen a tap works like a click, and the round buttons on the board are larger.
+        The board works in portrait and landscape. In landscape the board fills the height of the
+        screen and the Game and Evaluation panels are beside it. In portrait the panels are below the board.</p>
+        <h4>Add to home screen</h4>
+        <p>You can add the board to the home screen of your phone or tablet or to your computer's
+        desktop. It then opens from its own icon like an app, without browser bars. After the first
+        visit the board also works offline, because the bot and the analysis run on the device.</p>
+        <ul>
+          <li>Chrome, Edge, Brave, Opera or Vivaldi (Android): menu <kbd>⋮</kbd> → Add to Home screen or Install app.</li>
+          <li>Samsung Internet: menu <kbd>☰</kbd> → Add page to → Home screen.</li>
+          <li>Firefox (Android): menu <kbd>⋮</kbd> → Add to Home screen.</li>
+          <li>Safari and other browsers (iPhone and iPad): Share button (square with an arrow up) → Add to Home Screen.</li>
+          <li>Chrome, Edge, Brave, Opera or Vivaldi (computer): install icon at the right end of the address bar → Install.</li>
+          <li>Safari (Mac): File menu → Add to Dock.</li>
+          <li>Firefox (computer) does not support installing, so bookmark the page.</li>
+        </ul>
+        <p>The installed app updates itself when you open it while online.</p>
         </div>
         <div data-lang="de" hidden>
         <h3>Regeln</h3>
@@ -800,6 +872,26 @@
         Würfelentscheidungen werden am Spielende bewertet. Am Ende des Spiels zeigt das
         Bewertung-Panel die Fehlersumme und die drei größten Fehler, jeweils mit den drei besten
         Zügen des Netzes.</p>
+        <h4>Handy und Tablet</h4>
+        <p>Auf einem Touchscreen wirkt Tippen wie ein Klick, und die runden Knöpfe auf dem Brett sind
+        größer. Das Brett funktioniert im Hoch- und Querformat. Im Querformat füllt das Brett die
+        Höhe des Bildschirms, und die Panels Spiel und Bewertung stehen daneben. Im Hochformat
+        stehen die Panels unter dem Brett.</p>
+        <h4>Zum Startbildschirm hinzufügen</h4>
+        <p>Du kannst das Brett zum Startbildschirm deines Handys oder Tablets oder zum Desktop deines
+        Computers hinzufügen. Dann öffnet es sich über ein eigenes Symbol wie eine App, ohne
+        Browserleisten. Nach dem ersten Besuch funktioniert das Brett auch offline, weil Bot und
+        Analyse auf dem Gerät laufen.</p>
+        <ul>
+          <li>Chrome, Edge, Brave, Opera oder Vivaldi (Android): Menü <kbd>⋮</kbd> → Zum Startbildschirm hinzufügen oder App installieren.</li>
+          <li>Samsung Internet: Menü <kbd>☰</kbd> → Seite hinzufügen zu → Startbildschirm.</li>
+          <li>Firefox (Android): Menü <kbd>⋮</kbd> → Zum Startbildschirm hinzufügen.</li>
+          <li>Safari und andere Browser (iPhone und iPad): Teilen-Knopf (Quadrat mit Pfeil nach oben) → Zum Home-Bildschirm.</li>
+          <li>Chrome, Edge, Brave, Opera oder Vivaldi (Computer): Installationssymbol am rechten Ende der Adressleiste → Installieren.</li>
+          <li>Safari (Mac): Menü Ablage → Zum Dock hinzufügen.</li>
+          <li>Firefox (Computer) unterstützt keine Installation, setze ein Lesezeichen.</li>
+        </ul>
+        <p>Die installierte App aktualisiert sich selbst, wenn du sie mit Internetverbindung öffnest.</p>
         </div>
         <div data-lang="fr" hidden>
         <h3>Règles</h3>
@@ -963,6 +1055,26 @@
         de videau sont évalués à la fin de la partie. À la fin de la partie, le panneau Évaluation
         affiche l'erreur totale et les trois plus grosses erreurs, chacune avec les trois meilleurs
         coups du réseau.</p>
+        <h4>Téléphone et tablette</h4>
+        <p>Sur un écran tactile, toucher fonctionne comme cliquer, et les boutons ronds du plateau
+        sont plus grands. Le plateau fonctionne en portrait et en paysage. En paysage, le plateau
+        occupe toute la hauteur de l'écran et les panneaux Partie et Évaluation sont à côté. En
+        portrait, les panneaux sont sous le plateau.</p>
+        <h4>Ajouter à l'écran d'accueil</h4>
+        <p>Vous pouvez ajouter le plateau à l'écran d'accueil de votre téléphone ou tablette ou au
+        bureau de votre ordinateur. Il s'ouvre alors depuis sa propre icône comme une application,
+        sans barres du navigateur. Après la première visite, le plateau fonctionne aussi hors ligne,
+        car le bot et l'analyse tournent sur l'appareil.</p>
+        <ul>
+          <li>Chrome, Edge, Brave, Opera ou Vivaldi (Android)&nbsp;: menu <kbd>⋮</kbd> → Ajouter à l'écran d'accueil ou Installer l'application.</li>
+          <li>Samsung Internet&nbsp;: menu <kbd>☰</kbd> → Ajouter la page à → Écran d'accueil.</li>
+          <li>Firefox (Android)&nbsp;: menu <kbd>⋮</kbd> → Ajouter à l'écran d'accueil.</li>
+          <li>Safari et autres navigateurs (iPhone et iPad)&nbsp;: bouton Partager (carré avec une flèche vers le haut) → Sur l'écran d'accueil.</li>
+          <li>Chrome, Edge, Brave, Opera ou Vivaldi (ordinateur)&nbsp;: icône d'installation à droite de la barre d'adresse → Installer.</li>
+          <li>Safari (Mac)&nbsp;: menu Fichier → Ajouter au Dock.</li>
+          <li>Firefox (ordinateur) ne permet pas l'installation, ajoutez la page aux favoris.</li>
+        </ul>
+        <p>L'application installée se met à jour d'elle-même quand vous l'ouvrez avec une connexion.</p>
         </div>
       </div></details>
       <button id="editLayout"></button>
@@ -1058,5 +1170,8 @@
   </dialog>
 </main>
 <script type="module" src="src/ui.mjs"></script>
+<script>
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
 </body>
 </html>
