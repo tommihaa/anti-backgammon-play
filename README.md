@@ -27,6 +27,7 @@ the board next to your dice. The Results panel shows the match score and the PR 
 Settings and Rules open from the header. Edit layout unlocks the panels so they can be moved, resized and hidden. The page recognises the shape of the screen and keeps
 a separate layout for wide landscape, landscape and portrait screens. On a large screen the board
 fills the height of the window. The page is in English, Finnish, German and French.
+The Rules panel ends with a Ko-fi link (https://ko-fi.com/tommih) for anyone who wants to support the work.
 
 The board follows DG Android: seven board styles, mirroring, a portrait board on narrow screens,
 dark mode, sounds and optional playing toggles. Positions can be copied and set as XGID. Import

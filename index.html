@@ -288,6 +288,11 @@
     background: color-mix(in srgb, var(--accent) 12%, transparent); }
   .rules-body .c-good { color: var(--good); font-weight: 600; }
   .rules-body .c-bad { color: var(--bad); font-weight: 600; }
+  /* Ko-fi-tukilinkki: sama osoite ja ☕-teksti kuin Itun, Superjatsin ja Lahjan linkissä. */
+  .rules-body .kofi-row { margin: 18px 0 6px; }
+  .rules-body .kofi { display: inline-block; padding: 6px 14px; border: 1px solid var(--bad);
+    border-radius: 8px; color: var(--bad); text-decoration: none; }
+  .rules-body .kofi:hover, .rules-body .kofi:focus-visible { background: var(--bad); color: var(--bg); }
   /* Kielivalikko lippuineen: Windowsin Chrome ei piirrä lippuemojeja, joten liput ovat SVG:tä
      (src/kieli.mjs). */
   .langmenu { position: relative; }
@@ -542,6 +547,7 @@
           <li>Firefox (tietokone) ei tue asentamista, joten lisää sivu kirjanmerkiksi.</li>
         </ul>
         <p>Asennettu sovellus päivittyy itsestään, kun avaat sen verkon ollessa käytössä.</p>
+        <p class="kofi-row"><a class="kofi" href="https://ko-fi.com/tommih" target="_blank" rel="noopener">☕ Tue Ko-fissa</a></p>
         </div>
         <div data-lang="en" hidden>
         <h3>Rules</h3>
@@ -708,6 +714,7 @@
           <li>Firefox (computer) does not support installing, so bookmark the page.</li>
         </ul>
         <p>The installed app updates itself when you open it while online.</p>
+        <p class="kofi-row"><a class="kofi" href="https://ko-fi.com/tommih" target="_blank" rel="noopener">☕ Support on Ko-fi</a></p>
         </div>
         <div data-lang="de" hidden>
         <h3>Regeln</h3>
@@ -892,6 +899,7 @@
           <li>Firefox (Computer) unterstützt keine Installation, setze ein Lesezeichen.</li>
         </ul>
         <p>Die installierte App aktualisiert sich selbst, wenn du sie mit Internetverbindung öffnest.</p>
+        <p class="kofi-row"><a class="kofi" href="https://ko-fi.com/tommih" target="_blank" rel="noopener">☕ Auf Ko-fi unterstützen</a></p>
         </div>
         <div data-lang="fr" hidden>
         <h3>Règles</h3>
@@ -1075,6 +1083,7 @@
           <li>Firefox (ordinateur) ne permet pas l'installation, ajoutez la page aux favoris.</li>
         </ul>
         <p>L'application installée se met à jour d'elle-même quand vous l'ouvrez avec une connexion.</p>
+        <p class="kofi-row"><a class="kofi" href="https://ko-fi.com/tommih" target="_blank" rel="noopener">☕ Soutenir sur Ko-fi</a></p>
         </div>
       </div></details>
       <button id="editLayout"></button>
