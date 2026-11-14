@@ -5,9 +5,8 @@ analysis.
 
 **Play:** https://tommihaa.github.io/anti-backgammon-play/
 
-Anti-Backgammon is backgammon where the first player to leave the game gets penalty points.
-Board, dice and movement are normal backgammon. Leaving means bearing off the last checker or
-resigning, and it costs the cube value. There are no gammons. The match is played to seven penalty
+Anti-Backgammon is backgammon where the first to bear off or resign gets penalty points worth
+the cube. Board, dice and movement are normal backgammon. There are no gammons. The match is played to seven penalty
 points with the Crawford rule, and a game still running after 300 rows is a draw. You can offer a
 draw before rolling, and the bot offers one only when the game is stuck. A Crawford game that ends
 in a draw is replayed. The full rules are on the page.

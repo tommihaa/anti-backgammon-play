@@ -29,10 +29,10 @@
   main { --board-w: max(320px, min(calc((100vh - 215px) * 1.487), calc(100vw - 44px - var(--side-w, 340px))));
     padding: 16px; width: fit-content; max-width: 100%; }
   body.no-side main { --board-w: max(320px, min(calc((100vh - 215px) * 1.487), calc(100vw - 32px))); }
-  /* Muokkaustilassa lauta pienenee puoleen ja laudan alla oleva tilarivi ja napit piiloutuvat,
+  /* Muokkaustilassa lauta pienenee puoleen ja laudan alla olevat tekstit ja napit piiloutuvat,
      jotta alarivin paneelit näkyvät ilman vieritystä (Tommin valinta 10.11.2026). */
   body.editing main { --board-w: max(320px, calc((100vh - 215px) * 1.487 * .5)); }
-  body.editing #status, body.editing #analysis, body.editing #actions, body.editing #review,
+  body.editing #analysis, body.editing #actions, body.editing #review,
     body.editing #viewBar { display: none; }
   body.editing .below > .panel { flex-basis: 200px; }
   h1 { font-size: 1.6rem; margin: 0 0 4px; }
@@ -89,10 +89,10 @@
   .panel h2 { font-size: 1.05rem; margin: 0 0 6px; }
   #gamePanel { display: flex; flex-direction: column; height: 340px; }
   #gameSel { width: 100%; }
+  #gamePanel .export { align-self: flex-start; margin: 0 0 6px; }
   .caption { color: var(--muted); font-size: .85rem; margin: 4px 0; }
   .glist { flex: 1 1 auto; min-height: 0; overflow: auto; margin-top: 4px; border-top: 1px solid var(--frame);
     font: 13px/1.35 ui-monospace, Consolas, monospace; }
-  #gamePanel .log { flex: 1 1 auto; max-height: none; min-height: 0; }
   .gl-row { display: grid; grid-template-columns: 3.2em 1fr; align-items: start; }
   .gl-n { color: var(--muted); text-align: right; padding: 2px 6px 0 0; }
   .gl-line { display: flex; gap: 6px; align-items: center; width: 100%; text-align: left; padding: 1px 4px;
@@ -157,9 +157,21 @@
   .look label.wide { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; }
   /* Tilarivi on alaotsikon ja laudan välissä (Tommin valinta 13.11.2026). Kapealla ruudulla
      viesti voi rivittyä, joten tilaa varataan kaksi riviä, jottei lauta hypi. */
-  .status { min-height: 1.45em; margin: 0 0 8px; }
-  @media (max-width: 760px) { .status { min-height: 2.9em; } }
-  .analysis { color: var(--muted); margin: 10px 0; min-height: 1.5em; }
+  /* Tyhjä analyysirivi ei vie tilaa, jotta sivupaneelien alareuna on laudan alareunan tasolla
+     (Tommin havainto 14.11.2026). */
+  .analysis { color: var(--muted); margin: 10px 0; }
+  .analysis:empty { display: none; }
+  /* Vahvistusikkuna pelin väreissä selaimen confirmin sijaan (Tommin valinta 14.11.2026). */
+  dialog.confirm { background: var(--panel); color: var(--ink); border: 1px solid var(--frame); border-radius: 8px;
+    padding: 16px 18px; max-width: min(420px, calc(100vw - 32px)); box-shadow: 0 6px 24px rgb(0 0 0 / .45); }
+  dialog.confirm::backdrop { background: rgb(0 0 0 / .45); }
+  dialog.confirm p { margin: 0 0 14px; line-height: 1.4; }
+  /* Tuodun ottelun analyysin etenemisikkuna (src/ui.mjs progress). */
+  #analysisBox { min-width: min(320px, 90vw); }
+  #analysisBox progress { width: 100%; height: 12px; margin: 0 0 10px; accent-color: var(--accent); }
+  #analysisBox p { margin: 0 0 8px; }
+  .confirm-btns { display: flex; justify-content: flex-end; gap: 10px; }
+  .confirm-btns button { min-width: 5.5em; padding: 6px 14px; }
   .analysis p, .analysis ol { margin: 4px 0; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; }
   button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--frame);
@@ -172,8 +184,6 @@
   .score { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
   .score .caption { grid-column: 1 / -1; color: var(--muted); font-size: .9rem; margin-top: 4px; }
   .moves { background: var(--panel); border: 1px solid var(--frame); border-radius: 8px; padding: 8px 12px; }
-  .log { font: 13px/1.5 ui-monospace, Consolas, monospace; max-height: 320px; overflow: auto;
-    white-space: pre; margin: 0; }
   details { margin-top: 12px; }
   summary { cursor: pointer; }
   .pt { cursor: pointer; }
@@ -187,13 +197,24 @@
   .boardwrap { position: relative; container-type: inline-size; }
   .onboard { position: absolute; inset: 0; pointer-events: none; }
   .onboard > * { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; }
-  .act-row { display: flex; gap: 1.2cqw; white-space: nowrap; }
+  .act-row { display: flex; flex-direction: column; align-items: center; gap: .6em; box-sizing: border-box; }
+  .act-btns { display: flex; gap: 1.2cqw; white-space: nowrap; }
+  /* Tilarivi poistettiin (Tommin valinta 14.11.2026). Botin tuplaus, tasapelitarjous ja pelin
+     tulos ovat laudalla nappien yläpuolella samassa laatikossa kuin rivin katselun ohje. */
+  .act-row.noted, .view-note { padding: .7em .9em; border-radius: 8px; text-align: center;
+    background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--frame);
+    box-shadow: 0 2px 6px rgb(0 0 0 / .35); }
+  .board-note { margin: 0; font-size: clamp(10px, 1.7cqw, 14px); line-height: 1.35; }
   .onboard button { font-size: clamp(11px, 2.2cqw, 17px); padding: .4em .9em; border-width: 2px;
     box-shadow: 0 2px 6px rgb(0 0 0 / .35); }
   .onboard button:not(.primary) { background: var(--bg); }
   .onboard button.icon { width: max(22px, 4.9cqw); height: max(22px, 4.9cqw); padding: 0; border-radius: 50%;
     display: grid; place-items: center; line-height: 1; font-size: max(13px, 2.9cqw); font-weight: bold; }
   .onboard[hidden] { display: none; }
+  /* Rivin aseman katselussa ohje ja Palaa peliin -nappi ovat keskikaistalla sillä puoliskolla,
+     jolla noppia ei ole (Tommin valinta 14.11.2026). Leveyden asettaa src/ui.mjs. */
+  .view-note { display: flex; flex-direction: column; align-items: center; gap: .6em; box-sizing: border-box; }
+  .view-note p { margin: 0; font-size: clamp(10px, 1.7cqw, 14px); line-height: 1.35; }
   .head-tools { display: flex; gap: 8px; align-items: center; position: relative; flex-wrap: wrap; justify-content: flex-end; }
   /* Asetukset ja Säännöt ovat otsikkorivin avautuvia valikoita Muokkaa asettelua -napin
      vasemmalla puolella (Tommin valinta 13.11.2026). */
@@ -207,6 +228,18 @@
   .menu-body { position: absolute; z-index: 20; right: 0; top: calc(100% + 6px); width: min(620px, calc(100vw - 32px));
     max-height: calc(100vh - 90px); overflow: auto; background: var(--panel); border: 1px solid var(--frame);
     border-radius: 8px; padding: 4px 14px 12px; box-shadow: 0 6px 24px rgb(0 0 0 / .3); }
+  /* Tulokset on otsikkorivin valikko Asetusten ja Sääntöjen vieressä eikä enää paneeli
+     (Tommin valinta 14.11.2026). */
+  /* Ottelun pituus on aina näkyvissä omalla rivillään Peli-paneelin yläpuolella (Tommin valinta
+     14.11.2026). Rivi ei ole paneeli: sitä ei siirretä eikä piiloteta. Paikan asettaa src/ui.mjs. */
+  .match-row { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+  .below > .match-row { flex-basis: 100%; }
+  .match-row label { font-weight: 600; }
+  .match-row select { flex: 1 1 auto; }
+  /* Tasapelinappi on aina esillä kuten kuutio, mutta toimii vain ennen omaa heittoa (Tommin
+     valinta 14.11.2026). Himmennetty nappi ei peitä muurin nappuloiden klikkausta. */
+  #offerDraw:disabled { pointer-events: none; }
+  .results-body { width: min(300px, calc(100vw - 32px)); padding-top: 12px; }
   .rules-body p { margin: 10px 0; }
   /* Säännöt-ohjeen väliotsikot ja värit (Tommin valinta 13.11.2026): kaksi pääosiota, väliotsikot
      linkkivärillä (tummassa tilassa korosteväri on leipätekstin sävy), napit ja näppäimet merkkeinä ja siirtolistan värisanat listan omilla väreillä. */
@@ -239,12 +272,35 @@
   .editbar button { padding: 4px 10px; font-size: .9rem; }
   #hiddenList { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .look label.sub { padding-left: 24px; }
+  .look .sound-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+  .look .sound-row label { flex: 1 1 auto; }
+  .look .sound-row button { padding: 2px 10px; font-size: .85rem; }
 </style>
 </head>
 <body>
 <main>
   <div class="head"><h1>Anti-Backgammon</h1>
     <div class="head-tools">
+      <details class="menu" id="resultsMenu"><summary data-t="resultsPanel">Tulokset</summary>
+      <div class="menu-body results-body" id="resultsPanel">
+        <div class="score">
+          <span class="caption" data-t="penalty">Rangaistuspisteet</span>
+          <span data-t="you">Sinä</span><span id="penMe">0</span>
+          <span data-t="bot">Botti</span><span id="penBot">0</span>
+          <span>&nbsp;</span><span></span>
+          <strong data-t="cube">Kuution arvo</strong><span id="cubeVal">1</span>
+          <strong data-t="row">Rivi</strong><span id="rows"></span>
+        </div>
+        <div class="results-extra">
+          <span data-t="gamesPlayed">Pelatut pelit</span><span id="gamesPlayed">0</span>
+          <span data-t="matchPR">Ottelun PR</span><span id="matchPR"></span>
+          <span data-t="gamePR">Pelin PR</span><span id="gamePR"></span>
+        </div>
+        <div class="side-btns">
+          <button id="resign" data-t="resign">Luovuta</button>
+          <button id="clearHistory" data-t="clearHistory">Tyhjennä historia</button>
+        </div>
+      </div></details>
       <details class="menu" id="settingsMenu"><summary data-t="settingsPanel">Asetukset</summary>
       <div class="menu-body" id="settingsBody">
       <details open>
@@ -301,12 +357,14 @@
         <p>Ottelu pelataan valittuun rangaistuspisteiden rajaan, oletuksena seitsemään. Rajan
         saavuttaja häviää ottelun. Kun jompikumpi on yhden pisteen päässä rajasta, seuraava peli on
         Crawford-peli ilman kuutiota. Sen jälkeen kuutio on taas käytössä. Rahapelissä rajaa ei ole,
-        ja pisteet kertyvät. Pituuden vaihto aloittaa uuden ottelun.</p>
+        ja pisteet kertyvät. Pituuden valitset Peli-paneelin yläpuolella olevasta Ottelu-valitsimesta.
+        Pituuden vaihto aloittaa uuden ottelun.</p>
         <h4>Tasapeli</h4>
         <p>Jos peli ei ole päättynyt 300 rivin jälkeen, se päättyy tasapeliin eikä kumpikaan saa
         rangaistuspisteitä. Rivi on kaksi puolisiirtoa, kuten siirtolistassa. Tasapeliin päättynyt
         Crawford-peli pelataan uudelleen ilman kuutiota.</p>
-        <p>Voit tarjota tasapeliä omalla vuorollasi ennen heittoa muurin keskellä olevalla <kbd>½</kbd>-napilla. Samalla
+        <p>Voit tarjota tasapeliä omalla vuorollasi ennen heittoa muurin keskellä olevalla <kbd>½</kbd>-napilla. Nappi on
+        aina esillä kuten kuutio, mutta muulloin se on himmennetty. Samalla
         vuorolla voit joko tuplata tai tarjota tasapeliä. Tarjouksen voi tehdä kerran vuorossa.
         Hyväksytty tarjous päättää pelin tasapeliin kuten 300 rivin raja. Botti hyväksyy, kun pelin
         jatkaminen ei sen arvion mukaan olisi sille edullista (sietoraja 0,02 kuution arvosta).
@@ -325,9 +383,12 @@
         oman puoliskosi keskellä, Tarjoa tasapeliä (<kbd>½</kbd>) muurin keskellä sekä Kumoa ja Valmis (<kbd>✓</kbd>)
         noppiesi vasemmalla ja oikealla puolella. Kun laillista siirtoa ei ole, <kbd>✓</kbd> jatkaa. Laudalle
         automaattisesti asetettua pakkosiirtoa ei voi kumota. Muut napit ovat sillä puoliskolla, jolla omat
-        noppasi eivät ole. Pelin tilarivi on laudan yläpuolella.
-        Pip-luvut ovat numeroriveillä muurin kohdalla, botin ylhäällä ja omasi alhaalla. <kbd>Luovuta</kbd> on
-        Tulokset-paneelissa ja kysyy varmistuksen.</p>
+        noppasi eivät ole. Botin tuplaus, tasapelitarjous ja pelin tulos näkyvät laudalla nappien
+        yläpuolella. Kun heittäjällä ei ole laillista siirtoa, noppien alla lukee Ei siirtoa.
+        Pipit ovat muurin päissä, botin ylhäällä ja omasi alhaalla: pip-luku ja sulkeissa ero
+        toiseen. Miinus tarkoittaa, että pip-lukusi on pienempi. Kun kokoat siirtoa, muuttunut luku ja ero
+        korostuvat. Omistettu kuutio on lokerosarakkeen omistajan päässä. <kbd>Luovuta</kbd> on
+        Tulokset-valikossa ja kysyy varmistuksen.</p>
         <h4>Näppäimet</h4>
         <p>Näppäimistöllä <kbd>Ctrl+Z</kbd> kumoaa, <kbd>välilyönti</kbd> heittää, <kbd>Enter</kbd> vahvistaa valmiin siirron, jatkaa
         tai aloittaa seuraavan pelin ja <kbd>S</kbd> vaihtaa noppien järjestyksen.</p>
@@ -340,8 +401,33 @@
         tai näppäimillä vasen ja oikea. <kbd>Seuraava merkki</kbd> hyppää merkittyyn asemaan. Valitse
         Sinä-valikosta, kumpi pelaaja olet. <kbd>Jatka tästä</kbd> pelaa asemasta bottia vastaan. <kbd>Sulje</kbd>
         palauttaa keskeytetyn pelisi. Nackgammonia ja double repeatin toistettua peliä ei voi toistaa.</p>
+        <p>Asetusten kytkin Analysoi tuotu ottelu on oletuksena päällä. Silloin verkko analysoi tuodun pelin
+        siirrot ja kuutiopäätökset samalla syvyydellä kuin botti pelaa, kuten omassa päättyneessä pelissä.
+        Analyysin ajan ikkuna näyttää valmiiden siirtojen määrän ja aika-arvion. <kbd>Peruuta</kbd> keskeyttää
+        analyysin. Arvio-paneelin <kbd>Jatka analyysia</kbd> jatkaa sitä. Siirrot ovat Peli-paneelin
+        listassa omilla riveillään ja värittyvät kuten omassa pelissä. Rivin klikkaus vie siirron asemaan.
+        Arvio-paneeli näyttää sen arvion. Pelin lopussa paneeli näyttää virheyhteenvedon Sinä-valikossa
+        valitun pelaajan siirroista.</p>
+        <p>Jokaisesta heitosta lasketaan myös onni kuten gnubg:ssä 0-ply:llä: verkon arvio parhaasta siirrosta
+        saadulla heitolla miinus sama arvio keskimäärin kaikista heitoista. Plus on onnea ja miinus epäonnea.
+        Onni näkyy siirron arviossa, ja pelin yhteenveto laskee sen yhteen kummallekin pelaajalle. Sama koskee
+        omia päättyneitä pelejäsi.</p>
+        <p>DailyGammon kirjoittaa kuutiottoman DMP:n viennin otsikoksi 0 pisteen ottelun, joten tuonti ei erota sitä
+        rahapelistä. Valitse selauksen Ottelu-valikosta rahapeli, DMP ilman kuutiota tai tiedoston ottelu. Valinta
+        tallentuu ottelun mukana. Se muuttaa pisteet, XGID:n, kuutiopäätösten arvion ja viennin tiedot mutta ei
+        siirtojen analyysia.</p>
+        <p>Analyysi tallentuu laitteelle, myös peruttu osa. Viisi viimeksi analysoitua ottelua on
+        Peli-paneelin pelivalitsimessa pelattujen pelien rinnalla. Saman tiedoston uusi tuonti avaa
+        valmiin analyysin. Analyysi pätee vain verkolle, jolla se laskettiin. Jos verkko on sen jälkeen
+        vaihtunut, niin Arvio-paneeli kertoo sen. <kbd>Analysoi uudelleen</kbd> laskee analyysin nykyisellä
+        verkolla.</p>
+        <p><kbd>Vie HTML-sivuksi</kbd> Peli-paneelissa tallentaa päättyneen tai tuodun pelin analyysin
+        HTML-tiedostoksi, joka aukeaa missä tahansa selaimessa ilman tätä sovellusta. Jokaisesta siirrosta ja
+        kuutiopäätöksestä on lautakuva ennen päätöstä sekä verkon arvio. Alussa ovat pelin tiedot (verkko ja
+        syvyys mukaan lukien), kummankin pelaajan virheyhteenveto ja PR sekä avattava lista siirroista, joissa
+        ero parhaaseen on yli 0,020.</p>
         <h4>Paneelit ja siirtolista</h4>
-        <p>Oletuksena laudan vieressä ovat Peli-, Arvio- ja Tulokset-paneelit. Asetukset ja Säännöt
+        <p>Oletuksena laudan vieressä ovat Peli- ja Arvio-paneelit. Tulokset, Asetukset ja Säännöt
         avautuvat yläreunan napeista. Valikko sulkeutuu samasta napista, <kbd>Esc</kbd>-näppäimellä tai
         klikkauksella sen ulkopuolelle. Kielen valitset yläreunan lipuista. Pystynäytöllä kaikki paneelit ovat laudan alla.</p>
         <p>Siirtolista on Peli-paneelissa.
@@ -351,17 +437,17 @@
         voittotodennäköisyys ilman kuutiota, equity ja ero verkon parhaaseen siirtoon. Paras on
         <span class="c-good">vihreä</span> ja huonommat <span class="c-bad">punaisia</span>. Nuolet ylös ja alas selaavat rivejä. <kbd>Palaa peliin</kbd> tai <kbd>Esc</kbd>
         palauttaa pelin laudalle.</p>
-        <p>Tulokset-paneelissa ovat ottelu, rangaistuspisteet, ottelun
+        <p>Tulokset-valikossa ovat rangaistuspisteet, kuution arvo, rivi, ottelun
         pelatut pelit sekä ottelun ja valitun pelin PR. PR on siirtojesi keskimääräinen virhe
         kertaa 500 kuten XG:ssä. Kuutiopäätökset eivät ole siinä mukana. Pienempi on parempi.
         <kbd>Tyhjennä historia</kbd> poistaa pelatut pelit selaimesta.</p>
         <h4>Asettelun muokkaus</h4>
         <p>Asettelu on lukittu, kunnes painat
-        yläreunan nappia <kbd>Muokkaa asettelua</kbd>. Muokkaustilassa lauta pienenee ja laudan napit ja
-        tilarivi piiloutuvat, jotta kaikki paneelit näkyvät. Paneelin siirrät raahaamalla sen
+        yläreunan nappia <kbd>Muokkaa asettelua</kbd>. Muokkaustilassa lauta pienenee ja laudan napit
+        piiloutuvat, jotta kaikki paneelit näkyvät. Paneelin siirrät raahaamalla sen
         otsikosta laudan viereen tai alle. Leveyttä muutat raahaamalla paneelien välistä erotinta ja
         korkeutta paneelin oikeasta alakulmasta. Kaksoisklikkaus erottimeen palauttaa
-        oletusleveyden. Paneelin kulman <kbd>×</kbd> piilottaa Peli-, Arvio- tai Tulokset-paneelin.
+        oletusleveyden. Paneelin kulman <kbd>×</kbd> piilottaa Peli- tai Arvio-paneelin.
         Muokkauspalkin Piilotetut-kohta tuo sen takaisin. <kbd>Palauta asettelun oletus</kbd> palauttaa
         asettelun. <kbd>Valmis</kbd> tai <kbd>Esc</kbd> lukitsee asettelun. Sivu tunnistaa näytön muodon (leveä vaakanäyttö, vaakanäyttö tai
         pystynäyttö) ja tallentaa paneelien paikat, koot ja näkyvyyden kullekin muodolle erikseen
@@ -372,10 +458,10 @@
         vahvemmin, mutta 2-ply vie koneesta riippuen sekunteja siirtoa kohden. Oletus on 2-ply, ja botin viesti kertoo, kauanko haku kesti. Siirtojesi analyysi
         tehdään samalla syvyydellä kuin botti pelaa. Syvemmällä haulla analyysi ilmestyy hetken
         viiveellä. Botin kuutiopäätökset tehdään aina 0-ply-arviolla.</p>
-        <p>Kaikki Pelaaminen-kohdan kytkimet ovat oletuksena päällä. Aseta pakkosiirrot puolestani asettaa
-        valmiiksi ne osasiirrot, jotka ovat mukana jokaisessa laillisessa siirrossa. Valmis jää
-        sinulle. Nuolet näyttävät omat osasiirtosi ennen Valmista ja botin edellisen siirron
-        heittoosi asti. Näytä painettu piste suurentaa laudan reunassa sen pisteen numeron, jota
+        <p>Kaikki Pelaaminen-kohdan kytkimet ovat oletuksena päällä. Pelaa pakkosiirrot puolestani asettaa
+        valmiiksi ne osasiirrot, jotka ovat mukana jokaisessa laillisessa siirrossa. Kun laillinen
+        siirto on vain yksi tai siirtoa ei ole, vuoro päättyy itsestään. Muuten Valmis jää sinulle. Nuolet näyttävät omat osasiirtosi ennen Valmista ja botin edellisen siirron
+        heittoosi asti. Muurin kohdalla nuoli himmenee, jotta pipit näkyvät sen alta. Näytä painettu piste suurentaa laudan reunassa sen pisteen numeron, jota
         painat: oranssi tarkoittaa että pisteeltä voi siirtää, yliviivattu että ei voi. Noppien
         kytkimillä noppien klikkaus vahvistaa valmiin siirron, vaihtaa käyttämättömien noppien
         järjestyksen tai heittää, kun botin nopat ovat laudalla. Seuraava peli noppien paikalle tuo
@@ -388,7 +474,8 @@
         <p>Äänet-kohdan Pelin äänet on oletuksena pois. Päällä nopat ja nappulat kolahtavat puuhun,
         kuutio kolahtaa kun tuplaat tai otat vastaan ja gongi soi seuraavan pelin alkaessa.
         Napautus pisteeseen, jolta ei voi siirtää, antaa kaksoiskolahduksen, kun Näytä painettu
-        piste on päällä. Ruuduilla jätät yksittäisen äänen pois. Äänet ovat DG Androidista.</p>
+        piste on päällä. Ruuduilla jätät yksittäisen äänen pois. Rivin <kbd>Kuuntele</kbd> soittaa äänen,
+        jotta kuulet sen ennen päätöstä, myös kun Pelin äänet on pois. Äänet ovat DG Androidista.</p>
         <h4>Siirtoanalyysi</h4>
         <p>Jokaista siirtoasi verrataan verkon parhaaseen siirtoon verkon omalla arviolla botin
         syvyydellä. Ero on
@@ -418,12 +505,14 @@
         <p>The match is played to the chosen number of penalty points, seven by default. The player
         who reaches the limit loses the match. When either player is one point away, the next game is
         the Crawford game without the cube. After that the cube is back in play. In a money game
-        there is no limit, and the points add up. Changing the length starts a new match.</p>
+        there is no limit, and the points add up. You choose the length from Match above the Game
+        panel. Changing the length starts a new match.</p>
         <h4>Draws</h4>
         <p>If the game has not ended after 300 rows, it is a draw, and nobody gets penalty points. A
         row is two half-moves, as in the move list. A Crawford game that ends in a draw is replayed
         without the cube.</p>
-        <p>You can offer a draw on your turn before rolling with the <kbd>½</kbd> button in the middle of the bar. On one turn you can
+        <p>You can offer a draw on your turn before rolling with the <kbd>½</kbd> button in the middle of the bar. The button is
+        always there, like the cube, but dimmed at other times. On one turn you can
         either double or offer a draw. You can offer once per turn. An accepted offer ends the game
         in a draw, as the 300-row limit does. The bot accepts when continuing would not be in its
         favour by its own estimate (tolerance 0.02 of the cube value). The estimate takes into account
@@ -441,10 +530,13 @@
         <p>The game buttons are on the board: <kbd>Roll</kbd> in the middle of your half, Offer a
         draw (<kbd>½</kbd>) in the middle of the bar and Undo (<kbd>↶</kbd>) and Done (<kbd>✓</kbd>) to the left and right of your
         dice. When there is no legal move, <kbd>✓</kbd> continues. A forced move placed on the board
-        automatically cannot be undone. The other buttons are on the half where your dice are not. The status line of the game
-        is above the board. The pip counts are on the
-        number rows at the bar, the bot's at the top and yours at the bottom. <kbd>Resign</kbd> is in the Results
-        panel, and it asks you to confirm.</p>
+        automatically cannot be undone. The other buttons are on the half where your dice are not. The bot's double, a draw
+        offer and the result of the game are shown on the board above the buttons. When the player who
+        rolled has no legal move, No move appears below the dice. The pips are at the ends of
+        the bar, the bot's at the top and yours at the bottom: the pip count and in brackets the
+        difference to the other. Minus means your pip count is lower. While you build a move, a changed count
+        or difference is highlighted. An owned cube is at the owner's end of the tray column. <kbd>Resign</kbd> is in the Results
+        menu, and it asks you to confirm.</p>
         <h4>Keyboard</h4>
         <p>On the keyboard <kbd>Ctrl+Z</kbd> undoes, <kbd>Space</kbd> rolls, <kbd>Enter</kbd> submits a complete move, continues or
         starts the next game and <kbd>S</kbd> swaps the dice.</p>
@@ -458,8 +550,33 @@
         position. Pick which player you are under You. <kbd>Play from here</kbd> continues from the position
         against the bot, and <kbd>Close</kbd> brings back your paused game. Nackgammon and the replayed game
         of double repeat cannot be replayed.</p>
+        <p>Analyse imported matches under Settings is on by default. The network then analyses the moves and
+        cube decisions of the imported game at the same depth the bot plays, as in a finished game of your own.
+        While it runs, a window shows how many moves are done and an estimate of the time left. <kbd>Cancel</kbd>
+        stops the analysis, and <kbd>Continue analysis</kbd> in the Evaluation panel resumes it. The moves are on
+        their own lines in the Game panel list and are coloured as in your own game. Clicking a line takes you to
+        that position, and the Evaluation panel shows its evaluation. At the end of the game the panel shows the
+        error summary for the player chosen under You.</p>
+        <p>The luck of every roll is computed as well, at 0-ply as in gnubg: the network's evaluation of the best
+        move with the roll you got minus the same evaluation averaged over all rolls. Plus is good luck and minus
+        bad luck. The luck is shown in the move evaluation, and the game summary adds it up for both players. The
+        same applies to your own finished games.</p>
+        <p>DailyGammon writes a DMP played without the cube as a 0-point match, so the import cannot tell it from a
+        money game. Choose money game, DMP without cube or the file's match under Match while browsing. The choice
+        is saved with the match. It changes the score, the XGID, the cube decision evaluation and the export
+        details but not the move analysis.</p>
+        <p>The analysis is saved on the device, including a cancelled part. The five most recently analysed
+        matches are in the game selector of the Game panel next to the played games, and importing the same
+        file again opens the finished analysis. The analysis only holds for the network it was computed with.
+        If the network has changed since, the Evaluation panel says so, and <kbd>Analyse again</kbd> computes
+        the analysis with the current network.</p>
+        <p><kbd>Export as HTML</kbd> in the Game panel saves the analysis of a finished or imported game as an
+        HTML file that opens in any browser without this app. Every move and cube decision has a picture of the
+        board before the decision and the network's evaluation. At the top are the game details (including the
+        network and depth), the error summary and PR of both players and an expandable list of the moves more
+        than 0.020 behind the best.</p>
         <h4>Panels and move list</h4>
-        <p>By default the Game, Evaluation and Results panels are next to the board. Settings and
+        <p>By default the Game and Evaluation panels are next to the board. Results, Settings and
         Rules open from the buttons at the top. A menu closes from the same button, with <kbd>Esc</kbd> or with
         a click outside it. You choose the language from the flags at the top. On a portrait screen all panels are below the board.</p>
         <p>The move list is in the Game panel. The selector in the Game panel holds the current game and up to 30 played games. A row in
@@ -469,16 +586,16 @@
         network's best move. The best is <span class="c-good">green</span> and worse moves are <span class="c-bad">red</span>. The up and down arrows step
         through the rows. <kbd>Back to the game</kbd> or <kbd>Esc</kbd> brings the game back to the board.</p>
         <p>The Results
-        panel shows the match, the penalty points, the games played in the match and the PR of the
+        menu shows the penalty points, the cube value, the row, the games played in the match and the PR of the
         match and of the chosen game. PR is the average error of your moves times 500, as in XG,
         without cube decisions. Lower is better. <kbd>Clear history</kbd> removes the played games from the
         browser.</p>
         <h4>Editing the layout</h4>
         <p>The layout is locked until you press <kbd>Edit layout</kbd> at the top. In edit mode the board shrinks
-        and the buttons on it and the status line are hidden, so that all panels are in view. You move a panel by dragging its title next to the board or below it. You change the width of the
+        and the buttons on it are hidden, so that all panels are in view. You move a panel by dragging its title next to the board or below it. You change the width of the
         panels by dragging the divider between them and the height from the lower right corner of a
         panel. A double click on a divider brings back the default width. The <kbd>×</kbd> in the corner of a
-        panel hides the Game, Evaluation or Results panel, and Hidden in the edit bar brings it back.
+        panel hides the Game or Evaluation panel, and Hidden in the edit bar brings it back.
         <kbd>Reset layout</kbd> restores the default. <kbd>Done</kbd> or <kbd>Esc</kbd> locks the layout. The page
         recognises the shape of the screen (wide landscape, landscape or portrait) and keeps the
         places, sizes and visibility of the panels for each shape separately in the browser.</p>
@@ -488,9 +605,10 @@
         stronger, but 2-ply can take seconds per move depending on your computer. The default is 2-ply, and the bot's message tells how long the search took. Your moves are
         analysed at the same depth as the bot plays, so with a deeper search the analysis appears
         after a short delay. The bot's cube decisions always use the 0-ply evaluation.</p>
-        <p>All switches under Playing are on by default. Place forced checkers for me places the
-        parts of the move that are in every legal move. Done stays yours. The arrows show your
-        moves before Done and the bot's last move until you roll. Show which point I'm pressing
+        <p>All switches under Playing are on by default. Play forced checkers for me places the
+        parts of the move that are in every legal move. When there is only one legal move or no move
+        at all, your turn ends by itself. Otherwise Done stays yours. The arrows show your
+        moves before Done and the bot's last move until you roll. Over the bar an arrow fades so the pips show through. Show which point I'm pressing
         enlarges the number of the point under your finger at the board edge: orange means a checker
         can move from there, crossed out means it can't. With the dice switches a click on the dice
         submits a complete move, swaps the unused dice or rolls when the bot's dice are on the board.
@@ -503,7 +621,8 @@
         <p>Game sounds under Sounds is off by default. When it is on, the dice and the checkers knock
         on wood, the cube knocks when you double or take and a gong sounds when the next game starts.
         A tap on a point you can't move from gives a double knock when Show which point I'm pressing
-        is on. The boxes leave out one sound at a time. The sounds come from DG Android.</p>
+        is on. The boxes leave out one sound at a time. <kbd>Play</kbd> on each row lets you hear the sound
+        before you decide, even while Game sounds is off. The sounds come from DG Android.</p>
         <h4>Move analysis</h4>
         <p>Each of your moves is compared with the network's best move, using the network's own
         evaluation at the bot's depth. The difference is cubeless equity. In the move list of the Game panel ?! is
@@ -536,13 +655,14 @@
         <p>Das Match wird bis zur gewählten Zahl von Strafpunkten gespielt, standardmäßig sieben. Wer
         die Grenze erreicht, verliert das Match. Wenn ein Spieler einen Punkt davon entfernt ist, ist
         das nächste Spiel das Crawford-Spiel ohne Würfel. Danach ist der Würfel wieder im Spiel. Im
-        Geldspiel gibt es keine Grenze, und die Punkte summieren sich. Eine neue Länge beginnt ein
-        neues Match.</p>
+        Geldspiel gibt es keine Grenze, und die Punkte summieren sich. Die Länge wählst du über Match
+        oberhalb des Spiel-Panels. Eine neue Länge beginnt ein neues Match.</p>
         <h4>Remis</h4>
         <p>Wenn das Spiel nach 300 Reihen nicht beendet ist, endet es remis, und niemand bekommt
         Strafpunkte. Eine Reihe sind zwei Halbzüge wie in der Zugliste. Ein Crawford-Spiel, das
         remis endet, wird ohne Würfel wiederholt.</p>
-        <p>Du kannst in deinem Zug vor dem Würfeln mit dem <kbd>½</kbd>-Knopf in der Mitte der Bar ein Remis anbieten. In einem Zug
+        <p>Du kannst in deinem Zug vor dem Würfeln mit dem <kbd>½</kbd>-Knopf in der Mitte der Bar ein Remis anbieten. Der Knopf
+        ist wie der Würfel immer zu sehen, sonst aber abgeblendet. In einem Zug
         kannst du entweder verdoppeln oder ein Remis anbieten. Du kannst einmal pro Zug anbieten. Ein
         angenommenes Angebot beendet das Spiel remis wie die Grenze von 300 Reihen. Der Bot nimmt an,
         wenn das Weiterspielen nach seiner eigenen Schätzung nicht zu seinem Vorteil wäre (Toleranz
@@ -563,8 +683,11 @@
         Hälfte, Remis anbieten (<kbd>½</kbd>) in der Mitte der Bar und Rückgängig (<kbd>↶</kbd>) und Fertig (<kbd>✓</kbd>) links und
         rechts von deinen Würfeln. Wenn es keinen legalen Zug gibt, setzt <kbd>✓</kbd> fort. Ein automatisch
         gesetzter erzwungener Zug kann nicht rückgängig gemacht werden. Die übrigen Knöpfe liegen auf der Hälfte ohne deine Würfel. Die
-        Statuszeile des Spiels steht über dem Brett. Die Pip-Zahlen stehen in den Zahlenreihen an der Bar, die des
-        Bots oben und deine unten. <kbd>Aufgeben</kbd> ist im Ergebnisse-Panel und fragt nach einer
+        Verdopplung des Bots, ein Remisangebot und das Spielergebnis stehen auf dem Brett über den Knöpfen.
+        Hat der Würfelnde keinen legalen Zug, steht Kein Zug unter den Würfeln. Die Pips stehen an den Enden der Bar, die des
+        Bots oben und deine unten: die Pip-Zahl und in Klammern der Abstand zum anderen. Minus heißt,
+        dass deine Pip-Zahl kleiner ist. Während du einen Zug zusammenstellst, werden geänderte Werte hervorgehoben.
+        Ein besessener Würfel liegt am Ende der Ablagespalte auf der Seite des Besitzers. <kbd>Aufgeben</kbd> ist im Ergebnisse-Menü und fragt nach einer
         Bestätigung.</p>
         <h4>Tastatur</h4>
         <p>Auf der Tastatur macht <kbd>Strg+Z</kbd> rückgängig, die <kbd>Leertaste</kbd> würfelt, <kbd>Enter</kbd> bestätigt einen
@@ -580,9 +703,35 @@
         welcher Spieler du bist. <kbd>Von hier spielen</kbd> setzt das Spiel aus der Stellung gegen den Bot fort,
         und <kbd>Schließen</kbd> bringt dein unterbrochenes Spiel zurück. Nackgammon und das wiederholte Spiel
         von Double Repeat können nicht nachgespielt werden.</p>
+        <p>Importierte Matches analysieren unter Einstellungen ist standardmäßig an. Dann analysiert das Netz die
+        Züge und Würfelentscheidungen des importierten Spiels in derselben Tiefe, in der der Bot spielt, wie in
+        einem beendeten eigenen Spiel. Währenddessen zeigt ein Fenster die Zahl der fertigen Züge und eine
+        Zeitschätzung. <kbd>Abbrechen</kbd> hält die Analyse an, und <kbd>Analyse fortsetzen</kbd> im
+        Bewertung-Panel setzt sie fort. Die Züge stehen in der Liste des Spiel-Panels in eigenen Zeilen und sind
+        wie im eigenen Spiel gefärbt. Ein Klick auf eine Zeile führt zu ihrer Stellung, und das Bewertung-Panel
+        zeigt ihre Bewertung. Am Ende des Spiels zeigt das Panel die Fehlerübersicht des unter Du gewählten
+        Spielers.</p>
+        <p>Für jeden Wurf wird auch das Glück berechnet, wie in gnubg mit 0-ply: die Bewertung des Netzes für den
+        besten Zug mit dem erhaltenen Wurf minus dieselbe Bewertung im Mittel über alle Würfe. Plus ist Glück und
+        Minus Pech. Das Glück steht in der Zugbewertung, und die Spielübersicht summiert es für beide Spieler. Das
+        gilt auch für deine eigenen beendeten Spiele.</p>
+        <p>DailyGammon schreibt ein DMP ohne Doppelwürfel als Match bis 0, daher kann der Import es nicht von einem
+        Geldspiel unterscheiden. Wähle beim Durchsehen unter Match Geldspiel, DMP ohne Doppelwürfel oder das Match
+        der Datei. Die Wahl wird mit dem Match gespeichert. Sie ändert den Stand, die XGID, die Bewertung der
+        Würfelentscheidungen und die Angaben im Export, aber nicht die Zuganalyse.</p>
+        <p>Die Analyse wird auf dem Gerät gespeichert, auch ein abgebrochener Teil. Die fünf zuletzt analysierten
+        Matches stehen in der Spielauswahl des Spiel-Panels neben den gespielten Spielen, und ein erneuter Import
+        derselben Datei öffnet die fertige Analyse. Die Analyse gilt nur für das Netz, mit dem sie berechnet wurde.
+        Hat sich das Netz seitdem geändert, sagt es das Bewertung-Panel, und <kbd>Neu analysieren</kbd> berechnet
+        die Analyse mit dem aktuellen Netz.</p>
+        <p><kbd>Als HTML exportieren</kbd> im Spiel-Panel speichert die Analyse eines beendeten oder importierten
+        Spiels als HTML-Datei, die sich in jedem Browser ohne diese App öffnen lässt. Zu jedem Zug und jeder
+        Würfelentscheidung gibt es ein Bild des Bretts vor der Entscheidung und die Bewertung des Netzes. Oben
+        stehen die Angaben zum Spiel (auch Netz und Tiefe), Fehlerübersicht und PR beider Spieler und eine
+        aufklappbare Liste der Züge, die mehr als 0,020 hinter dem besten liegen.</p>
         <h4>Panels und Zugliste</h4>
-        <p>Standardmäßig stehen die Panels Spiel, Bewertung und Ergebnisse neben dem Brett.
-        Einstellungen und Regeln öffnen sich über die Knöpfe oben. Ein Menü schließt sich über
+        <p>Standardmäßig stehen die Panels Spiel und Bewertung neben dem Brett.
+        Ergebnisse, Einstellungen und Regeln öffnen sich über die Knöpfe oben. Ein Menü schließt sich über
         denselben Knopf, mit <kbd>Esc</kbd> oder mit einem Klick daneben. Die Sprache wählst du oben über die Flaggen. Im Hochformat stehen alle Panels unter dem Brett.</p>
         <p>Die Zugliste ist im Spiel-Panel.
         Die Auswahl im Spiel-Panel enthält das aktuelle Spiel und bis zu 30 gespielte Spiele. Eine
@@ -592,18 +741,18 @@
         Abstand zum besten Zug des Netzes. Der beste ist <span class="c-good">grün</span>, schlechtere sind <span class="c-bad">rot</span>. Die Pfeiltasten
         nach oben und unten blättern durch die Reihen. <kbd>Zurück zum Spiel</kbd> oder <kbd>Esc</kbd> bringt das Spiel
         wieder aufs Brett.</p>
-        <p>Das Ergebnisse-Panel zeigt das Match, die Strafpunkte, die im Match
+        <p>Das Ergebnisse-Menü zeigt die Strafpunkte, den Würfelwert, die Reihe, die im Match
         gespielten Spiele und die PR des Matches und des gewählten Spiels. PR ist der
         durchschnittliche Fehler deiner Züge mal 500 wie in XG, ohne Würfelentscheidungen. Niedriger
         ist besser. <kbd>Verlauf löschen</kbd> entfernt die gespielten Spiele aus dem Browser.</p>
         <h4>Layout bearbeiten</h4>
         <p>Das Layout ist
         gesperrt, bis du oben <kbd>Layout bearbeiten</kbd> drückst. Im Bearbeitungsmodus wird das Brett kleiner
-        und die Knöpfe darauf und die Statuszeile verschwinden, damit alle Panels sichtbar sind. Du verschiebst ein
+        und die Knöpfe darauf verschwinden, damit alle Panels sichtbar sind. Du verschiebst ein
         Panel, indem du seinen Titel neben oder unter das Brett ziehst. Die Breite der Panels änderst
         du, indem du den Trenner zwischen ihnen ziehst, die Höhe an der unteren rechten Ecke eines
         Panels. Ein Doppelklick auf einen Trenner stellt die Standardbreite wieder her. Das <kbd>×</kbd> in der
-        Ecke blendet das Panel Spiel, Bewertung oder Ergebnisse aus, und Ausgeblendet in der
+        Ecke blendet das Panel Spiel oder Bewertung aus, und Ausgeblendet in der
         Bearbeitungsleiste holt es zurück. <kbd>Layout zurücksetzen</kbd> stellt den Standard wieder her. <kbd>Fertig</kbd>
         oder <kbd>Esc</kbd> sperrt das Layout. Die Seite erkennt die Bildschirmform (breites Querformat, Querformat oder
         Hochformat) und speichert Platz, Größe und Sichtbarkeit der Panels für jede Form getrennt im
@@ -616,9 +765,10 @@
         Züge werden in derselben Tiefe analysiert, in der der Bot spielt, daher erscheint die Analyse
         bei tieferer Suche mit kurzer Verzögerung. Die Würfelentscheidungen des Bots verwenden immer
         die 0-ply-Bewertung.</p>
-        <p>Alle Schalter unter Spielen sind standardmäßig an. Erzwungene Teilzüge für mich setzen setzt
-        die Teile des Zuges, die in jedem legalen Zug vorkommen. Fertig bleibt dir überlassen. Die
-        Pfeile zeigen deine Züge vor Fertig und den letzten Zug des Bots, bis du würfelst. Gedrückten
+        <p>Alle Schalter unter Spielen sind standardmäßig an. Erzwungene Züge für mich spielen setzt
+        die Teile des Zuges, die in jedem legalen Zug vorkommen. Gibt es nur einen legalen Zug oder
+        gar keinen, endet dein Zug von selbst. Sonst bleibt Fertig dir überlassen. Die
+        Pfeile zeigen deine Züge vor Fertig und den letzten Zug des Bots, bis du würfelst. Über der Bar wird ein Pfeil blass, damit die Pips sichtbar bleiben. Gedrückten
         Punkt zeigen vergrößert am Brettrand die Nummer des Punktes unter deinem Finger: Orange
         bedeutet, dass von dort ein Stein ziehen kann, durchgestrichen, dass keiner kann. Mit den
         Würfelschaltern bestätigt ein Klick auf die Würfel einen vollständigen Zug, tauscht die
@@ -634,6 +784,7 @@
         auf Holz, der Würfel klopft, wenn du verdoppelst oder annimmst, und ein Gong ertönt, wenn das
         nächste Spiel beginnt. Ein Tippen auf einen Punkt ohne möglichen Zug gibt ein doppeltes
         Klopfen, wenn Gedrückten Punkt zeigen an ist. Mit den Kästchen lässt du einzelne Töne weg.
+        <kbd>Anhören</kbd> in jeder Zeile spielt den Ton vor der Entscheidung, auch wenn Spielgeräusche aus ist.
         Die Töne stammen aus DG Android.</p>
         <h4>Zuganalyse</h4>
         <p>Jeder deiner Züge wird mit dem besten Zug des Netzes verglichen, nach der eigenen Bewertung
@@ -668,14 +819,14 @@
         <p>Le match se joue jusqu'au nombre de points de pénalité choisi, sept par défaut. Le joueur
         qui atteint la limite perd le match. Quand un joueur est à un point de la limite, la partie
         suivante est la partie Crawford, sans videau. Ensuite le videau revient en jeu. En partie
-        d'argent il n'y a pas de limite et les points s'additionnent. Changer la longueur commence
-        un nouveau match.</p>
+        d'argent il n'y a pas de limite et les points s'additionnent. Vous choisissez la longueur avec Match
+        au-dessus du panneau Partie. Changer la longueur commence un nouveau match.</p>
         <h4>La nulle</h4>
         <p>Si la partie n'est pas terminée après 300 rangées, elle est nulle et personne ne reçoit
         de points de pénalité. Une rangée correspond à deux demi-coups, comme dans la liste des
         coups. Une partie Crawford nulle est rejouée sans videau.</p>
         <p>Vous pouvez proposer la nulle pendant votre tour, avant de lancer les dés, avec le bouton <kbd>½</kbd> au
-        milieu de la barre. Pendant un même tour, vous pouvez soit doubler, soit proposer la nulle. Vous pouvez
+        milieu de la barre. Le bouton est toujours visible, comme le videau, mais grisé le reste du temps. Pendant un même tour, vous pouvez soit doubler, soit proposer la nulle. Vous pouvez
         proposer une fois par tour. Une proposition acceptée termine la partie par une nulle, comme
         la limite de 300 rangées. Le bot accepte quand continuer ne serait pas à son avantage selon sa
         propre estimation (tolérance de 0,02 de la valeur du videau). L'estimation tient compte du
@@ -694,8 +845,12 @@
         milieu de votre moitié, Proposer la nulle (<kbd>½</kbd>) au milieu de la barre et Annuler (<kbd>↶</kbd>) et Terminé
         (<kbd>✓</kbd>) à gauche et à droite de vos dés. Quand aucun coup légal n'existe, <kbd>✓</kbd> continue. Un
         déplacement forcé placé automatiquement ne peut pas être annulé. Les autres boutons sont sur la moitié où vos dés ne sont
-        pas. La ligne d'état de la partie est au-dessus du plateau. Les comptes de pips sont sur les rangées de numéros au niveau de la barre,
-        celui du bot en haut et le vôtre en bas. <kbd>Abandonner</kbd> se trouve dans le panneau Résultats et
+        pas. Le double du bot, une proposition de nulle et le résultat de la partie s'affichent sur le
+        plateau au-dessus des boutons. Quand le joueur qui a lancé n'a aucun coup légal, Aucun coup
+        s'affiche sous les dés. Les pips sont aux extrémités de la barre,
+        ceux du bot en haut et les vôtres en bas&nbsp;: le compte de pips et entre parenthèses l'écart avec
+        l'autre. Moins signifie que votre compte est plus petit. Pendant que vous composez un coup, une valeur
+        modifiée est mise en évidence. Un videau possédé se trouve au bout de la colonne de sortie, du côté de son propriétaire. <kbd>Abandonner</kbd> se trouve dans le menu Résultats et
         demande une confirmation.</p>
         <h4>Clavier</h4>
         <p>Au clavier, <kbd>Ctrl+Z</kbd> annule, <kbd>Espace</kbd> lance les dés, <kbd>Entrée</kbd> confirme un coup complet, continue ou
@@ -711,8 +866,34 @@
         partir d'ici</kbd> continue la partie contre le bot depuis la position, et <kbd>Fermer</kbd> ramène votre
         partie interrompue. Le nackgammon et la partie rejouée du double repeat ne peuvent pas être
         rejoués.</p>
+        <p>Analyser les matchs importés, dans les Réglages, est activé par défaut. Le réseau analyse alors les
+        coups et les décisions de videau de la partie importée à la même profondeur que celle du bot, comme pour
+        une de vos parties terminées. Pendant l'analyse, une fenêtre affiche le nombre de coups terminés et une
+        estimation du temps restant. <kbd>Annuler</kbd> interrompt l'analyse, et <kbd>Reprendre l'analyse</kbd>
+        dans le panneau Évaluation la reprend. Les coups sont sur leurs propres lignes dans la liste du panneau
+        Partie et colorés comme dans votre propre partie. Un clic sur une ligne mène à sa position, et le panneau
+        Évaluation affiche son évaluation. À la fin de la partie, le panneau affiche le résumé des erreurs du
+        joueur choisi sous Vous.</p>
+        <p>La chance de chaque lancer est aussi calculée, à 0-ply comme dans gnubg&nbsp;: l'évaluation par le réseau du
+        meilleur coup avec le lancer obtenu moins la même évaluation en moyenne sur tous les lancers. Plus signifie
+        de la chance et moins de la malchance. La chance figure dans l'évaluation du coup, et le résumé de la
+        partie l'additionne pour les deux joueurs. Il en va de même pour vos propres parties terminées.</p>
+        <p>DailyGammon écrit un DMP joué sans videau comme un match en 0 point, donc l'import ne peut pas le
+        distinguer d'une partie d'argent. Choisissez sous Match partie d'argent, DMP sans videau ou le match du
+        fichier pendant la consultation. Le choix est enregistré avec le match. Il change le score, le XGID,
+        l'évaluation des décisions de videau et les détails de l'export, mais pas l'analyse des coups.</p>
+        <p>L'analyse est enregistrée sur l'appareil, y compris une partie annulée. Les cinq derniers matchs
+        analysés figurent dans le sélecteur de parties du panneau Partie à côté des parties jouées, et importer
+        à nouveau le même fichier ouvre l'analyse terminée. L'analyse ne vaut que pour le réseau avec lequel elle
+        a été calculée. Si le réseau a changé depuis, le panneau Évaluation l'indique, et <kbd>Analyser à
+        nouveau</kbd> calcule l'analyse avec le réseau actuel.</p>
+        <p><kbd>Exporter en HTML</kbd> dans le panneau Partie enregistre l'analyse d'une partie terminée ou
+        importée dans un fichier HTML qui s'ouvre dans n'importe quel navigateur sans cette application. Chaque
+        coup et chaque décision de videau a une image du plateau avant la décision et l'évaluation du réseau. En
+        tête figurent les détails de la partie (dont le réseau et la profondeur), le résumé des erreurs et le PR
+        des deux joueurs ainsi qu'une liste dépliable des coups à plus de 0,020 du meilleur.</p>
         <h4>Panneaux et liste des coups</h4>
-        <p>Par défaut, les panneaux Partie, Évaluation et Résultats sont à côté du plateau. Réglages
+        <p>Par défaut, les panneaux Partie et Évaluation sont à côté du plateau. Résultats, Réglages
         et Règles s'ouvrent depuis les boutons en haut. Un menu se ferme avec le même bouton, avec
         <kbd>Échap</kbd> ou par un clic en dehors. Vous choisissez la langue avec les drapeaux en haut. Sur un écran portrait, tous les panneaux sont sous le plateau.</p>
         <p>La liste des coups se trouve dans le
@@ -724,19 +905,19 @@
         videau, l'équité et l'écart avec le meilleur coup du réseau. Le meilleur est en <span class="c-good">vert</span>, les
         moins bons en <span class="c-bad">rouge</span>. Les touches fléchées haut et bas parcourent les rangées. <kbd>Retour à la
         partie</kbd> ou <kbd>Échap</kbd> remet la partie sur le plateau.</p>
-        <p>Le panneau Résultats affiche le match, les
-        points de pénalité, les parties jouées dans le match et le PR du match et de la partie
+        <p>Le menu Résultats affiche les
+        points de pénalité, la valeur du videau, la rangée, les parties jouées dans le match et le PR du match et de la partie
         choisie. Le PR est l'erreur moyenne de vos coups multipliée par 500, comme dans XG, sans les
         décisions de videau. Plus il est bas, mieux c'est. <kbd>Effacer l'historique</kbd> supprime les parties
         jouées du navigateur.</p>
         <h4>Modifier la disposition</h4>
         <p>La disposition est verrouillée jusqu'à ce que vous appuyiez en haut
         sur <kbd>Modifier la disposition</kbd>. En mode modification, le plateau rétrécit et ses boutons
-        et la ligne d'état sont masqués, pour que tous les panneaux soient visibles. Vous déplacez un panneau en faisant
+        sont masqués, pour que tous les panneaux soient visibles. Vous déplacez un panneau en faisant
         glisser son titre à côté du plateau ou en dessous. Vous changez la largeur des panneaux en faisant glisser le séparateur
         entre eux et la hauteur depuis le coin inférieur droit d'un panneau. Un double clic sur un
-        séparateur rétablit la largeur par défaut. Le <kbd>×</kbd> dans le coin masque le panneau Partie,
-        Évaluation ou Résultats, et Masqués dans la barre de modification le fait revenir. <kbd>Rétablir
+        séparateur rétablit la largeur par défaut. Le <kbd>×</kbd> dans le coin masque le panneau Partie
+        ou Évaluation, et Masqués dans la barre de modification le fait revenir. <kbd>Rétablir
         la disposition</kbd> revient à la disposition par défaut. <kbd>Terminé</kbd> ou <kbd>Échap</kbd> verrouille la
         disposition. La page reconnaît la forme de l'écran
         (paysage large, paysage ou portrait) et conserve dans le navigateur la place, la taille et la
@@ -749,10 +930,11 @@
         bot indique la durée de la recherche. Vos coups sont analysés à la même profondeur que celle
         du bot, donc avec une recherche plus profonde l'analyse apparaît après un court délai. Les
         décisions de videau du bot utilisent toujours l'évaluation 0-ply.</p>
-        <p>Tous les interrupteurs sous Jeu sont activés par défaut. Placer les déplacements forcés pour
-        moi place les parties du coup présentes dans tous les coups légaux. Terminé reste à vous. Les
+        <p>Tous les interrupteurs sous Jeu sont activés par défaut. Jouer les déplacements forcés pour
+        moi place les parties du coup présentes dans tous les coups légaux. S'il n'y a qu'un seul coup
+        légal ou aucun, votre tour se termine tout seul. Sinon Terminé reste à vous. Les
         flèches montrent vos déplacements avant Terminé et le dernier coup du bot jusqu'à votre
-        lancer. Afficher la case touchée agrandit au bord du plateau le numéro de la case sous votre
+        lancer. Au-dessus de la barre, une flèche pâlit pour laisser voir les pips. Afficher la case touchée agrandit au bord du plateau le numéro de la case sous votre
         doigt&nbsp;: orange signifie qu'une dame peut partir de là, barré qu'aucune ne le peut. Avec les
         interrupteurs des dés, un clic sur les dés confirme un coup complet, inverse les dés
         inutilisés ou lance les dés quand ceux du bot sont sur le plateau. Partie suivante à la place
@@ -766,8 +948,8 @@
         <p>Sons du jeu, sous Sons, est désactivé par défaut. Activé, les dés et les dames frappent le
         bois, le videau frappe quand vous doublez ou acceptez et un gong retentit au début de la
         partie suivante. Toucher une case sans coup possible donne un double coup quand Afficher la
-        case touchée est activé. Les cases à cocher retirent un son à la fois. Les sons viennent de
-        DG Android.</p>
+        case touchée est activé. Les cases à cocher retirent un son à la fois. <kbd>Écouter</kbd> sur chaque ligne fait entendre le son
+        avant de décider, même quand Sons du jeu est désactivé. Les sons viennent de DG Android.</p>
         <h4>Analyse des coups</h4>
         <p>Chacun de vos coups est comparé au meilleur coup du réseau, selon la propre évaluation du
         réseau à la profondeur du bot. L'écart est de l'équité sans videau. Dans la liste des coups du
@@ -795,7 +977,6 @@
   </div>
   <div class="layout">
     <div class="boardcol">
-      <div class="status" id="status"></div>
       <div class="card" id="cardBot"></div>
       <div class="boardwrap">
         <svg id="board" viewBox="0 0 733 493" role="img" aria-label="Pelilauta"></svg>
@@ -805,20 +986,31 @@
           <button id="undo" class="icon">↶</button>
           <button id="done" class="icon primary">✓</button>
           <div class="act-row" id="actRow">
-            <button id="drop" data-t="drop">Luovu</button>
-            <button id="take" class="primary" data-t="take">Ota vastaan</button>
-            <button id="declineDraw" data-t="declineDraw">Kieltäydy</button>
-            <button id="acceptDraw" class="primary" data-t="acceptDraw">Hyväksy tasapeli</button>
-            <button id="new" class="primary">Seuraava peli</button>
+            <p class="board-note" id="boardNote" aria-live="polite" hidden></p>
+            <div class="act-btns">
+              <button id="drop" data-t="drop">Luovu</button>
+              <button id="take" class="primary" data-t="take">Ota vastaan</button>
+              <button id="declineDraw" data-t="declineDraw">Kieltäydy</button>
+              <button id="acceptDraw" class="primary" data-t="acceptDraw">Hyväksy tasapeli</button>
+              <button id="new" class="primary">Seuraava peli</button>
+            </div>
+          </div>
+        </div>
+        <div class="onboard" id="viewBar" hidden>
+          <div class="view-note" id="viewNote">
+            <p id="viewHelp"></p>
+            <button id="resume" class="primary" data-t="resume">Palaa peliin</button>
           </div>
         </div>
       </div>
       <div class="card" id="cardMe"></div>
       <div class="analysis" id="analysis" aria-live="polite"></div>
       <div class="review" id="review" hidden>
+        <p class="caption" id="reviewMsg" aria-live="polite"></p>
         <div class="row">
           <label><span data-t="reviewGameLabel">Peli</span> <select id="reviewGame"></select></label>
           <label><span data-t="reviewYouLabel">Sinä</span> <select id="reviewYou"></select></label>
+          <label><span data-t="reviewMatchLabel">Ottelu</span> <select id="reviewMatch"></select></label>
         </div>
         <div class="row">
           <button id="reviewFirst" aria-label="|&lt;">⏮</button>
@@ -830,9 +1022,6 @@
           <button id="reviewClose" data-t="reviewClose">Sulje</button>
         </div>
       </div>
-      <div class="row" id="viewBar" hidden>
-        <button id="resume" class="primary" data-t="resume">Palaa peliin</button>
-      </div>
     </div>
     <div class="split" id="splitSide" role="separator" aria-orientation="vertical"></div>
     <div class="side">
@@ -840,38 +1029,33 @@
         <h2 data-t="gamePanel">Peli</h2>
         <select id="gameSel"></select>
         <p class="caption" id="gameMsg"></p>
+        <button id="exportHtml" class="export" data-t="exportHtml" hidden>Vie HTML-sivuksi</button>
         <div class="glist" id="gameList"></div>
-        <pre class="log" id="log" hidden></pre>
       </section>
       <section class="panel" id="evalPanel">
         <h2 data-t="evalPanel">Arvio</h2>
         <div id="evalBox" aria-live="polite"></div>
       </section>
     </div>
-    <div class="below">
-      <section class="panel" id="resultsPanel">
-        <h2 data-t="resultsPanel">Tulokset</h2>
-        <div class="score">
-          <strong><label for="limit" data-t="match">Ottelu</label></strong><select id="limit"></select>
-          <span class="caption" data-t="penalty">Rangaistuspisteet</span>
-          <span data-t="you">Sinä</span><span id="penMe">0</span>
-          <span data-t="bot">Botti</span><span id="penBot">0</span>
-          <span>&nbsp;</span><span></span>
-          <strong data-t="cube">Kuution arvo</strong><span id="cubeVal">1</span>
-          <strong data-t="row">Rivi</strong><span id="rows"></span>
-        </div>
-        <div class="results-extra">
-          <span data-t="gamesPlayed">Pelatut pelit</span><span id="gamesPlayed">0</span>
-          <span data-t="matchPR">Ottelun PR</span><span id="matchPR"></span>
-          <span data-t="gamePR">Pelin PR</span><span id="gamePR"></span>
-        </div>
-        <div class="side-btns">
-          <button id="resign" data-t="resign">Luovuta</button>
-          <button id="clearHistory" data-t="clearHistory">Tyhjennä historia</button>
-        </div>
-      </section>
-    </div>
+    <div class="below"></div>
+    <div class="match-row" id="matchRow"><label for="limit" data-t="match">Ottelu</label><select id="limit"></select></div>
   </div>
+  <dialog class="confirm" id="confirmBox" aria-labelledby="confirmText">
+    <p id="confirmText"></p>
+    <div class="confirm-btns">
+      <button id="confirmNo" data-t="no">Ei</button>
+      <button id="confirmYes" class="primary" data-t="yes">Kyllä</button>
+    </div>
+  </dialog>
+  <dialog class="confirm" id="analysisBox" aria-labelledby="analysisTitle">
+    <p id="analysisTitle"></p>
+    <progress id="analysisBar" value="0" max="1"></progress>
+    <p id="analysisCount"></p>
+    <p id="analysisEta" class="caption"></p>
+    <div class="confirm-btns">
+      <button id="analysisCancel"></button>
+    </div>
+  </dialog>
 </main>
 <script type="module" src="src/ui.mjs"></script>
 </body>

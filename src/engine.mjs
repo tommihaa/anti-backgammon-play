@@ -144,6 +144,15 @@ export function mobility(s, p) {
   return n;
 }
 
+// Kilpajuoksu: kontakti on loppunut, eli kummankaan nappulat eivät enää voi kohdata. Pelaajan
+// p takimmainen nappula (baari mukaan lukien) on hänen pisteellään maxP ja vastustajan
+// takimmainen vastustajan pisteellä maxQ, joka on p:n pisteellä 25 − maxQ. Kontaktia ei ole, kun
+// maxP < 25 − maxQ. Ehto on symmetrinen, joten vuorossa olevalla ei ole väliä.
+export function isRace(s) {
+  const back = a => { for (let i = BAR; i >= 1; i--) if (a[i] > 0) return i; return 0; };
+  return back(s[0]) + back(s[1]) < 25;
+}
+
 // 21 erilaista heittoa painoineen (tupla 1/36, muut 2/36).
 export const ROLLS = [];
 for (let a = 1; a <= 6; a++) for (let b = a; b <= 6; b++) ROLLS.push([a, b, a === b ? 1 : 2]);

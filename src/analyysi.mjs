@@ -3,7 +3,7 @@
 // haku arvioi niistä viisi parasta. Pelattu siirto arvioidaan aina, vaikka se ei olisi
 // viiden joukossa. Ajetaan sivulla 0-ply:llä ja botin säikeessä 1- ja 2-ply:llä.
 
-import { legalPlays, exited, key } from './engine.mjs';
+import { legalPlays, exited, key, ROLLS } from './engine.mjs';
 import { value, PLY } from './verkko.mjs';
 
 // Palauttaa pelatun siirron arvion, parhaan arvion ja kolme parasta siirtoa (moves ja arvio),
@@ -23,4 +23,21 @@ export function rankPlays(net, base, p, d1, d2, playedS, ply = 0, keep = 5) {
   }
   const playedV = ranked.find(r => key(r.s) === playedKey)?.x ?? v0(playedS);
   return { best: ranked[0].x, played: playedV, top: ranked.slice(0, 3).map(({ moves, x }) => ({ moves, x })) };
+}
+
+// Heiton onni (luck) kuten gnubg:ssä, 0-ply:llä kuten gnubg:n oletus (Tommin pyyntö 14.11.2026):
+// verkon arvio parhaasta siirrosta saadulla heitolla miinus sama arvio keskimäärin kaikista 36
+// heitosta. Arvio on siirtäjän P(voitto) siirron jälkeen. Tuplat painavat yhden ja muut kaksi
+// heittoa. Tanssissa asema jää ennalleen. Tulos on equityä (2 × P(voitto) − 1) siirtäjälle:
+// plus on onnea, miinus epäonnea. Lasketaan myös pakkosiirroille ja tansseille.
+export function rollLuck(net, base, p, d1, d2) {
+  const v = st => (exited(st[p]) ? 0 : value(net, st, p));
+  let sum = 0, weight = 0, got = null;
+  for (const [a, b, n] of ROLLS) {
+    const x = Math.max(...legalPlays(base, p, a, b).map(pl => v(pl.s)));
+    sum += n * x;
+    weight += n;
+    if ((a === d1 && b === d2) || (a === d2 && b === d1)) got = x;
+  }
+  return 2 * (got - sum / weight);
 }
