@@ -7,10 +7,11 @@ import { fromJSON, netBot, netCube } from './verkko.mjs';
 import { newCube, mayDouble, tablePolicy, MATCH_LIMIT } from './kuutio.mjs';
 import { newStall, observe, stuck, botOffers, botAccepts } from './jumi.mjs';
 import { T, applyStatic, setLang } from './kieli.mjs';
-import { rankPlays, rollLuck } from './analyysi.mjs';
+import { rankPlays, rollLuck, notation, topMoves, applyMove } from './analyysi.mjs';
 import { toXGID, fromXGID } from './xgid.mjs';
 import { parseMatch, replay } from './tuonti.mjs';
 import { gameHTML } from './vienti.mjs';
+import { buildAnalysisFile, parseAnalysisFile, FORMAT, EXT } from './analyysitiedosto.mjs';
 import { SOUNDS, playSound } from './aanet.mjs';
 import {
   STYLES, boardLook, panelLook, cubeLook, OUTLINE, NUMBER_INK, PIP_INK, CHECKER_PER_COLUMN, TRAY_PER_COLUMN,
@@ -185,6 +186,8 @@ const record = g => ({
   decisions: g.decisions ?? [], no: g.no, score: g.score, match: g.match, crawford: g.crawford,
   // Verkko, jolla peli pelattiin ja analysoitiin. Siirtojen syvyys on päätöksissä (ply).
   net: g.net ?? NET_FILE,
+  // Analyysitiedostosta tuodun pelin rollout-tulokset säilyvät seuraavaan vientiin.
+  rollouts: g.rollouts,
 });
 function saveFinished() {
   if (!finished) return;
@@ -219,7 +222,7 @@ function saveImported() {
   if (!review?.done.size) return;
   const x = {
     id: review.id, text: review.text, when: review.when, players: review.m.players, length: review.m.length,
-    h: review.h, net: review.net, kind: review.kind, done: Object.fromEntries(review.done),
+    h: review.h, net: review.net, kind: review.kind, done: Object.fromEntries(review.done), rollouts: review.rollouts,
   };
   const k = imported.findIndex(y => y.id === x.id);
   if (k >= 0) imported.splice(k, 1);
@@ -287,6 +290,7 @@ function renderGamePanel() {
   $('gameMsg').textContent = live ? '' : x.msg;
   // Vienti päättyneestä tai tuodusta pelistä, jossa on päätöksiä.
   $('exportHtml').hidden = !x.decisions?.length || (live && !x.over);
+  $('exportFile').hidden = $('exportHtml').hidden;
   // Päättyneen pelin siirrot väritetään equity-menetyksen mukaan (Tommin rajat 13.11.2026):
   // yli 0,020 vihreä (error) ja yli 0,080 punainen (blunder). Kuutiopäätöksistä ei ole
   // menetyksen suuruutta, joten ne jäävät värittä.
@@ -651,16 +655,90 @@ function exportGame() {
     T, lang: document.documentElement.lang, title: T.exportTitle(names[0], names[1], no), names, info, summary,
     decisions: x.decisions, look: boardLook(prefs.style, false), signed,
   });
-  const slug = s => String(s).normalize('NFKD').replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'peli';
+  download(new Blob([html], { type: 'text/html' }), `anti-backgammon-${slug(names[0])}-${slug(names[1])}-${no}.html`);
+}
+$('exportHtml').addEventListener('click', exportGame);
+
+const slug = s => String(s).normalize('NFKD').replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'peli';
+function download(blob, name) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-  a.download = `anti-backgammon-${slug(names[0])}-${slug(names[1])}-${no}.html`;
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 }
-$('exportHtml').addEventListener('click', exportGame);
+
+// Analyysitiedosto (src/analyysitiedosto.mjs, Tommin tilaus 16.11.2026): HTML-viennin rinnalla
+// tiedosto, jonka Tuo ottelu -kohta lukee takaisin ilman uudelleenlaskentaa. Tuodusta ottelusta
+// viedään koko ottelu (teksti ja kaikkien pelien valmis analyysi), laudalla pelatusta pelistä
+// pelin tallenne. Rollout-tulokset kulkevat mukana sellaisinaan.
+function exportAnalysis() {
+  const x = selRec();
+  if (!x.decisions?.length) return;
+  let file, name;
+  if (review) {
+    file = buildAnalysisFile({
+      net: review.net, match: { text: review.text, h: review.h, kind: review.kind },
+      analysis: Object.fromEntries(review.done), rollouts: review.rollouts,
+    });
+    name = `anti-backgammon-${slug(review.m.players[0])}-${slug(review.m.players[1])}`;
+  } else {
+    const { rollouts, ...g } = record(x);
+    file = buildAnalysisFile({ net: g.net, game: g, rollouts });
+    name = `anti-backgammon-${slug(T.static.you)}-${slug(T.static.bot)}-${x.no ?? 1}`;
+  }
+  download(new Blob([JSON.stringify(file)], { type: 'application/json' }), name + EXT);
+}
+$('exportFile').addEventListener('click', exportAnalysis);
+
+// Tuonti tunnistaa analyysitiedoston. Muu teksti on ottelu (.mat tai .sgf).
+function importAny(text) {
+  const f = parseAnalysisFile(text);
+  if (f) { importAnalysisFile(f); return; }
+  let o = null;
+  try { o = JSON.parse(text); } catch { /* ei JSONia */ }
+  if (o?.format === FORMAT) { $('importMsg').textContent = T.importNewer; return; }
+  importMatch(text);
+}
+// Tuodun ottelun analyysi yhdistetään laitteen tallennukseen, jos ne on laskettu samalla
+// verkolla. Muuten tiedoston analyysi korvaa tallennuksen, ja eri verkolla laskettu näytetään
+// merkittynä kuten muutenkin (importMatch, stale). Pelattu peli lisätään pelattujen joukkoon.
+function importAnalysisFile(f) {
+  if (f.source === 'import') {
+    const m = parseMatch(f.match.text);
+    if (!m) { $('importMsg').textContent = T.importBad; return; }
+    if (!review && game.phase === 'bot') { $('importMsg').textContent = T.reviewBusy; return; }
+    const id = textId(f.match.text), old = imported.find(y => y.id === id);
+    const same = old && old.net === f.net;
+    const x = {
+      id, text: f.match.text, when: old?.when ?? Date.now(), players: m.players, length: m.length,
+      h: Number.isInteger(f.match.h) ? f.match.h : old?.h ?? 0, net: f.net,
+      kind: f.match.kind ?? old?.kind ?? (m.length ? 'match' : 'money'),
+      done: same ? { ...old.done, ...f.analysis } : f.analysis,
+      rollouts: same ? { ...old.rollouts, ...f.rollouts } : f.rollouts,
+    };
+    if (old) imported.splice(imported.indexOf(old), 1);
+    imported.unshift(x);
+    imported.length = Math.min(imported.length, IMPORTED_MAX);
+    store.set('ab-tuodut', imported);
+    importMatch(f.match.text);
+    return;
+  }
+  const g = { ...f.game, net: f.net, rollouts: f.rollouts, when: f.game.when ?? Date.now() };
+  const k = played.findIndex(y => y.when === g.when);
+  if (k >= 0) played[k] = g; else played.unshift(g);
+  played.length = Math.min(played.length, PLAYED_MAX);
+  store.set('ab-pelatut', played);
+  if (review) closeReview();
+  sel = { when: g.when, d: null };
+  fillGameSel();
+  // Kesken jäänyt analyysi jatkuu kuten pelivalitsimesta avatulla pelillä.
+  analyseRecord(selRec());
+  render();
+  $('importMsg').textContent = T.importPlayed;
+}
 
 // Botin viivästetty vuoro kuuluu sille pelille, jossa se ajastettiin. Ilman tätä luovutus ja uusi
 // peli ennen ajastimen laukeamista antaisivat uudelle pelille vanhan pelin botin siirron.
@@ -670,15 +748,6 @@ function later(fn, ms) {
 }
 
 function roll() { return [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)]; }
-
-// Osasiirrot kirjoitetaan suurimmasta lähtöpisteestä alkaen kuten backgammonin notaatiossa
-// (Tommin pyyntö 1.11.2026), muuri (25) ensin. Ulos pelattu on off.
-function notation(d, moves, hits) {
-  const parts = moves.map(([f, t], k) => ({ f, t, hit: hits[k] }))
-    .sort((a, b) => b.f - a.f || b.t - a.t)
-    .map(({ f, t, hit }) => `${f === BAR ? 25 : f}/${t <= 0 ? 'off' : t}${hit ? '*' : ''}`);
-  return `${d[0]}${d[1]}: ${parts.join(' ')}`;
-}
 
 // Pelin päätökset jälkianalyysia varten (Tommin tilaus 1.11.2026: siirrot ja kuutiopäätökset
 // voittoprosentteineen pelin jälkeen, molempien pelaajien). Siirrosta kirjataan asema ennen ja
@@ -699,24 +768,6 @@ function cubeDecision(p, act) {
 // Ottaja q tuplauksen jälkeen, kuutio vielä ennen tuplausta.
 function takeDecision(q, act) {
   decide({ k: 'take', p: q, n: game.moveNo, act, s: plain(game.s), cube: { ...game.cube }, value: game.cube.value, w: 1 - botCube.winProb(game.s, 1 - q), should: botCube.take(game.s, q, game.cube) });
-}
-// Verkon parhaat siirtäjän numeroinnissa eroineen.
-function topMoves(base, p, dice, top, best) {
-  return top.map(({ moves, x }) => {
-    const tmp = clone(base);
-    const hits = moves.map(([f, t]) => applyMove(tmp, p, f, t));
-    return { m: notation(dice, moves, hits).split(': ')[1] ?? '', loss: 2 * (best - x), x };
-  });
-}
-
-// Yhden osasiirron soveltaminen, palauttaa lyönnin.
-function applyMove(s, p, from, to) {
-  const me = s[p], opp = s[1 - p];
-  me[from]--;
-  if (to <= 0) { me[OFF]++; return false; }
-  me[to]++;
-  if (opp[25 - to] === 1) { opp[25 - to]--; opp[BAR]++; return true; }
-  return false;
 }
 
 function beginHumanMove() {
@@ -1832,7 +1883,7 @@ function importMatch(text) {
   review = {
     m, h, gi: 0, i: 0, steps: [], error: null, saved: review?.saved ?? game, rec: null, done,
     id, text, when: old?.when ?? Date.now(), net: old?.net ?? NET_FILE, stale: !!old && old.net !== NET_FILE && done.size > 0,
-    kind: old?.kind ?? (m.length ? 'match' : 'money'),
+    kind: old?.kind ?? (m.length ? 'match' : 'money'), rollouts: old?.rollouts ?? {},
   };
   $('importMsg').textContent = T.importLoaded(m.players[0], m.players[1], m.games.length);
   fillReview();
@@ -2026,10 +2077,10 @@ function closeReview() {
 $('importFile').addEventListener('change', async ev => {
   const f = ev.target.files?.[0];
   if (!f) return;
-  importMatch(await f.text());
+  importAny(await f.text());
   ev.target.value = '';
 });
-$('importGo').addEventListener('click', () => importMatch($('importText').value));
+$('importGo').addEventListener('click', () => importAny($('importText').value));
 $('reviewGame').addEventListener('change', e => openGame(Number(e.target.value)));
 $('reviewYou').addEventListener('change', e => {
   review.h = Number(e.target.value);

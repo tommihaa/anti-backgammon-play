@@ -10,6 +10,7 @@
  "src/xgid.mjs",
  "src/tuonti.mjs",
  "src/vienti.mjs",
+ "src/analyysitiedosto.mjs",
  "src/aanet.mjs",
  "src/ulkoasu.mjs",
  "src/botti-tyo.mjs",

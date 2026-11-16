@@ -107,7 +107,8 @@
   .panel h2 { font-size: 1.05rem; margin: 0 0 6px; }
   #gamePanel { display: flex; flex-direction: column; height: 340px; }
   #gameSel { width: 100%; }
-  #gamePanel .export { align-self: flex-start; margin: 0 0 6px; }
+  #gamePanel .exports { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
+  #gamePanel .export[hidden] { display: none; }
   .caption { color: var(--muted); font-size: .85rem; margin: 4px 0; }
   .glist { flex: 1 1 auto; min-height: 0; overflow: auto; margin-top: 4px; border-top: 1px solid var(--frame);
     font: 13px/1.35 ui-monospace, Consolas, monospace; }
@@ -359,8 +360,8 @@
       </details>
       <details>
         <summary data-t="importTitle">Tuo ottelu</summary>
-        <label class="import-label" for="importFile" data-t="importFileLabel">Tiedosto (.mat tai .sgf)</label>
-        <input type="file" id="importFile" accept=".mat,.sgf,.txt,text/plain">
+        <label class="import-label" for="importFile" data-t="importFileLabel">Tiedosto (.mat, .sgf tai analyysitiedosto)</label>
+        <input type="file" id="importFile" accept=".mat,.sgf,.txt,.abg,.json,text/plain,application/json">
         <label class="import-label" for="importText" data-t="importPasteLabel">Tai liitä teksti</label>
         <textarea id="importText" class="xgid" rows="4" spellcheck="false"></textarea>
         <div class="row xgid-row"><button id="importGo" data-t="importGo">Tuo</button></div>
@@ -467,6 +468,10 @@
         kuutiopäätöksestä on lautakuva ennen päätöstä sekä verkon arvio. Alussa ovat pelin tiedot (verkko ja
         syvyys mukaan lukien), kummankin pelaajan virheyhteenveto ja PR sekä avattava lista siirroista, joissa
         ero parhaaseen on yli 0,020.</p>
+        <p><kbd>Vie analyysitiedostoksi</kbd> tallentaa saman pelin tiedostoksi, jonka Tuo ottelu -kohta lukee
+        takaisin. Valmista analyysia ei lasketa uudelleen, joten jälkianalyysia voi jatkaa toisella laitteella tai
+        sen voi antaa toiselle pelaajalle. Tuodusta ottelusta tiedostoon tulee koko ottelu kaikkien pelien
+        analyyseineen ja omasta pelistä yksi peli. Tiedostossa on paikka myös rollout-tuloksille.</p>
         <h4>Paneelit ja siirtolista</h4>
         <p>Oletuksena laudan vieressä ovat Peli- ja Arvio-paneelit. Tulokset, Asetukset ja Säännöt
         avautuvat yläreunan napeista. Valikko sulkeutuu samasta napista, <kbd>Esc</kbd>-näppäimellä tai
@@ -635,6 +640,10 @@
         board before the decision and the network's evaluation. At the top are the game details (including the
         network and depth), the error summary and PR of both players and an expandable list of the moves more
         than 0.020 behind the best.</p>
+        <p><kbd>Export analysis file</kbd> saves the same game as a file that Import match reads back. Finished
+        analysis is not computed again, so the post-game analysis can continue on another device or be given to
+        another player. An imported match is saved whole with the analysis of all its games, and your own game
+        as one game. The file also has room for rollout results.</p>
         <h4>Panels and move list</h4>
         <p>By default the Game and Evaluation panels are next to the board. Results, Settings and
         Rules open from the buttons at the top. A menu closes from the same button, with <kbd>Esc</kbd> or with
@@ -808,6 +817,10 @@
         Würfelentscheidung gibt es ein Bild des Bretts vor der Entscheidung und die Bewertung des Netzes. Oben
         stehen die Angaben zum Spiel (auch Netz und Tiefe), Fehlerübersicht und PR beider Spieler und eine
         aufklappbare Liste der Züge, die mehr als 0,020 hinter dem besten liegen.</p>
+        <p><kbd>Analysedatei exportieren</kbd> speichert dasselbe Spiel als Datei, die Match importieren wieder
+        einliest. Fertige Analysen werden nicht neu berechnet, sodass die Nachanalyse auf einem anderen Gerät
+        weitergehen oder an einen anderen Spieler gehen kann. Ein importiertes Match wird ganz mit der Analyse
+        aller Spiele gespeichert, dein eigenes Spiel als ein Spiel. Die Datei hat auch Platz für Rollout-Ergebnisse.</p>
         <h4>Panels und Zugliste</h4>
         <p>Standardmäßig stehen die Panels Spiel und Bewertung neben dem Brett.
         Ergebnisse, Einstellungen und Regeln öffnen sich über die Knöpfe oben. Ein Menü schließt sich über
@@ -992,6 +1005,11 @@
         coup et chaque décision de videau a une image du plateau avant la décision et l'évaluation du réseau. En
         tête figurent les détails de la partie (dont le réseau et la profondeur), le résumé des erreurs et le PR
         des deux joueurs ainsi qu'une liste dépliable des coups à plus de 0,020 du meilleur.</p>
+        <p><kbd>Exporter le fichier d'analyse</kbd> enregistre la même partie dans un fichier qu'Importer un match
+        relit. L'analyse déjà faite n'est pas recalculée, si bien que l'analyse d'après-partie peut continuer sur
+        un autre appareil ou être confiée à un autre joueur. Un match importé est enregistré en entier avec
+        l'analyse de toutes ses parties, et votre propre partie comme une seule partie. Le fichier a aussi une
+        place pour les résultats de rollout.</p>
         <h4>Panneaux et liste des coups</h4>
         <p>Par défaut, les panneaux Partie et Évaluation sont à côté du plateau. Résultats, Réglages
         et Règles s'ouvrent depuis les boutons en haut. Un menu se ferme avec le même bouton, avec
@@ -1150,7 +1168,10 @@
         <h2 data-t="gamePanel">Peli</h2>
         <select id="gameSel"></select>
         <p class="caption" id="gameMsg"></p>
-        <button id="exportHtml" class="export" data-t="exportHtml" hidden>Vie HTML-sivuksi</button>
+        <div class="exports">
+          <button id="exportHtml" class="export" data-t="exportHtml" hidden>Vie HTML-sivuksi</button>
+          <button id="exportFile" class="export" data-t="exportFile" hidden>Vie analyysitiedostoksi</button>
+        </div>
         <div class="glist" id="gameList"></div>
       </section>
       <section class="panel" id="evalPanel">

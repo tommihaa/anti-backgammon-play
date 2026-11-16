@@ -3,8 +3,37 @@
 // haku arvioi niistä viisi parasta. Pelattu siirto arvioidaan aina, vaikka se ei olisi
 // viiden joukossa. Ajetaan sivulla 0-ply:llä ja botin säikeessä 1- ja 2-ply:llä.
 
-import { legalPlays, exited, key, ROLLS } from './engine.mjs';
+import { legalPlays, exited, key, ROLLS, clone, OFF, BAR } from './engine.mjs';
 import { value, PLY } from './verkko.mjs';
+
+// Osasiirrot kirjoitetaan suurimmasta lähtöpisteestä alkaen kuten backgammonin notaatiossa
+// (Tommin pyyntö 1.11.2026), muuri (25) ensin. Ulos pelattu on off. Laudalta (src/ui.mjs)
+// tänne, jotta moottori kirjoittaa analyysitiedostoon saman merkinnän kuin lauta.
+export function notation(d, moves, hits) {
+  const parts = moves.map(([f, t], k) => ({ f, t, hit: hits[k] }))
+    .sort((a, b) => b.f - a.f || b.t - a.t)
+    .map(({ f, t, hit }) => `${f === BAR ? 25 : f}/${t <= 0 ? 'off' : t}${hit ? '*' : ''}`);
+  return `${d[0]}${d[1]}: ${parts.join(' ')}`;
+}
+
+// Yhden osasiirron soveltaminen, palauttaa lyönnin.
+export function applyMove(s, p, from, to) {
+  const me = s[p], opp = s[1 - p];
+  me[from]--;
+  if (to <= 0) { me[OFF]++; return false; }
+  me[to]++;
+  if (opp[25 - to] === 1) { opp[25 - to]--; opp[BAR]++; return true; }
+  return false;
+}
+
+// Verkon parhaat siirtäjän numeroinnissa eroineen (rankPlays-tuloksen top laudan muotoon).
+export function topMoves(base, p, dice, top, best) {
+  return top.map(({ moves, x }) => {
+    const tmp = clone(base);
+    const hits = moves.map(([f, t]) => applyMove(tmp, p, f, t));
+    return { m: notation(dice, moves, hits).split(': ')[1] ?? '', loss: 2 * (best - x), x };
+  });
+}
 
 // Palauttaa pelatun siirron arvion, parhaan arvion ja kolme parasta siirtoa (moves ja arvio),
 // kaikki P(voitto) pelaajalle p. Pakkosiirrosta (alle kaksi eri loppuasemaa) palauttaa null.
