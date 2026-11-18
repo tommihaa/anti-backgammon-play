@@ -13,6 +13,8 @@ import { parseMatch, replay } from './tuonti.mjs';
 import { gameHTML, cubeLabel, cubeEquityRows } from './vienti.mjs';
 import { buildAnalysisFile, parseAnalysisFile, FORMAT, EXT } from './analyysitiedosto.mjs';
 import { SOUNDS, playSound } from './aanet.mjs';
+import { VERSION } from './versio.mjs';
+import { NET_SHORT, netHistory } from './historia.mjs';
 import {
   STYLES, boardLook, panelLook, cubeLook, OUTLINE, NUMBER_INK, PIP_INK, CHECKER_PER_COLUMN, TRAY_PER_COLUMN,
   DICE_PER_CHECKER, CUBE_PER_CHECKER, CHECKERS_APART, BAND_PER_CHECKER, CORNER_PER_SIDE, SPENT_DIE_DIM,
@@ -71,6 +73,14 @@ export const PLIES = [0, 1, 2];
 const DEFAULT_PLY = 2;
 const savedPly = store.get('ab-syvyys', DEFAULT_PLY);
 let ply = PLIES.includes(savedPly) ? savedPly : DEFAULT_PLY;
+// Pelaajien nimet laudalle ja vienteihin (Tommi 18.11.2026). Oma nimi tulee Asetusten kentästä, ja
+// tyhjä nimi on kielen Sinä. Botin nimi on laudan verkon lyhyt nimi ja syvyys pelin alussa
+// (src/historia.mjs). Peli tallentaa nimet alkaessaan (names), joten vienti näyttää ne nimet,
+// joilla peli pelattiin. Vanhalla pelillä ilman nimiä käytetään nykyisiä.
+let myName = store.get('ab-nimi', '');
+const meName = () => (typeof myName === 'string' && myName.trim()) || T.static.you;
+const botLabel = (net = NET_FILE, p = ply) => `${NET_SHORT[net] ?? T.static.bot} ${p}-ply`;
+const namesOf = x => x?.names ?? [meName(), botLabel(x?.net ?? NET_FILE)];
 // Pelin äänet (src/aanet.mjs): kytkin oletuksena pois. off luettelee pois jätetyt äänet.
 const snd = { on: false, off: [] };
 { const saved = store.get('ab-aanet', {}); snd.on = saved?.on === true; snd.off = Array.isArray(saved?.off) ? saved.off : []; }
@@ -167,6 +177,7 @@ function newGame() {
     crawford, dmp, plays: null, partial: [], partialDice: [], hitsMarks: [], base: null,
     lastBot: [], log: [], moveNo: 0, half: 0, over: false, errors: [], analysed: 0, totalLoss: 0,
     when: Date.now(), limit: match.limit, decisions: [], stall: newStall(), turnAct: null,
+    names: [meName(), botLabel()],
     msg: T.opening(a, b, a > b, crawford && !dmp), no: (match.done ?? 0) + 1, score: [...pen], match: match.id,
   };
   if (!first) sound('gong');
@@ -190,6 +201,7 @@ const record = g => ({
   net: g.net ?? NET_FILE,
   // Analyysitiedostosta tuodun pelin rollout-tulokset säilyvät seuraavaan vientiin.
   rollouts: g.rollouts,
+  names: g.names,
 });
 function saveFinished() {
   if (!finished) return;
@@ -325,7 +337,7 @@ function renderGamePanel() {
       b.append(dot, t);
       const lc = e.d === undefined ? null : lossClass(x.decisions?.[e.d]);
       if (lc) b.classList.add(lc);
-      b.setAttribute('aria-label', `${e.p === 0 ? T.static.you : T.static.bot}: ${e.t}`);
+      b.setAttribute('aria-label', `${namesOf(x)[e.p]}: ${e.t}`);
       if (e.d === undefined || !x.decisions?.[e.d]) b.disabled = true;
       else {
         navOrder.push(e.d);
@@ -546,7 +558,7 @@ function luckLines(decisions, name) {
 }
 // Siirtäjän nimi Arvio-paneeliin: selauksessa tuodun pelin pelaaja, muuten sinä tai botti.
 function whoName(p) {
-  if (!review) return p === 0 ? T.static.you : T.static.bot;
+  if (!review) return namesOf(selRec())[p];
   return reviewGame().players[p === 0 ? review.h : 1 - review.h];
 }
 // Kuutiopäätös päättyneestä pelistä: päättäjän voittotodennäköisyys ja verkon valinta.
@@ -710,6 +722,47 @@ function countImported(x, d) {
 // mittaukset/06-aineisto-ja-viimeistely.md. Tuntematon verkko näytetään tiedostonimellä.
 const NET_INFO = { 'verkot/jatko-raw-g4-p3000.json': { base: 'g4', positions: 60000, hidden: 40, passes: 3000 } };
 const netLabel = file => (NET_INFO[file] ? T.netDesc(NET_INFO[file]) : file.replace(/^.*\//, ''));
+// Otsikkorivi: versio nimen perässä ja kuvauksessa vastustajan verkko (Tommi 18.11.2026: verkko
+// oli Asetuksissa liian piilossa). Kutsutaan alussa ja kielen vaihtuessa.
+function fillHead() {
+  $('ver').textContent = VERSION;
+  const sub = $('sub'), more = $('netMore');
+  sub.textContent = '';
+  const link = document.createElement('button');
+  link.type = 'button';
+  link.className = 'linklike';
+  link.textContent = NET_SHORT[NET_FILE] ?? netLabel(NET_FILE);
+  link.title = T.netMoreHint;
+  link.setAttribute('aria-controls', 'netMore');
+  link.setAttribute('aria-expanded', String(!more.hidden));
+  link.addEventListener('click', () => {
+    more.hidden = !more.hidden;
+    link.setAttribute('aria-expanded', String(!more.hidden));
+  });
+  sub.append(`${T.static.sub} ${T.opponentLead} `, link, '.');
+  // Pitkä kuvaus ja historia (src/historia.mjs) linkin takana, koska ne ovat pitkiä.
+  more.textContent = '';
+  const h = netHistory(document.documentElement.lang);
+  const p = (text, cls) => { const e = document.createElement('p'); e.textContent = text; if (cls) e.className = cls; more.appendChild(e); };
+  p(netLabel(NET_FILE));
+  p(h.intro);
+  for (const [title, rows] of [[h.line, h.lineage], [h.side, h.branches]]) {
+    const head = document.createElement('h4');
+    head.textContent = title;
+    const ol = document.createElement('ol');
+    for (const r of rows) {
+      const li = document.createElement('li');
+      const b = document.createElement('b');
+      b.textContent = r.name;
+      const st = document.createElement('span');
+      st.className = `ng ng-${r.state}`;
+      st.textContent = h.state[r.state];
+      li.append(b, ` (${r.date}) `, st, ` ${r.text}`);
+      ol.appendChild(li);
+    }
+    more.append(head, ol);
+  }
+}
 
 // Valitun pelin vienti itsenäiseksi HTML-sivuksi (src/vienti.mjs, Tommin tilaus 14.11.2026):
 // lautakuva ja analyysi jokaisesta päätöksestä. Laudan värit ovat valitun lautatyylin vaaleassa
@@ -718,7 +771,7 @@ function exportGame() {
   const x = selRec();
   if (!x.decisions?.length) return;
   const g = review ? reviewGame() : null;
-  const names = review ? [g.players[review.h], g.players[1 - review.h]] : [T.static.you, T.static.bot];
+  const names = review ? [g.players[review.h], g.players[1 - review.h]] : namesOf(x);
   const no = review ? review.gi + 1 : x.no ?? 1;
   const score = review ? [g.scores[review.h], g.scores[1 - review.h]] : x.score ?? [0, 0];
   const limit = review ? reviewLimit() : x.limit ?? null;
@@ -780,8 +833,10 @@ function exportAnalysis() {
     name = `anti-backgammon-${slug(review.m.players[0])}-${slug(review.m.players[1])}`;
   } else {
     const { rollouts, ...g } = record(x);
+    // Ennen nimiä pelatulle pelille kirjataan samat nimet kuin HTML-viennissä.
+    g.names ??= namesOf(x);
     file = buildAnalysisFile({ net: g.net, game: g, rollouts });
-    name = `anti-backgammon-${slug(T.static.you)}-${slug(T.static.bot)}-${x.no ?? 1}`;
+    name = `anti-backgammon-${slug(namesOf(x)[0])}-${slug(namesOf(x)[1])}-${x.no ?? 1}`;
   }
   download(new Blob([JSON.stringify(file)], { type: 'application/json' }), name + EXT);
 }
@@ -1771,8 +1826,9 @@ function renderStatus(isView) {
   $('penMe').textContent = T.penScore(pen[0], match.limit);
   $('penBot').textContent = T.penScore(pen[1], match.limit);
   // Pelaajakortit pystylaudan ylä- ja alapuolella: botti ylhäällä, oma alhaalla.
-  $('cardBot').textContent = T.card(T.static.bot, pen[1], game.turn === 1 && !game.over);
-  $('cardMe').textContent = T.card(T.static.you, pen[0], game.turn === 0 && !game.over);
+  const nm = namesOf(liveGame());
+  $('cardBot').textContent = T.card(nm[1], pen[1], game.turn === 1 && !game.over);
+  $('cardMe').textContent = T.card(nm[0], pen[0], game.turn === 0 && !game.over);
   $('review').hidden = !review;
   $('actions').hidden = !!review || isView;
   $('viewBar').hidden = !isView;
@@ -2320,6 +2376,25 @@ function fillLook() {
     p.textContent = text;
     box.appendChild(p);
   }
+  const nameLabel = document.createElement('label');
+  nameLabel.htmlFor = 'myName';
+  nameLabel.textContent = T.nameLabel;
+  const nameIn = document.createElement('input');
+  nameIn.id = 'myName';
+  nameIn.type = 'text';
+  nameIn.maxLength = 30;
+  nameIn.autocomplete = 'nickname';
+  nameIn.placeholder = T.namePlaceholder;
+  nameIn.value = typeof myName === 'string' ? myName : '';
+  nameIn.addEventListener('change', () => {
+    myName = nameIn.value.trim();
+    store.set('ab-nimi', myName);
+    // Käynnissä oleva peli saa uuden nimen heti. Päättyneet pelit pitävät nimen, jolla ne pelattiin.
+    const g = liveGame();
+    if (g === game && !game.over && game.names) game.names[0] = meName();
+    render();
+  });
+  box.append(nameLabel, nameIn);
   for (const k of PLAY_TOGGLES) {
     const label = document.createElement('label');
     label.className = 'wide';
@@ -2645,6 +2720,7 @@ if (typeof ResizeObserver === 'function') {
 }
 
 applyStatic();
+fillHead();
 fillLimits();
 fillLook();
 fillLayout();
@@ -2663,7 +2739,7 @@ $('langList').addEventListener('click', e => {
   const o = e.target.closest('[data-code]');
   if (!o) return;
   langOpen(false);
-  setLang(o.dataset.code); fillLimits(); fillLook(); fillLayout(); fillGameSel();
+  setLang(o.dataset.code); fillHead(); fillLimits(); fillLook(); fillLayout(); fillGameSel();
   if (review) { fillReview(); $('reviewGame').value = String(review.gi); showStep(); } else render();
 });
 document.addEventListener('pointerdown', e => {

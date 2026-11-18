@@ -18,6 +18,7 @@
 //           mark = { text }.
 //   game:   (played) laudalla pelatun pelin tallenne sellaisenaan (src/ui.mjs record), jossa
 //           päätöksillä on asemat mukana, koska pelistä ei ole ottelutekstiä.
+//           Kenttä names = [pelaaja, botti] (18.11.2026 alkaen) on pelaajien nimet laudalla.
 //   rollouts: { avain: rollout }, avain on sama kuin analysis-kentässä (played-tiedostossa
 //           päätöksen indeksi). Lauta säilyttää kentän tuonnista vientiin muuttamatta.
 // }

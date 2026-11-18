@@ -51,6 +51,12 @@
   body.editing .below > .panel { flex-basis: 200px; }
   h1 { font-size: 1.6rem; margin: 0 0 4px; }
   .sub { color: var(--muted); margin: 0 0 12px; }
+  .ver { font-size: .55em; font-weight: normal; color: var(--muted); }
+  .linklike { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
+  .net-more { max-width: 900px; margin: -6px 0 12px; font-size: .9rem; color: var(--muted); }
+  .net-more p { margin: 4px 0; } .net-more h4 { margin: 10px 0 4px; color: var(--ink); } .net-more ol { margin: 0; padding-left: 20px; } .net-more li { margin: 3px 0; }
+  .net-more b { color: var(--ink); } .ng { font-size: .8em; padding: 0 5px; border: 1px solid currentColor; border-radius: 8px; white-space: nowrap; }
+  .ng-up { color: var(--good); } .ng-not { color: var(--bad); } .ng-held { color: var(--muted); }
   /* Paneelijako (Tommin valinta 10.11.2026, asettelu C): Peli ja Arvio laudan vieressä, Tulokset
      ja Asetukset laudan alla. Kotialue vasemmalla peilaa asettelun. Sivusarakkeen ja alarivin
      leveys säädetään raahattavalla erottimella, paneelin korkeus sen kulmasta. Paneelin voi
@@ -325,7 +331,7 @@
 </head>
 <body>
 <main>
-  <div class="head"><h1>Anti-Backgammon</h1>
+  <div class="head"><h1>Anti-Backgammon <span class="ver" id="ver"></span></h1>
     <div class="head-tools">
       <details class="menu" id="resultsMenu"><summary data-t="resultsPanel">Tulokset</summary>
       <div class="menu-body results-body" id="resultsPanel">
@@ -510,7 +516,7 @@
         pystynäyttö) ja tallentaa paneelien paikat, koot ja näkyvyyden kullekin muodolle erikseen
         selaimeen.</p>
         <h4>Asetukset: pelaaminen, ulkoasu, äänet</h4>
-        <p>Asetukset-valikon Pelaaminen-kohdassa valitset botin syvyyden. Sen alla näkyy käytössä oleva verkko. Verkko on botin arvostelukyky eli se arvioi, kuinka hyvä asema on. Syvyys kertoo, kuinka pitkälle botti laskee samalla verkolla ennen siirtoa. Verkko pysyy samana joka syvyydellä. 0-ply on verkon suora arvio ja nopea.
+        <p>Asetukset-valikon Pelaaminen-kohdassa valitset botin syvyyden. Sen alla näkyy käytössä oleva verkko. Otsikon alla verkon nimi on linkki, joka avaa verkon kuvauksen ja historian: sukulinjan ja verkot, jotka eivät edenneet. Nimesi-kenttään kirjoittamasi nimi näkyy pistekortissa, Arvio-paneelissa ja vienneissä. Botin nimi kertoo verkon ja syvyyden. Otsikon perässä on laudan versio. Muutokset luetellaan julkisen repon tiedostossa CHANGELOG.md. Verkko on botin arvostelukyky eli se arvioi, kuinka hyvä asema on. Syvyys kertoo, kuinka pitkälle botti laskee samalla verkolla ennen siirtoa. Verkko pysyy samana joka syvyydellä. 0-ply on verkon suora arvio ja nopea.
         1-ply ja 2-ply katsovat botin siirron jälkeen kaikki heittosi eteenpäin ja pelaavat
         vahvemmin, mutta 2-ply vie koneesta riippuen sekunteja siirtoa kohden. Oletus on 2-ply, ja botin viesti kertoo, kauanko haku kesti. Siirtojesi analyysi
         tehdään samalla syvyydellä kuin botti pelaa. Syvemmällä haulla analyysi ilmestyy hetken
@@ -687,7 +693,7 @@
         recognises the shape of the screen (wide landscape, landscape or portrait) and keeps the
         places, sizes and visibility of the panels for each shape separately in the browser.</p>
         <h4>Settings: playing, appearance, sounds</h4>
-        <p>Under Playing in the Settings menu you choose the bot's depth. Below it is the network in use. The network is the bot's judgement, which evaluates how good a position is, and depth is how far the bot calculates with the same network before moving. The network is the same at every depth. 0-ply is the network's direct evaluation and
+        <p>Under Playing in the Settings menu you choose the bot's depth. Below it is the network in use. Under the title the network's name is a link that opens its description and history: the lineage and the networks that did not go on. The name you write in Your name shows on the score card, in the Evaluation panel and in the exports, and the bot's name tells its network and depth. The title is followed by the board's version, and the changes are listed in CHANGELOG.md in the public repository. The network is the bot's judgement, which evaluates how good a position is, and depth is how far the bot calculates with the same network before moving. The network is the same at every depth. 0-ply is the network's direct evaluation and
         fast. 1-ply and 2-ply look ahead through all your rolls after the bot's move and play
         stronger, but 2-ply can take seconds per move depending on your computer. The default is 2-ply, and the bot's message tells how long the search took. Your moves are
         analysed at the same depth as the bot plays, so with a deeper search the analysis appears
@@ -876,7 +882,7 @@
         Hochformat) und speichert Platz, Größe und Sichtbarkeit der Panels für jede Form getrennt im
         Browser.</p>
         <h4>Einstellungen: Spielen, Aussehen, Töne</h4>
-        <p>Unter Spielen im Einstellungen-Menü wählst du die Suchtiefe des Bots. Darunter steht das verwendete Netz. Das Netz ist das Urteilsvermögen des Bots, das bewertet, wie gut eine Stellung ist, und die Suchtiefe sagt, wie weit der Bot mit demselben Netz vor dem Zug rechnet. Das Netz ist in jeder Tiefe dasselbe. 0-ply ist die direkte
+        <p>Unter Spielen im Einstellungen-Menü wählst du die Suchtiefe des Bots. Darunter steht das verwendete Netz. Unter dem Titel ist der Name des Netzes ein Link, der seine Beschreibung und Geschichte öffnet: die Abstammung und die Netze, die nicht weitergekommen sind. Der Name in Dein Name erscheint auf der Punktekarte, im Bewertung-Panel und in den Exporten, und der Name des Bots nennt sein Netz und seine Tiefe. Hinter dem Titel steht die Version des Bretts, und die Änderungen stehen in CHANGELOG.md im öffentlichen Repository. Das Netz ist das Urteilsvermögen des Bots, das bewertet, wie gut eine Stellung ist, und die Suchtiefe sagt, wie weit der Bot mit demselben Netz vor dem Zug rechnet. Das Netz ist in jeder Tiefe dasselbe. 0-ply ist die direkte
         Bewertung des Netzes und schnell. 1-ply und 2-ply schauen nach dem Zug des Bots alle deine
         Würfe voraus und spielen stärker, aber 2-ply kann je nach Rechner Sekunden pro Zug dauern.
         Standard ist 2-ply, und die Meldung des Bots sagt, wie lange die Suche gedauert hat. Deine
@@ -1075,7 +1081,7 @@
         (paysage large, paysage ou portrait) et conserve dans le navigateur la place, la taille et la
         visibilité des panneaux pour chaque forme séparément.</p>
         <h4>Réglages&nbsp;: jeu, apparence, sons</h4>
-        <p>Sous Jeu, dans le menu Réglages, vous choisissez la profondeur du bot. En dessous figure le réseau utilisé. Le réseau est le jugement du bot, qui évalue la qualité d'une position, et la profondeur indique jusqu'où le bot calcule avec ce même réseau avant de jouer. Le réseau est le même à toutes les profondeurs. Le 0-ply est
+        <p>Sous Jeu, dans le menu Réglages, vous choisissez la profondeur du bot. En dessous figure le réseau utilisé. Sous le titre, le nom du réseau est un lien qui ouvre sa description et son historique : la lignée et les réseaux non retenus. Le nom saisi dans Votre nom apparaît sur la carte de score, dans le panneau Évaluation et dans les exports, et le nom du bot indique son réseau et sa profondeur. Le titre est suivi de la version du plateau, et les changements sont listés dans CHANGELOG.md du dépôt public. Le réseau est le jugement du bot, qui évalue la qualité d'une position, et la profondeur indique jusqu'où le bot calcule avec ce même réseau avant de jouer. Le réseau est le même à toutes les profondeurs. Le 0-ply est
         l'évaluation directe du réseau et il est rapide. Le 1-ply et le 2-ply examinent tous vos
         lancers après le coup du bot et jouent plus fort, mais le 2-ply peut prendre plusieurs
         secondes par coup selon votre ordinateur. Le réglage par défaut est 2-ply, et le message du
@@ -1142,7 +1148,8 @@
       <div class="langmenu"><button id="lang" aria-haspopup="true" aria-expanded="false"></button>
         <div class="langlist" id="langList" role="menu" hidden></div></div>
     </div></div>
-  <p class="sub" data-t="sub"></p>
+  <p class="sub" id="sub"></p>
+  <div class="net-more" id="netMore" hidden></div>
   <div class="editbar" id="editBar" hidden>
     <span class="caption" id="shapeMsg"></span>
     <span id="hiddenList"></span>
