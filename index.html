@@ -317,6 +317,7 @@
   .editbar button { padding: 4px 10px; font-size: .9rem; }
   #hiddenList { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .look label.sub { padding-left: 24px; }
+  .look .net-line, .look .net-note { grid-column: 1 / -1; margin: 0; font-size: .85rem; } .look .net-note { color: var(--muted); }
   .look .sound-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
   .look .sound-row label { flex: 1 1 auto; }
   .look .sound-row button { padding: 2px 10px; font-size: .85rem; }
@@ -467,7 +468,9 @@
         vaihtunut, niin Arvio-paneeli kertoo sen. <kbd>Analysoi uudelleen</kbd> laskee analyysin nykyisellä
         verkolla.</p>
         <p>Aseman voi merkitä omassa pelissä (myös kesken pelin) ja tuodussa ottelussa. Valitse rivi
-        Peli-paneelin listasta ja paina Arvio-paneelin <kbd>Merkitse asema</kbd>. Huomautus on vapaaehtoinen,
+        Peli-paneelin listasta ja paina Arvio-paneelin <kbd>Merkitse asema</kbd>. Omalla vuorollasi sama nappi näkyy
+        ilman valintaa ja merkitsee laudalla olevan aseman jo ennen siirtoa. Merkintä liittyy päätökseen, jonka
+        teet seuraavaksi: ennen heittoa kuutiopäätökseen ja heiton jälkeen siirtoon. Huomautus on vapaaehtoinen,
         esimerkiksi miksi botin siirto näyttää väärältä. Merkitty rivi saa tähden, ja <kbd>Muokkaa merkintää</kbd>
         muuttaa tai poistaa merkinnän. Merkinnät kulkevat analyysitiedostossa ja näkyvät HTML-sivulla omana
         listanaan, joten niillä voi osoittaa toiselle pelaajalle asemat, joista haluaa keskustella.</p>
@@ -507,7 +510,7 @@
         pystynäyttö) ja tallentaa paneelien paikat, koot ja näkyvyyden kullekin muodolle erikseen
         selaimeen.</p>
         <h4>Asetukset: pelaaminen, ulkoasu, äänet</h4>
-        <p>Asetukset-valikon Pelaaminen-kohdassa valitset botin syvyyden. 0-ply on verkon suora arvio ja nopea.
+        <p>Asetukset-valikon Pelaaminen-kohdassa valitset botin syvyyden. Sen alla näkyy käytössä oleva verkko. Verkko on botin arvostelukyky eli se arvioi, kuinka hyvä asema on. Syvyys kertoo, kuinka pitkälle botti laskee samalla verkolla ennen siirtoa. Verkko pysyy samana joka syvyydellä. 0-ply on verkon suora arvio ja nopea.
         1-ply ja 2-ply katsovat botin siirron jälkeen kaikki heittosi eteenpäin ja pelaavat
         vahvemmin, mutta 2-ply vie koneesta riippuen sekunteja siirtoa kohden. Oletus on 2-ply, ja botin viesti kertoo, kauanko haku kesti. Siirtojesi analyysi
         tehdään samalla syvyydellä kuin botti pelaa. Syvemmällä haulla analyysi ilmestyy hetken
@@ -644,7 +647,9 @@
         If the network has changed since, the Evaluation panel says so, and <kbd>Analyse again</kbd> computes
         the analysis with the current network.</p>
         <p>You can mark a position in your own game (also while it is running) and in an imported match. Pick
-        a line in the Game panel list and press <kbd>Mark position</kbd> in the Evaluation panel. The note is
+        a line in the Game panel list and press <kbd>Mark position</kbd> in the Evaluation panel. On your turn the same button is there without
+        picking a line and marks the position on the board before you move. The mark goes with the decision you
+        make next: the cube decision before the roll and the move after it. The note is
         optional, for example why the bot's move looks wrong. A marked line gets a star, and <kbd>Edit mark</kbd>
         changes or removes the mark. Marks go with the analysis file and are listed on the HTML page, so you can
         show another player the positions you want to discuss.</p>
@@ -682,7 +687,7 @@
         recognises the shape of the screen (wide landscape, landscape or portrait) and keeps the
         places, sizes and visibility of the panels for each shape separately in the browser.</p>
         <h4>Settings: playing, appearance, sounds</h4>
-        <p>Under Playing in the Settings menu you choose the bot's depth. 0-ply is the network's direct evaluation and
+        <p>Under Playing in the Settings menu you choose the bot's depth. Below it is the network in use. The network is the bot's judgement, which evaluates how good a position is, and depth is how far the bot calculates with the same network before moving. The network is the same at every depth. 0-ply is the network's direct evaluation and
         fast. 1-ply and 2-ply look ahead through all your rolls after the bot's move and play
         stronger, but 2-ply can take seconds per move depending on your computer. The default is 2-ply, and the bot's message tells how long the search took. Your moves are
         analysed at the same depth as the bot plays, so with a deeper search the analysis appears
@@ -827,7 +832,9 @@
         die Analyse mit dem aktuellen Netz.</p>
         <p>Du kannst eine Stellung in deinem eigenen Spiel (auch während es läuft) und in einem importierten
         Match markieren. Wähle eine Zeile in der Liste des Spiel-Panels und drücke im Bewertung-Panel
-        <kbd>Stellung markieren</kbd>. Die Notiz ist freiwillig, zum Beispiel warum der Zug des Bots falsch
+        <kbd>Stellung markieren</kbd>. Wenn du am Zug bist, steht derselbe Knopf auch ohne Auswahl da und
+        markiert die Stellung auf dem Brett schon vor deinem Zug. Die Markierung gehört zur nächsten
+        Entscheidung: vor dem Wurf zur Würfelentscheidung und nach dem Wurf zum Zug. Die Notiz ist freiwillig, zum Beispiel warum der Zug des Bots falsch
         aussieht. Eine markierte Zeile bekommt einen Stern, und <kbd>Markierung bearbeiten</kbd> ändert oder
         entfernt die Markierung. Markierungen stehen in der Analysedatei und als Liste auf der HTML-Seite, so
         kannst du einem anderen Spieler die Stellungen zeigen, über die du sprechen möchtest.</p>
@@ -869,7 +876,7 @@
         Hochformat) und speichert Platz, Größe und Sichtbarkeit der Panels für jede Form getrennt im
         Browser.</p>
         <h4>Einstellungen: Spielen, Aussehen, Töne</h4>
-        <p>Unter Spielen im Einstellungen-Menü wählst du die Suchtiefe des Bots. 0-ply ist die direkte
+        <p>Unter Spielen im Einstellungen-Menü wählst du die Suchtiefe des Bots. Darunter steht das verwendete Netz. Das Netz ist das Urteilsvermögen des Bots, das bewertet, wie gut eine Stellung ist, und die Suchtiefe sagt, wie weit der Bot mit demselben Netz vor dem Zug rechnet. Das Netz ist in jeder Tiefe dasselbe. 0-ply ist die direkte
         Bewertung des Netzes und schnell. 1-ply und 2-ply schauen nach dem Zug des Bots alle deine
         Würfe voraus und spielen stärker, aber 2-ply kann je nach Rechner Sekunden pro Zug dauern.
         Standard ist 2-ply, und die Meldung des Bots sagt, wie lange die Suche gedauert hat. Deine
@@ -1021,7 +1028,9 @@
         nouveau</kbd> calcule l'analyse avec le réseau actuel.</p>
         <p>Vous pouvez marquer une position dans votre propre partie (même en cours) et dans un match importé.
         Choisissez une ligne dans la liste du panneau Partie et appuyez sur <kbd>Marquer la position</kbd> dans
-        le panneau Évaluation. La note est facultative, par exemple pourquoi le coup du bot semble faux. Une
+        le panneau Évaluation. À votre tour, le même bouton est présent sans choisir de ligne et marque la
+        position sur le plateau avant votre coup. La marque va avec la décision que vous prenez ensuite&nbsp;: la
+        décision de videau avant le lancer et le coup après. La note est facultative, par exemple pourquoi le coup du bot semble faux. Une
         ligne marquée reçoit une étoile, et <kbd>Modifier la marque</kbd> change ou supprime la marque. Les
         marques figurent dans le fichier d'analyse et en liste sur la page HTML, ce qui permet de montrer à un
         autre joueur les positions dont vous voulez parler.</p>
@@ -1066,7 +1075,7 @@
         (paysage large, paysage ou portrait) et conserve dans le navigateur la place, la taille et la
         visibilité des panneaux pour chaque forme séparément.</p>
         <h4>Réglages&nbsp;: jeu, apparence, sons</h4>
-        <p>Sous Jeu, dans le menu Réglages, vous choisissez la profondeur du bot. Le 0-ply est
+        <p>Sous Jeu, dans le menu Réglages, vous choisissez la profondeur du bot. En dessous figure le réseau utilisé. Le réseau est le jugement du bot, qui évalue la qualité d'une position, et la profondeur indique jusqu'où le bot calcule avec ce même réseau avant de jouer. Le réseau est le même à toutes les profondeurs. Le 0-ply est
         l'évaluation directe du réseau et il est rapide. Le 1-ply et le 2-ply examinent tous vos
         lancers après le coup du bot et jouent plus fort, mais le 2-ply peut prendre plusieurs
         secondes par coup selon votre ordinateur. Le réglage par défaut est 2-ply, et le message du

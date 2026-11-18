@@ -408,6 +408,7 @@ function renderEval() {
     box.appendChild(b);
   }
   const x = selRec(), live = x === liveGame() && !x.over;
+  if (!picked && live && HUMAN_PHASES.has(x.phase)) liveMarkLine(box);
   let d = sel.d !== null ? x.decisions?.[sel.d] : null;
   if (!d) {
     if (!live) {
@@ -472,6 +473,25 @@ function markLine(box, d) {
   const b = document.createElement('button');
   b.textContent = d.mark ? T.markEdit : T.markAdd;
   b.addEventListener('click', () => editMark(d));
+  box.appendChild(b);
+}
+// Merkintä kesken pelin (Tommin tilaus 18.11.2026): omalla vuorolla merkitään laudalla oleva
+// asema ennen kuin päätös on kirjattu. Merkintä odottaa kentässä game.pendingMark ja liitetään
+// seuraavaan pelaajan päätökseen (decide): ennen heittoa kuutiopäätökseen, heiton jälkeen
+// siirtoon ja botin tuplauksen jälkeen ottopäätökseen. Ennen heittoa ilman tuplausmahdollisuutta
+// päätöstä ei kirjata, joten merkintä siirtyy heiton jälkeiseen siirtoon.
+const HUMAN_PHASES = new Set(['roll', 'move', 'pass', 'offer']);
+function liveMarkLine(box) {
+  const m = game.pendingMark;
+  if (m) para(box, markLabel(m)).className = 'mark-note';
+  const b = document.createElement('button');
+  b.textContent = m ? T.markEdit : T.markAdd;
+  b.addEventListener('click', async () => {
+    const v = await markBox(T.markNow, m?.text ?? '', !!m);
+    if (v === undefined) return;
+    if (v) game.pendingMark = v; else delete game.pendingMark;
+    render();
+  });
   box.appendChild(b);
 }
 function markBox(title, text, removable) {
@@ -832,6 +852,7 @@ function roll() { return [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math
 // politiikalla kuin botti pelaa. Asemat ovat tavallisina taulukkoina, jotta ne tallentuvat.
 const plain = st => [Array.from(st[0]), Array.from(st[1])];
 function decide(d) {
+  if (d.p === 0 && game.pendingMark) { d.mark = game.pendingMark; delete game.pendingMark; }
   game.decisions?.push(d);
   return d;
 }
@@ -2291,6 +2312,14 @@ function fillLook() {
   plySel.value = String(ply);
   plySel.addEventListener('change', () => { ply = Number(plySel.value); store.set('ab-syvyys', ply); });
   box.append(plyLabel, plySel);
+  // Käytössä oleva verkko ja sen ero syvyyteen (Tommin tilaus 18.11.2026): ennen tätä verkko
+  // näkyi vain HTML-viennissä.
+  for (const [cls, text] of [['net-line', netLabel(NET_FILE)], ['net-note', T.netVsDepth]]) {
+    const p = document.createElement('p');
+    p.className = cls;
+    p.textContent = text;
+    box.appendChild(p);
+  }
   for (const k of PLAY_TOGGLES) {
     const label = document.createElement('label');
     label.className = 'wide';
