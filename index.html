@@ -207,6 +207,9 @@
   #analysisBox p { margin: 0 0 8px; }
   .confirm-btns { display: flex; justify-content: flex-end; gap: 10px; }
   .confirm-btns button { min-width: 5.5em; padding: 6px 14px; }
+  #markBox { width: min(420px, calc(100vw - 32px)); box-sizing: border-box; }
+  #markText { display: block; width: 100%; box-sizing: border-box; margin: 0 0 14px; font: inherit; resize: vertical; }
+  .mark-note { font-style: italic; }
   .analysis p, .analysis ol { margin: 4px 0; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; }
   button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--frame);
@@ -463,6 +466,11 @@
         valmiin analyysin. Analyysi pätee vain verkolle, jolla se laskettiin. Jos verkko on sen jälkeen
         vaihtunut, niin Arvio-paneeli kertoo sen. <kbd>Analysoi uudelleen</kbd> laskee analyysin nykyisellä
         verkolla.</p>
+        <p>Aseman voi merkitä omassa pelissä (myös kesken pelin) ja tuodussa ottelussa. Valitse rivi
+        Peli-paneelin listasta ja paina Arvio-paneelin <kbd>Merkitse asema</kbd>. Huomautus on vapaaehtoinen,
+        esimerkiksi miksi botin siirto näyttää väärältä. Merkitty rivi saa tähden, ja <kbd>Muokkaa merkintää</kbd>
+        muuttaa tai poistaa merkinnän. Merkinnät kulkevat analyysitiedostossa ja näkyvät HTML-sivulla omana
+        listanaan, joten niillä voi osoittaa toiselle pelaajalle asemat, joista haluaa keskustella.</p>
         <p><kbd>Vie HTML-sivuksi</kbd> Peli-paneelissa tallentaa päättyneen tai tuodun pelin analyysin
         HTML-tiedostoksi, joka aukeaa missä tahansa selaimessa ilman tätä sovellusta. Jokaisesta siirrosta ja
         kuutiopäätöksestä on lautakuva ennen päätöstä sekä verkon arvio. Lauta on piirretty päätöksen tekijän puolelta, joten kiilojen numerot vastaavat siirtomerkintöjä. Alussa ovat pelin tiedot (verkko ja
@@ -635,6 +643,11 @@
         file again opens the finished analysis. The analysis only holds for the network it was computed with.
         If the network has changed since, the Evaluation panel says so, and <kbd>Analyse again</kbd> computes
         the analysis with the current network.</p>
+        <p>You can mark a position in your own game (also while it is running) and in an imported match. Pick
+        a line in the Game panel list and press <kbd>Mark position</kbd> in the Evaluation panel. The note is
+        optional, for example why the bot's move looks wrong. A marked line gets a star, and <kbd>Edit mark</kbd>
+        changes or removes the mark. Marks go with the analysis file and are listed on the HTML page, so you can
+        show another player the positions you want to discuss.</p>
         <p><kbd>Export as HTML</kbd> in the Game panel saves the analysis of a finished or imported game as an
         HTML file that opens in any browser without this app. Every move and cube decision has a picture of the
         board before the decision and the network's evaluation. The board is drawn from the side of the player making the decision, so the point numbers match the move notation. At the top are the game details (including the
@@ -812,6 +825,12 @@
         derselben Datei öffnet die fertige Analyse. Die Analyse gilt nur für das Netz, mit dem sie berechnet wurde.
         Hat sich das Netz seitdem geändert, sagt es das Bewertung-Panel, und <kbd>Neu analysieren</kbd> berechnet
         die Analyse mit dem aktuellen Netz.</p>
+        <p>Du kannst eine Stellung in deinem eigenen Spiel (auch während es läuft) und in einem importierten
+        Match markieren. Wähle eine Zeile in der Liste des Spiel-Panels und drücke im Bewertung-Panel
+        <kbd>Stellung markieren</kbd>. Die Notiz ist freiwillig, zum Beispiel warum der Zug des Bots falsch
+        aussieht. Eine markierte Zeile bekommt einen Stern, und <kbd>Markierung bearbeiten</kbd> ändert oder
+        entfernt die Markierung. Markierungen stehen in der Analysedatei und als Liste auf der HTML-Seite, so
+        kannst du einem anderen Spieler die Stellungen zeigen, über die du sprechen möchtest.</p>
         <p><kbd>Als HTML exportieren</kbd> im Spiel-Panel speichert die Analyse eines beendeten oder importierten
         Spiels als HTML-Datei, die sich in jedem Browser ohne diese App öffnen lässt. Zu jedem Zug und jeder
         Würfelentscheidung gibt es ein Bild des Bretts vor der Entscheidung und die Bewertung des Netzes. Das Brett ist von der Seite des Entscheidenden gezeichnet, sodass die Punktnummern zur Zugnotation passen. Oben
@@ -1000,6 +1019,12 @@
         à nouveau le même fichier ouvre l'analyse terminée. L'analyse ne vaut que pour le réseau avec lequel elle
         a été calculée. Si le réseau a changé depuis, le panneau Évaluation l'indique, et <kbd>Analyser à
         nouveau</kbd> calcule l'analyse avec le réseau actuel.</p>
+        <p>Vous pouvez marquer une position dans votre propre partie (même en cours) et dans un match importé.
+        Choisissez une ligne dans la liste du panneau Partie et appuyez sur <kbd>Marquer la position</kbd> dans
+        le panneau Évaluation. La note est facultative, par exemple pourquoi le coup du bot semble faux. Une
+        ligne marquée reçoit une étoile, et <kbd>Modifier la marque</kbd> change ou supprime la marque. Les
+        marques figurent dans le fichier d'analyse et en liste sur la page HTML, ce qui permet de montrer à un
+        autre joueur les positions dont vous voulez parler.</p>
         <p><kbd>Exporter en HTML</kbd> dans le panneau Partie enregistre l'analyse d'une partie terminée ou
         importée dans un fichier HTML qui s'ouvre dans n'importe quel navigateur sans cette application. Chaque
         coup et chaque décision de videau a une image du plateau avant la décision et l'évaluation du réseau. Le plateau est dessiné du côté du joueur qui décide, si bien que les numéros des flèches correspondent à la notation des coups. En
@@ -1187,6 +1212,15 @@
     <div class="confirm-btns">
       <button id="confirmNo" data-t="no">Ei</button>
       <button id="confirmYes" class="primary" data-t="yes">Kyllä</button>
+    </div>
+  </dialog>
+  <dialog class="confirm" id="markBox" aria-labelledby="markPrompt">
+    <p id="markPrompt"></p>
+    <textarea id="markText" rows="3" maxlength="500"></textarea>
+    <div class="confirm-btns">
+      <button id="markRemove" data-t="markRemove">Poista merkintä</button>
+      <button id="markCancel" data-t="markCancel">Peruuta</button>
+      <button id="markSave" class="primary" data-t="markSave">Tallenna</button>
     </div>
   </dialog>
   <dialog class="confirm" id="analysisBox" aria-labelledby="analysisTitle">

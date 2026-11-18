@@ -221,10 +221,11 @@ function textId(text) {
   return h.toString(16);
 }
 function saveImported() {
-  if (!review?.done.size) return;
+  if (!review?.done.size && !Object.keys(review?.marks ?? {}).length) return;
   const x = {
     id: review.id, text: review.text, when: review.when, players: review.m.players, length: review.m.length,
     h: review.h, net: review.net, kind: review.kind, done: Object.fromEntries(review.done), rollouts: review.rollouts,
+    marks: review.marks,
   };
   const k = imported.findIndex(y => y.id === x.id);
   if (k >= 0) imported.splice(k, 1);
@@ -320,7 +321,7 @@ function renderGamePanel() {
       const dot = document.createElement('span');
       dot.className = e.p === 0 ? 'dot me' : 'dot bot';
       const t = document.createElement('span');
-      t.textContent = e.t;
+      t.textContent = e.t + (x.decisions?.[e.d]?.mark ? ' ✱' : '');
       b.append(dot, t);
       const lc = e.d === undefined ? null : lossClass(x.decisions?.[e.d]);
       if (lc) b.classList.add(lc);
@@ -360,7 +361,7 @@ function viewGame() {
     turn: d.p, phase: 'view', over: false, dice, diceOwner: d.p,
     order: dice ? (dice[0] === dice[1] ? Array(4).fill(dice[0]) : [...dice]) : [],
     botUsed: [], partial: [], partialDice: [], hitsMarks: [], lastBot: [], botMoves: null,
-    viewMoves: d.k === 'move' ? d.moves ?? null : null, viewP: d.p,
+    viewMoves: d.k === 'move' ? d.moves ?? null : null, viewP: d.p, mark: d.mark ?? null,
   };
 }
 
@@ -396,6 +397,8 @@ const signed = x => (x >= 0 ? '+' : '−') + fmt(Math.abs(x));
 function renderEval() {
   const box = $('evalBox');
   box.textContent = '';
+  const picked = sel.d !== null ? selRec().decisions?.[sel.d] : null;
+  if (picked) markLine(box, picked);
   if (review && !opts.importAnalysis) { para(box, T.evalReview); return; }
   if (review?.stale || review?.paused) {
     para(box, review.stale ? T.analysisStale(review.net.replace(/^.*\//, '')) : T.analysisPaused);
@@ -456,6 +459,62 @@ function renderEval() {
   luck();
   if (!live) para(box, T.evalHelp).className = 'caption';
 }
+// Aseman merkintä (Tommin tilaus 18.11.2026): pelaaja merkitsee valitun rivin aseman ja voi
+// kirjoittaa huomautuksen, esimerkiksi miksi botin siirto näyttää väärältä. Merkintä kuuluu
+// päätökseen eli asemaan ennen siirtoa tai kuutiopäätöstä. Omissa peleissä se on päätöksen
+// kenttä mark = { text }, joten se tallentuu pelin mukana ja analyysitiedoston game-kenttään.
+// Tuodussa ottelussa merkinnät ovat review.marks-oliossa teon avaimella (sama kuin analyysissä),
+// koska päätökset rakennetaan ottelutekstistä uudelleen. Arvo null poistaa tiedoston (.sgf)
+// oman merkinnän. HTML-vienti näyttää merkinnät ja niiden luettelon.
+const markLabel = m => (m.text ? T.reviewMarkText(m.text) : T.markPlain);
+function markLine(box, d) {
+  if (d.mark) para(box, markLabel(d.mark)).className = 'mark-note';
+  const b = document.createElement('button');
+  b.textContent = d.mark ? T.markEdit : T.markAdd;
+  b.addEventListener('click', () => editMark(d));
+  box.appendChild(b);
+}
+function markBox(title, text, removable) {
+  const dlg = $('markBox');
+  $('markPrompt').textContent = T.markPrompt(title);
+  $('markText').value = text;
+  $('markRemove').hidden = !removable;
+  return new Promise(res => {
+    const done = v => { $('markSave').onclick = $('markRemove').onclick = $('markCancel').onclick = dlg.oncancel = null; dlg.close(); res(v); };
+    $('markSave').onclick = () => done({ text: $('markText').value.trim() });
+    $('markRemove').onclick = () => done(null);
+    $('markCancel').onclick = () => done(undefined);
+    dlg.oncancel = ev => { ev.preventDefault(); done(undefined); };
+    dlg.showModal();
+    $('markText').focus();
+  });
+}
+async function editMark(d) {
+  const x = selRec();
+  const v = await markBox(T.evalTitle(d.n, whoName(d.p), d.text), d.mark?.text ?? '', !!d.mark);
+  if (v === undefined) return;
+  if (v) d.mark = v; else delete d.mark;
+  if (x.imported && review?.rec === x) {
+    review.marks[d.key] = v ? v.text : null;
+    saveImported();
+    // Pelivalitsimen tähti päivittyy.
+    fillReview();
+    $('reviewGame').value = String(review.gi);
+    showStep();
+  } else if (!x.imported) {
+    if (x === game && game.over) saveFinished();
+    else if (x !== game) store.set('ab-pelatut', played);
+  }
+  render();
+}
+// Tuodun ottelun teon merkintä: laudalla tehty tai poistettu ensin, sitten tiedoston oma.
+function importedMark(gi, k) {
+  const key = `${gi}:${k}`;
+  if (key in review.marks) return review.marks[key] === null ? null : { text: review.marks[key] };
+  const a = review.m.games[gi].actions[k];
+  return a?.mark ? { text: a.mark.text } : null;
+}
+
 // Heittojen onni yhteensä kummallekin pelaajalle (sovelluksen yhteenveto ja vienti).
 function luckLines(decisions, name) {
   const out = [];
@@ -655,7 +714,7 @@ function exportGame() {
   summary.push(...luckLines(x.decisions, p => names[p]));
   const html = gameHTML({
     T, lang: document.documentElement.lang, title: T.exportTitle(names[0], names[1], no), names, info, summary,
-    decisions: x.decisions, look: boardLook(prefs.style, false), signed, style: prefs.style,
+    decisions: x.decisions, look: boardLook(prefs.style, false), signed, style: prefs.style, markLabel,
     crawford: review ? review.kind === 'dmp' : !!x.crawford,
   });
   download(new Blob([html], { type: 'text/html' }), `anti-backgammon-${slug(names[0])}-${slug(names[1])}-${no}.html`);
@@ -684,7 +743,7 @@ function exportAnalysis() {
   if (review) {
     file = buildAnalysisFile({
       net: review.net, match: { text: review.text, h: review.h, kind: review.kind },
-      analysis: Object.fromEntries(review.done), rollouts: review.rollouts,
+      analysis: Object.fromEntries(review.done), rollouts: review.rollouts, marks: review.marks,
     });
     name = `anti-backgammon-${slug(review.m.players[0])}-${slug(review.m.players[1])}`;
   } else {
@@ -721,6 +780,8 @@ function importAnalysisFile(f) {
       kind: f.match.kind ?? old?.kind ?? (m.length ? 'match' : 'money'),
       done: same ? { ...old.done, ...f.analysis } : f.analysis,
       rollouts: same ? { ...old.rollouts, ...f.rollouts } : f.rollouts,
+      // Merkinnät eivät riipu verkosta, joten tiedoston merkinnät yhdistetään aina.
+      marks: { ...(old?.marks ?? {}), ...f.marks },
     };
     if (old) imported.splice(imported.indexOf(old), 1);
     imported.unshift(x);
@@ -1886,7 +1947,7 @@ function importMatch(text) {
   review = {
     m, h, gi: 0, i: 0, steps: [], error: null, saved: review?.saved ?? game, rec: null, done,
     id, text, when: old?.when ?? Date.now(), net: old?.net ?? NET_FILE, stale: !!old && old.net !== NET_FILE && done.size > 0,
-    kind: old?.kind ?? (m.length ? 'match' : 'money'), rollouts: old?.rollouts ?? {},
+    kind: old?.kind ?? (m.length ? 'match' : 'money'), rollouts: old?.rollouts ?? {}, marks: old?.marks ?? {},
   };
   $('importMsg').textContent = T.importLoaded(m.players[0], m.players[1], m.games.length);
   fillReview();
@@ -1900,7 +1961,7 @@ function fillReview() {
   m.games.forEach((g, k) => {
     const o = document.createElement('option');
     o.value = String(k);
-    o.textContent = T.reviewGameOption(k + 1, g.scores[0], g.scores[1], g.actions.some(a => a.mark));
+    o.textContent = T.reviewGameOption(k + 1, g.scores[0], g.scores[1], g.actions.some((a, j) => importedMark(k, j)));
     gs.appendChild(o);
   });
   const ys = $('reviewYou');
@@ -1972,6 +2033,8 @@ function reviewRecord() {
     else if (a.kind === 'double') Object.assign(d, { k: 'cube', act: 'double', value: (a.value ?? 2 * st.cube.value) / 2 });
     else Object.assign(d, { k: 'take', act: a.kind, value: st.cube.value });
     Object.assign(d, review.done.get(d.key));
+    const mk = importedMark(gi, k);
+    if (mk) d.mark = mk;
     rec.act[k] = rec.decisions.length;
     rec.decisions.push(d);
     if (p === 0) row.meD = rec.act[k]; else row.botD = rec.act[k];
@@ -2021,7 +2084,7 @@ function showStep() {
     dice: a?.kind === 'roll' && !stopped ? [...a.dice] : null, diceOwner: side === h ? 0 : 1,
     order: [], botUsed: [], partial: [], partialDice: [], hitsMarks: [], base: null, plays: null,
     lastBot: [], botMoves: null, log: [], moveNo: 0, half: 0, errors: [], analysed: 0, totalLoss: 0,
-    msg, mark: a?.mark ?? null,
+    msg, mark: i < g.actions.length ? importedMark(review.gi, i) : null,
   };
   render();
 }
@@ -2038,7 +2101,7 @@ function nextMark() {
   const games = review.m.games;
   for (let gi = review.gi; gi < games.length; gi++) {
     const from = gi === review.gi ? review.i + 1 : 0;
-    const k = games[gi].actions.findIndex((a, j) => j >= from && a.mark);
+    const k = games[gi].actions.findIndex((a, j) => j >= from && importedMark(gi, j));
     if (k < 0) continue;
     if (gi !== review.gi) openGame(gi);
     step(k);

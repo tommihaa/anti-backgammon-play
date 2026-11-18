@@ -56,6 +56,9 @@ const fi = {
   reviewStopped: 'Peli alkaa muusta kuin tavallisesta alkuasemasta (nackgammon tai double repeat), joten sitä ei voi toistaa tästä eteenpäin.',
   reviewMarkText: t => `Merkintä: ${t}`,
   reviewNoMark: 'Merkittyjä asemia ei ole enempää.',
+  markAdd: 'Merkitse asema', markEdit: 'Muokkaa merkintää', markPlain: 'Merkitty asema.',
+  markPrompt: t => `${t}. Huomautus on vapaaehtoinen, ja se kulkee analyysitiedostossa ja HTML-sivulla.`,
+  exportMarks: n => `Merkityt asemat (${n})`,
   reviewPlaying: 'Jatkat tuodun ottelun asemasta bottia vastaan.',
   logReview: 'Asema tuodusta ottelusta',
   soundsOn: 'Pelin äänet',
@@ -153,6 +156,7 @@ const fi = {
     look: 'Ulkoasu', styleLabel: 'Lauta', homeLabel: 'Kotialue', portraitLabel: 'Pystylauta kapealla ruudulla',
     resetLayout: 'Palauta asettelun oletus',
     langLabel: 'Kieli', yes: 'Kyllä', no: 'Ei',
+    markSave: 'Tallenna', markRemove: 'Poista merkintä', markCancel: 'Peruuta',
   },
 };
 
@@ -210,6 +214,9 @@ const en = {
   reviewStopped: 'This game starts from a non-standard position (nackgammon or double repeat), so it cannot be replayed from here on.',
   reviewMarkText: t => `Note: ${t}`,
   reviewNoMark: 'No more marked positions.',
+  markAdd: 'Mark position', markEdit: 'Edit mark', markPlain: 'Marked position.',
+  markPrompt: t => `${t}. The note is optional. It goes with the analysis file and the HTML page.`,
+  exportMarks: n => `Marked positions (${n})`,
   reviewPlaying: 'You continue from the imported position against the bot.',
   logReview: 'Position from imported match',
   soundsOn: 'Game sounds',
@@ -307,6 +314,7 @@ const en = {
     look: 'Appearance', styleLabel: 'Board', homeLabel: 'Home board', portraitLabel: 'Portrait board on a narrow screen',
     resetLayout: 'Reset layout',
     langLabel: 'Language', yes: 'Yes', no: 'No',
+    markSave: 'Save', markRemove: 'Remove mark', markCancel: 'Cancel',
   },
 };
 
@@ -369,6 +377,9 @@ const de = {
   reviewStopped: 'Dieses Spiel beginnt nicht aus der normalen Anfangsstellung (Nackgammon oder Double Repeat), daher kann es ab hier nicht nachgespielt werden.',
   reviewMarkText: t => `Notiz: ${t}`,
   reviewNoMark: 'Keine weiteren markierten Stellungen.',
+  markAdd: 'Stellung markieren', markEdit: 'Markierung bearbeiten', markPlain: 'Markierte Stellung.',
+  markPrompt: t => `${t}. Die Notiz ist freiwillig. Sie steht in der Analysedatei und auf der HTML-Seite.`,
+  exportMarks: n => `Markierte Stellungen (${n})`,
   reviewPlaying: 'Du spielst aus der importierten Stellung gegen den Bot weiter.',
   logReview: 'Stellung aus importiertem Match',
   soundsOn: 'Spielgeräusche',
@@ -466,6 +477,7 @@ const de = {
     look: 'Aussehen', styleLabel: 'Brett', homeLabel: 'Heimfeld', portraitLabel: 'Hochformat auf schmalem Bildschirm',
     resetLayout: 'Layout zurücksetzen',
     langLabel: 'Sprache', yes: 'Ja', no: 'Nein',
+    markSave: 'Speichern', markRemove: 'Markierung entfernen', markCancel: 'Abbrechen',
   },
 };
 
@@ -523,6 +535,9 @@ const fr = {
   reviewStopped: "Cette partie ne commence pas à la position initiale habituelle (nackgammon ou double repeat), elle ne peut donc pas être rejouée à partir d'ici.",
   reviewMarkText: t => `Note${NB}: ${t}`,
   reviewNoMark: 'Plus de positions marquées.',
+  markAdd: 'Marquer la position', markEdit: 'Modifier la marque', markPlain: 'Position marquée.',
+  markPrompt: t => `${t}. La note est facultative. Elle figure dans le fichier d'analyse et sur la page HTML.`,
+  exportMarks: n => `Positions marquées (${n})`,
   reviewPlaying: 'Vous continuez contre le bot depuis la position importée.',
   logReview: 'Position du match importé',
   soundsOn: 'Sons du jeu',
@@ -620,6 +635,7 @@ const fr = {
     look: 'Apparence', styleLabel: 'Plateau', homeLabel: 'Jan intérieur', portraitLabel: 'Plateau vertical sur écran étroit',
     resetLayout: 'Rétablir la disposition',
     langLabel: 'Langue', yes: 'Oui', no: 'Non',
+    markSave: 'Enregistrer', markRemove: 'Supprimer la marque', markCancel: 'Annuler',
   },
 };
 

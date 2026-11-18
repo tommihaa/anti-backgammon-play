@@ -12,6 +12,10 @@
 //           { forced: true }, jossa best ja played ovat siirtäjän P(voitto) ja top kolme parasta
 //           siirtoa ({ m: merkintä, loss, x }). Lisäksi luck (heiton onni) ja kuutiopäätöksen
 //           { w, should }. Tulokset koskevat siirtäjää eivätkä riipu valitusta pelaajasta.
+//   marks:  (import) { '<peli>:<teko>': huomautus }, laudalla tehdyt aseman merkinnät (Tommin
+//           tilaus 18.11.2026). Tyhjä merkkijono on merkintä ilman huomautusta, ja null poistaa
+//           ottelutekstin (.sgf) oman merkinnän. Pelatussa pelissä merkintä on päätöksen kenttä
+//           mark = { text }.
 //   game:   (played) laudalla pelatun pelin tallenne sellaisenaan (src/ui.mjs record), jossa
 //           päätöksillä on asemat mukana, koska pelistä ei ole ottelutekstiä.
 //   rollouts: { avain: rollout }, avain on sama kuin analysis-kentässä (played-tiedostossa
@@ -45,10 +49,10 @@ export const VERSION = 1;
 // format-kentästä eikä päätteestä.
 export const EXT = '.abg';
 
-export function buildAnalysisFile({ net, match, analysis, game, rollouts, created = new Date() }) {
+export function buildAnalysisFile({ net, match, analysis, game, rollouts, marks, created = new Date() }) {
   const base = { format: FORMAT, version: VERSION, created: created.toISOString(), net };
   const tail = { rollouts: rollouts ?? {} };
-  if (match) return { ...base, source: 'import', match, analysis: analysis ?? {}, ...tail };
+  if (match) return { ...base, source: 'import', match, analysis: analysis ?? {}, marks: marks ?? {}, ...tail };
   return { ...base, source: 'played', game, ...tail };
 }
 
@@ -62,7 +66,10 @@ export function parseAnalysisFile(text) {
     || (o.source === 'played' && Array.isArray(o.game?.decisions));
   if (!ok) return null;
   const rollouts = Object.fromEntries(Object.entries(o.rollouts ?? {}).filter(([, r]) => validRollout(r)));
-  return o.source === 'import' ? { analysis: {}, ...o, rollouts } : { ...o, rollouts };
+  if (o.source !== 'import') return { ...o, rollouts };
+  // Merkinnästä kelpaa vain teksti tai poisto (null).
+  const marks = Object.fromEntries(Object.entries(o.marks ?? {}).filter(([, v]) => v === null || typeof v === 'string'));
+  return { analysis: {}, ...o, rollouts, marks };
 }
 
 const num = x => typeof x === 'number' && Number.isFinite(x);
