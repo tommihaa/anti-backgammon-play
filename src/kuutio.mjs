@@ -77,6 +77,12 @@ export function cubeOptions(w, cube, p, x) {
   };
 }
 
+// Laudan kuutioanalyysin equityjen tehokkuus (Tommi 18.11.2026). Mittauksessa paras tehokkuus oli
+// 0,8–0,85 (Kaanon/Anti-Backgammon/mittaukset/03-kuutio.md). Botti pelaa silti kiinteillä rajoilla
+// DOUBLE_POINT ja TAKE_POINT, joten equityjen paras ja botin valinta voivat erota, kun
+// tuplaajan voittotodennäköisyys on noin 73–75 %.
+export const JANOWSKI_X = 0.8;
+
 // Kuutiopäätökset Janowskin mallilla. winProb on sama kuin kiinteiden rajojen politiikoissa.
 export function janowskiPolicy(winProb, x) {
   return {

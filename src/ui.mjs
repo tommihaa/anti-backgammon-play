@@ -10,7 +10,7 @@ import { T, applyStatic, setLang } from './kieli.mjs';
 import { rankPlays, rollLuck, notation, topMoves, applyMove } from './analyysi.mjs';
 import { toXGID, fromXGID } from './xgid.mjs';
 import { parseMatch, replay } from './tuonti.mjs';
-import { gameHTML } from './vienti.mjs';
+import { gameHTML, cubeLabel, cubeEquityRows } from './vienti.mjs';
 import { buildAnalysisFile, parseAnalysisFile, FORMAT, EXT } from './analyysitiedosto.mjs';
 import { SOUNDS, playSound } from './aanet.mjs';
 import {
@@ -491,7 +491,7 @@ function markBox(title, text, removable) {
 }
 async function editMark(d) {
   const x = selRec();
-  const v = await markBox(T.evalTitle(d.n, whoName(d.p), d.text), d.mark?.text ?? '', !!d.mark);
+  const v = await markBox(T.evalTitle(d.n, whoName(d.p), d.text ?? cubeLabel(T, d.act, d.value)), d.mark?.text ?? '', !!d.mark);
   if (v === undefined) return;
   if (v) d.mark = v; else delete d.mark;
   if (x.imported && review?.rec === x) {
@@ -549,6 +549,18 @@ function renderCubeEval(box, d) {
   tr.insertCell().textContent = T.cubeHead[3];
   tr.insertCell().textContent = mine === d.should ? T.sameBest : T.cubeDiff;
   box.appendChild(table);
+  // Equityt Janowskin mallilla (src/vienti.mjs cubeEquities), samat kuin HTML-viennissä.
+  const eq = document.createElement('table');
+  eq.className = 'eval';
+  const hr = eq.insertRow();
+  T.cubeEqHead.forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i) th.className = 'num'; hr.appendChild(th); });
+  for (const [a, b, c, best] of cubeEquityRows(d, T)) {
+    const r = eq.insertRow();
+    if (best) r.className = 'best';
+    [a, b, c].forEach((v, i) => { const td = r.insertCell(); td.textContent = v; if (i) td.className = 'num'; });
+  }
+  box.appendChild(eq);
+  para(box, T.cubeEqNote);
 }
 function renderPanels() {
   renderGamePanel();
@@ -825,13 +837,20 @@ function decide(d) {
 }
 // Viimeksi kirjatun päätöksen indeksi Peli-paneelin riviä varten, tai undefined.
 const lastDecision = () => (game.decisions?.length ? game.decisions.length - 1 : undefined);
+// Siirtonumero, jonka p:n seuraava heitto saa (vrt. finishHumanMove ja botTurn): ihmisen siirto
+// aloittaa aina uuden rivin, ja botin siirto liittyy riville, jolla on vain ihmisen siirto.
+// Kuutiopäätös kuuluu tuplaajan seuraavaan heittoon, joten se saa saman numeron.
+function nextMoveNo(p) {
+  const last = game.log[game.log.length - 1];
+  return p === 1 && last && last.bot === '' && last.me !== '' ? game.moveNo : game.moveNo + 1;
+}
 // Tuplaaja p ennen heittoaan: tuplasiko (act) ja olisiko verkko tuplannut.
 function cubeDecision(p, act) {
-  decide({ k: 'cube', p, n: game.moveNo, act, s: plain(game.s), cube: { ...game.cube }, value: game.cube.value, w: botCube.winProb(game.s, p), should: botCube.double(game.s, p, game.cube) });
+  decide({ k: 'cube', p, n: nextMoveNo(p), act, s: plain(game.s), cube: { ...game.cube }, value: game.cube.value, w: botCube.winProb(game.s, p), should: botCube.double(game.s, p, game.cube) });
 }
 // Ottaja q tuplauksen jälkeen, kuutio vielä ennen tuplausta.
 function takeDecision(q, act) {
-  decide({ k: 'take', p: q, n: game.moveNo, act, s: plain(game.s), cube: { ...game.cube }, value: game.cube.value, w: 1 - botCube.winProb(game.s, 1 - q), should: botCube.take(game.s, q, game.cube) });
+  decide({ k: 'take', p: q, n: nextMoveNo(1 - q), act, s: plain(game.s), cube: { ...game.cube }, value: game.cube.value, w: 1 - botCube.winProb(game.s, 1 - q), should: botCube.take(game.s, q, game.cube) });
 }
 
 function beginHumanMove() {

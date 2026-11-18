@@ -11,6 +11,7 @@
 
 import { pips, OFF, BAR } from './engine.mjs';
 import { cubeLook } from './ulkoasu.mjs';
+import { cubeOptions, JANOWSKI_X } from './kuutio.mjs';
 
 const COL = 30, BAR_W = 30, TRAY_W = 34, NUM_H = 16, HALF_H = 150, MID_H = 30;
 const LEFT = 0, RIGHT = 6 * COL + BAR_W, TRAY_X = 12 * COL + BAR_W;
@@ -157,13 +158,41 @@ function moveTable(d, T) {
   return `<table><tr>${head}</tr>${body}</table>`;
 }
 
+// Kuutiopäätöksen teksti otsikkoon ja taulukkoon. Laudalla pelatun pelin kuutiopäätöksellä ei ole
+// tekstiä (src/ui.mjs cubeDecision), joten otsikko muodostetaan teosta.
+export const cubeLabel = (T, act, v) => (act === 'double' ? T.logDouble(2 * v) : act === 'take' ? T.logTake : act === 'drop' ? T.logDrop : T.noDouble);
+const textOf = (d, T) => d.text ?? (d.k === 'move' ? '' : cubeLabel(T, d.act, d.value));
+
+// Kuutiopäätöksen equityt Janowskin mallilla (src/kuutio.mjs cubeOptions, JANOWSKI_X) tuplaajan
+// näkökulmasta kuution nykyarvon yksikköinä, myös ottopäätöksessä, kuten gnubg:ssä. d.w on
+// päättäjän voittotodennäköisyys, joten ottopäätöksessä tuplaajan on 1 − d.w. d.cube on kuutio
+// ennen tuplausta. Paras on tuplaus, kun se on vähintään yhtä arvokas kuin tuplaamatta jättäminen
+// (janowskiPolicy), ja tuplauksen arvo on ottajan valinta eli pienempi otosta ja luopumisesta.
+export function cubeEquities(d) {
+  const doubler = d.k === 'cube' ? d.p : 1 - d.p;
+  const w = d.k === 'cube' ? d.w : 1 - d.w;
+  const o = cubeOptions(w, d.cube ?? { value: 1, owner: -1 }, doubler, JANOWSKI_X);
+  const dbl = Math.min(o.dt, o.dp);
+  const best = dbl >= o.nd ? (o.dt <= o.dp ? 'dt' : 'dp') : 'nd';
+  return { ...o, best, top: Math.max(o.nd, dbl) };
+}
+// Equityrivit taulukkoon: [vaihtoehto, equity, ero parhaaseen tai '', paras].
+export function cubeEquityRows(d, T) {
+  const e = cubeEquities(d);
+  const sg = x => (x < -0.0005 ? '−' : '+') + T.num(Math.abs(x));
+  return ['nd', 'dt', 'dp'].map((k, i) => [T.cubeEq[i], sg(e[k]), k === e.best ? '' : sg(e[k] - e.top), k === e.best]);
+}
+
 function cubeTable(d, T) {
-  const cube = (act, v) => (act === 'double' ? T.logDouble(2 * v) : act === 'take' ? T.logTake : act === 'drop' ? T.logDrop : T.noDouble);
+  const cube = (act, v) => cubeLabel(T, act, v);
   const mine = d.k === 'cube' ? d.act === 'double' : d.act === 'take';
   const pick = d.k === 'cube' ? (d.should ? 'double' : 'nodouble') : (d.should ? 'take' : 'drop');
   const rows = [[T.cubeHead[0], cube(d.act, d.value)], [T.cubeHead[1], T.pct(d.w)], [T.cubeHead[2], cube(pick, d.value)],
     [T.cubeHead[3], mine === d.should ? T.sameBest : T.cubeDiff]];
-  return `<table>${rows.map(([a, b], i) => `<tr${i === 3 ? ` class="${mine === d.should ? 'best' : 'worse'}"` : ''}><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</table>`;
+  const eq = cubeEquityRows(d, T).map(([a, b, c, best]) => `<tr${best ? ' class="best"' : ''}><td>${esc(a)}</td><td class="num">${esc(b)}</td><td class="num">${esc(c)}</td></tr>`).join('');
+  return `<table>${rows.map(([a, b], i) => `<tr${i === 3 ? ` class="${mine === d.should ? 'best' : 'worse'}"` : ''}><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</table>`
+    + `<table class="cubeeq"><tr><th>${esc(T.cubeEqHead[0])}</th><th class="num">${esc(T.cubeEqHead[1])}</th><th class="num">${esc(T.cubeEqHead[2])}</th></tr>${eq}</table>`
+    + `<p class="luck">${esc(T.cubeEqNote)}</p>`;
 }
 
 // Koko sivu. names on [alempi, ylempi], info on otsikon alle tulevat rivit [nimi, arvo] ja
@@ -172,7 +201,7 @@ export function gameHTML({ T, lang, title, names, info, summary, decisions, look
   const blocks = decisions.map((d, i) => {
     const loss = lossOf(d), cls = classOf(loss);
     const who = names[d.p];
-    const titleText = T.evalTitle(d.n, who, d.text);
+    const titleText = T.evalTitle(d.n, who, textOf(d, T));
     let body;
     if (d.k === 'move') {
       if (d.forced) body = `<p>${esc(d.text.includes('/') ? T.evalForced : T.evalDance)}</p>`;
@@ -190,12 +219,12 @@ export function gameHTML({ T, lang, title, names, info, summary, decisions, look
   const errs = decisions.map((d, i) => ({ d, i, loss: lossOf(d) })).filter(e => e.loss !== null && e.loss > ERROR)
     .sort((a, b) => b.loss - a.loss);
   const errList = errs.length
-    ? `<details><summary>${esc(T.exportErrors(errs.length))}</summary><ol class="errs">${errs.map(e => `<li class="${classOf(e.loss)}"><a href="#d${e.i}">${esc(T.evalTitle(e.d.n, names[e.d.p], e.d.text))}</a> −${esc(T.num(e.loss))}</li>`).join('')}</ol></details>`
+    ? `<details><summary>${esc(T.exportErrors(errs.length))}</summary><ol class="errs">${errs.map(e => `<li class="${classOf(e.loss)}"><a href="#d${e.i}">${esc(T.evalTitle(e.d.n, names[e.d.p], textOf(e.d, T)))}</a> −${esc(T.num(e.loss))}</li>`).join('')}</ol></details>`
     : '';
   // Merkityt asemat pelin järjestyksessä, avattuna, koska ne ovat lukijalle tarkoitettuja.
   const marked = decisions.map((d, i) => ({ d, i })).filter(e => e.d.mark);
   const markList = marked.length
-    ? `<details open><summary>${esc(T.exportMarks(marked.length))}</summary><ol class="marks">${marked.map(e => `<li><a href="#d${e.i}">${esc(T.evalTitle(e.d.n, names[e.d.p], e.d.text))}</a>${e.d.mark.text ? `: ${esc(e.d.mark.text)}` : ''}</li>`).join('')}</ol></details>`
+    ? `<details open><summary>${esc(T.exportMarks(marked.length))}</summary><ol class="marks">${marked.map(e => `<li><a href="#d${e.i}">${esc(T.evalTitle(e.d.n, names[e.d.p], textOf(e.d, T)))}</a>${e.d.mark.text ? `: ${esc(e.d.mark.text)}` : ''}</li>`).join('')}</ol></details>`
     : '';
   const css = `
   :root { color-scheme: light dark; --bg: #FBF8F4; --ink: #1E1A16; --muted: #4C443B; --line: #B8AA98; --good: #2E7D32; --bad: #C62828; --accent: #6B5844; }
