@@ -653,7 +653,8 @@ function exportGame() {
   summary.push(...luckLines(x.decisions, p => names[p]));
   const html = gameHTML({
     T, lang: document.documentElement.lang, title: T.exportTitle(names[0], names[1], no), names, info, summary,
-    decisions: x.decisions, look: boardLook(prefs.style, false), signed,
+    decisions: x.decisions, look: boardLook(prefs.style, false), signed, style: prefs.style,
+    crawford: review ? review.kind === 'dmp' : !!x.crawford,
   });
   download(new Blob([html], { type: 'text/html' }), `anti-backgammon-${slug(names[0])}-${slug(names[1])}-${no}.html`);
 }

@@ -10,12 +10,18 @@
 // paneelin listassa: yli 0,080 punainen ja yli 0,020 vihreä.
 
 import { pips, OFF, BAR } from './engine.mjs';
+import { cubeLook } from './ulkoasu.mjs';
 
 const COL = 30, BAR_W = 30, TRAY_W = 34, NUM_H = 16, HALF_H = 150, MID_H = 30;
 const LEFT = 0, RIGHT = 6 * COL + BAR_W, TRAY_X = 12 * COL + BAR_W;
 const W = TRAY_X + TRAY_W, TOP = NUM_H, BOTTOM = NUM_H + 2 * HALF_H + MID_H, H = BOTTOM + NUM_H;
-const R = 13, STEP = 26, SHOWN = 5;
+const R = 13, STEP = 26, SHOWN = 5, CUBE = 28;
 export const BLUNDER = 0.08, ERROR = 0.02;
+// Nopan silmät keskipisteen suhteen (−1, 0 tai 1 kertaa silmäväli).
+const PIPS = {
+  1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]],
+  5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]],
+};
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -24,7 +30,7 @@ const colOf = pt => (pt >= 13 ? pt - 13 : 12 - pt);
 const xOf = c => (c < 6 ? LEFT + c * COL : RIGHT + (c - 6) * COL);
 
 // Yhteiset symbolit: tausta pisteineen ja numeroineen sekä kaksi nappulaa.
-function defs(look) {
+export function defs(look) {
   const o = [];
   o.push(`<rect width="${W}" height="${H}" fill="${look.frame}"/>`);
   o.push(`<rect x="${LEFT}" y="${TOP}" width="${6 * COL}" height="${BOTTOM - TOP}" fill="${look.felt}"/>`);
@@ -44,7 +50,12 @@ function defs(look) {
 }
 
 // Yksi lauta: nappulat, muuri, ulos pelatut, pipit, nopat ja kuutio. dice on null kuutiopäätöksessä.
-export function boardSVG(s, { dice = null, mover = 0, cube = { value: 1, owner: -1 }, look }) {
+// flip piirtää ylemmän pelaajan alas, jotta kiilojen numerot ovat hänen numerointiaan kuten
+// gnubg:n ja XG:n viennissä (Tommi 18.11.2026). Pelaajan väri säilyy käännettäessä. Pipit, kuutio
+// ja off-lokero piirretään kuten pelattavalla laudalla (src/ui.mjs, Tommi 18.11.2026): style on
+// laudan tyyli kuution ulkoasua varten, ja Crawford-pelissä kuutiota ei ole.
+export function boardSVG(s, { dice = null, mover = 0, cube = { value: 1, owner: -1 }, look, flip = false, crawford = false, style = 'x22' }) {
+  const b = flip ? 1 : 0, t = 1 - b;
   const o = [`<use href="#bg"/>`];
   const piece = (p, x, y, label) => {
     o.push(`<use href="#c${p}" x="${x - 14}" y="${y - 14}" width="28" height="28"/>`);
@@ -58,34 +69,67 @@ export function boardSVG(s, { dice = null, mover = 0, cube = { value: 1, owner: 
   };
   for (let pt = 1; pt <= 24; pt++) {
     const x = xOf(colOf(pt)) + COL / 2, top = pt >= 13;
-    if (s[0][pt]) stack(0, s[0][pt], x, top);
+    if (s[b][pt]) stack(b, s[b][pt], x, top);
     const q = 25 - pt;
-    if (s[1][q]) stack(1, s[1][q], x, top);
+    if (s[t][q]) stack(t, s[t][q], x, top);
   }
   // Muurin nappula on sillä puolella, jonne se on menossa: alempi ylhäällä, ylempi alhaalla.
   const bx = 6 * COL + BAR_W / 2, mid = TOP + HALF_H + MID_H / 2;
   const barStack = (p, n, up) => {
     for (let k = 0; k < Math.min(n, 3); k++) piece(p, bx, up ? mid - MID_H / 2 - R - k * STEP : mid + MID_H / 2 + R + k * STEP, k === 2 && n > 3 ? n : '');
   };
-  barStack(0, s[0][BAR], true);
-  barStack(1, s[1][BAR], false);
+  barStack(b, s[b][BAR], true);
+  barStack(t, s[t][BAR], false);
   const tx = TRAY_X + TRAY_W / 2;
-  if (s[1][OFF]) o.push(`<text x="${tx}" y="${TOP + 14}" class="off">${s[1][OFF]}</text>`);
-  if (s[0][OFF]) o.push(`<text x="${tx}" y="${BOTTOM - 6}" class="off">${s[0][OFF]}</text>`);
-  // Pipit muurin päissä kuten sovelluksessa: ylhäällä ylemmän ja alhaalla alemman pelaajan.
-  o.push(`<text x="${bx}" y="${TOP + 14}" class="pip">${pips(s[1])}</text>`);
-  o.push(`<text x="${bx}" y="${BOTTOM - 6}" class="pip">${pips(s[0])}</text>`);
-  // Kuutio lokerossa: keskellä tai omistajan päässä.
-  const cy = cube.owner === -1 ? mid : cube.owner === 0 ? BOTTOM - 40 : TOP + 40;
-  o.push(`<rect x="${tx - 14}" y="${cy - 14}" width="28" height="28" rx="4" fill="#2E6B62"/>`);
-  o.push(`<text x="${tx}" y="${cy + 5}" class="cube">${cube.owner === -1 && cube.value === 1 ? 64 : cube.value}</text>`);
-  // Nopat siirtäjän puolella: alemman oikealla, ylemmän vasemmalla.
+  // Off-lokero kuten laudan drawOff: jokainen ulos pelattu on viiva, viiden ryhmissä, ja luku on
+  // pelaajan värisessä kiekossa kuution puoleisessa päässä. Omistettu kuutio lyhentää lokeroa.
+  const off = (p, n, upper) => {
+    if (!n) return;
+    const c = p === 0 ? look.self : look.opp;
+    const x0 = TRAY_X + 3, w = TRAY_W - 6;
+    const owned = !crawford && cube.owner === p ? CUBE + 6 : 0;
+    const h = mid - CUBE / 2 - 6 - (TOP + 3) - owned;
+    const y0 = upper ? TOP + 3 + owned : BOTTOM - 3 - h - owned;
+    o.push(`<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="4" fill="${look.tray}" stroke="#17120F" stroke-width="1"/>`);
+    const inset = 5, disc = w - 4;
+    const room = h - 2 * inset - disc - 4, step = Math.min(7, room / 17), gap = step >= 3.5 ? step : 0;
+    for (let i = 0; i < n; i++) {
+      const e = i * step + Math.floor(i / SHOWN) * gap;
+      const y = upper ? y0 + inset + e : y0 + h - inset - e - step + 1;
+      o.push(`<rect x="${x0 + 3}" y="${y.toFixed(1)}" width="${w - 6}" height="${(step - 1).toFixed(1)}" rx="1.5" fill="${c.fill}" stroke="#17120F" stroke-width="0.8"/>`);
+    }
+    const dy = upper ? y0 + h - inset - disc / 2 : y0 + inset + disc / 2;
+    o.push(`<circle cx="${tx}" cy="${dy}" r="${disc / 2}" fill="${c.fill}" stroke="#17120F" stroke-width="1.2"/>`);
+    o.push(`<text x="${tx}" y="${dy + 4.5}" class="n${p}">${n}</text>`);
+  };
+  off(t, s[t][OFF], true);
+  off(b, s[b][OFF], false);
+  // Pipit muurin päissä kuten laudalla: luku ja ero sulkeissa, ylhäällä ylemmän ja alhaalla
+  // alemman pelaajan. Ero on oma miinus toisen, joten miinus tarkoittaa pienempää pip-lukua.
+  const lead = (a, c) => (a - c > 0 ? `+${a - c}` : a - c < 0 ? `−${c - a}` : '0');
+  const pt = pips(s[t]), pb = pips(s[b]);
+  o.push(`<text x="${bx}" y="${TOP + 14}" class="pip">${pt}</text><text x="${bx}" y="${TOP + 28}" class="pip">(${lead(pt, pb)})</text>`);
+  o.push(`<text x="${bx}" y="${BOTTOM - 20}" class="pip">${pb}</text><text x="${bx}" y="${BOTTOM - 6}" class="pip">(${lead(pb, pt)})</text>`);
+  // Kuutio lokerossa laudan tyylillä: keskellä tai omistajan päässä. Crawford-pelissä ei kuutiota.
+  if (!crawford) {
+    const cl = cubeLook(style);
+    const cy = cube.owner === -1 ? mid : cube.owner === b ? BOTTOM - 3 - CUBE / 2 : TOP + 3 + CUBE / 2;
+    const x = tx - CUBE / 2, y = cy - CUBE / 2, v = cube.value === 1 ? 64 : cube.value;
+    if (cl.cut) {
+      const k = CUBE * 0.22;
+      o.push(`<polygon points="${x + k},${y} ${x + CUBE - k},${y} ${x + CUBE},${y + k} ${x + CUBE},${y + CUBE - k} ${x + CUBE - k},${y + CUBE} ${x + k},${y + CUBE} ${x},${y + CUBE - k} ${x},${y + k}" fill="${cl.fill}" stroke="${cl.border ?? '#17120F'}" stroke-width="1.5"/>`);
+    } else o.push(`<rect x="${x}" y="${y}" width="${CUBE}" height="${CUBE}" rx="${CUBE / 6}" fill="${cl.fill}" stroke="#17120F" stroke-width="1.5"/>`);
+    o.push(`<text x="${tx}" y="${cy + 5}" class="cube" style="fill:${cl.value(cube.value === 1 ? null : v)}${cl.bold ? '' : ';font-weight:normal'}">${v}</text>`);
+  }
+  // Nopat siirtäjän puolella: alemman oikealla, ylemmän vasemmalla. Silmät eikä numero, kuten
+  // laudalla (Tommi 18.11.2026).
   if (dice) {
-    const x0 = mover === 0 ? RIGHT + 3 * COL : LEFT + 3 * COL;
+    const x0 = mover === b ? RIGHT + 3 * COL : LEFT + 3 * COL;
+    const c = mover === 0 ? look.self : look.opp;
     dice.forEach((v, k) => {
       const x = x0 + (k ? 6 : -30);
-      o.push(`<rect x="${x}" y="${mid - 12}" width="24" height="24" rx="4" fill="${mover === 0 ? look.self.fill : look.opp.fill}" stroke="#17120F"/>`);
-      o.push(`<text x="${x + 12}" y="${mid + 5}" class="n${mover}">${v}</text>`);
+      o.push(`<rect x="${x}" y="${mid - 12}" width="24" height="24" rx="4" fill="${c.fill}" stroke="#17120F"/>`);
+      for (const [dx, dy] of PIPS[v]) o.push(`<circle cx="${x + 12 + 6.5 * dx}" cy="${mid + 6.5 * dy}" r="2.3" fill="${c.on}"/>`);
     });
   }
   return `<svg class="board" viewBox="0 0 ${W} ${H}" role="img">${o.join('')}</svg>`;
@@ -124,7 +168,7 @@ function cubeTable(d, T) {
 
 // Koko sivu. names on [alempi, ylempi], info on otsikon alle tulevat rivit [nimi, arvo] ja
 // summary valmiit yhteenvedon kappaleet. lang on sivun kieli ja signed etumerkillinen luku.
-export function gameHTML({ T, lang, title, names, info, summary, decisions, look, signed }) {
+export function gameHTML({ T, lang, title, names, info, summary, decisions, look, signed, crawford = false, style = 'x22' }) {
   const blocks = decisions.map((d, i) => {
     const loss = lossOf(d), cls = classOf(loss);
     const who = names[d.p];
@@ -136,7 +180,7 @@ export function gameHTML({ T, lang, title, names, info, summary, decisions, look
       else body = moveTable(d, T);
     } else body = d.w === undefined ? `<p>${esc(T.exportNoAnalysis)}</p>` : cubeTable(d, T);
     if (d.k === 'move' && d.luck !== undefined) body += `<p class="luck">${esc(T.luckLine(signed(d.luck)))}</p>`;
-    const board = boardSVG(d.s, { dice: d.k === 'move' ? d.dice : null, mover: d.p, cube: d.cube ?? { value: 1, owner: -1 }, look });
+    const board = boardSVG(d.s, { dice: d.k === 'move' ? d.dice : null, mover: d.p, cube: d.cube ?? { value: 1, owner: -1 }, look, flip: d.p === 1, crawford, style });
     const nav = `<nav>${i ? `<a href="#d${i - 1}">◀</a>` : ''} <a href="#top">▲</a> ${i < decisions.length - 1 ? `<a href="#d${i + 1}">▶</a>` : ''}</nav>`;
     return `<section id="d${i}" class="${cls}"><h3><span class="dot p${d.p}"></span>${esc(titleText)}${loss !== null && loss >= 0.0005 ? ` <small>−${esc(T.num(loss))}</small>` : ''}</h3>`
       + `<div class="pos">${board}<div class="an">${body}${nav}</div></div></section>`;
