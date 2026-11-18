@@ -152,8 +152,10 @@ function newGame() {
   // Crawford-peli on ensimmäinen peli sen jälkeen, kun jompikumpi on yhden pisteen päässä rajasta
   // (Kaanon §2.6).
   const limit = match.limit;
+  // DMP on yhden pisteen ottelu, jonka jokainen peli on kuutioton kuten Crawford-peli.
   const crawford = limit !== null && !match.crawford && pen.some(x => x === limit - 1);
   if (crawford) match.crawford = true;
+  const dmp = limit === 1;
   saveMatch();
   // Rahapelissä kuutio käyttää rahapelin rajoja (Kaanon §4), ottelussa voittotaulukkoa.
   botCube = limit === null ? netPolicy : tablePolicy(netPolicy, { away: pen.map(x => limit - x), crawford });
@@ -162,10 +164,10 @@ function newGame() {
   game = {
     s: initialState(), dice: [a, b], diceOwner: a > b ? 0 : 1, order: [a, b], botUsed: [],
     turn: a > b ? 0 : 1, phase: 'move', cube: newCube(),
-    crawford, plays: null, partial: [], partialDice: [], hitsMarks: [], base: null,
+    crawford, dmp, plays: null, partial: [], partialDice: [], hitsMarks: [], base: null,
     lastBot: [], log: [], moveNo: 0, half: 0, over: false, errors: [], analysed: 0, totalLoss: 0,
     when: Date.now(), limit: match.limit, decisions: [], stall: newStall(), turnAct: null,
-    msg: T.opening(a, b, a > b, crawford), no: (match.done ?? 0) + 1, score: [...pen], match: match.id,
+    msg: T.opening(a, b, a > b, crawford && !dmp), no: (match.done ?? 0) + 1, score: [...pen], match: match.id,
   };
   if (!first) sound('gong');
   review = null;
@@ -354,7 +356,7 @@ function viewGame() {
   const x = selRec(), d = x.decisions[sel.d];
   const dice = d.k === 'move' ? d.dice : null;
   return {
-    s: [Int8Array.from(d.s[0]), Int8Array.from(d.s[1])], cube: d.cube ?? newCube(), crawford: !!x.crawford,
+    s: [Int8Array.from(d.s[0]), Int8Array.from(d.s[1])], cube: d.cube ?? newCube(), crawford: !!x.crawford, dmp: x.limit === 1,
     turn: d.p, phase: 'view', over: false, dice, diceOwner: d.p,
     order: dice ? (dice[0] === dice[1] ? Array(4).fill(dice[0]) : [...dice]) : [],
     botUsed: [], partial: [], partialDice: [], hitsMarks: [], lastBot: [], botMoves: null,
@@ -1092,7 +1094,7 @@ function checkDraw() {
 function endDraw(msg) {
   game.over = true; game.phase = 'over';
   game.msg = msg;
-  if (game.crawford) { match.crawford = false; saveMatch(); game.msg += ' ' + T.crawfordReplay; }
+  if (game.crawford) { match.crawford = false; saveMatch(); if (!game.dmp) game.msg += ' ' + T.crawfordReplay; }
   render();
 }
 
@@ -1416,7 +1418,7 @@ function drawArrows(L) {
 
 // Kuutio: keskellä lokerosarakkeessa, omistettuna saman sarakkeen omistajan päässä, ylhäällä
 // botin ja alhaalla oma. Muurin päässä se oli 14.9.–14.11.2026, ja paikka vapautui pipeille kuten
-// DG Androidissa 7.11.2026. Crawford-pelissä kuutiota ei ole.
+// DG Androidissa 7.11.2026. Crawford-pelissä ja DMP:ssä kuutiota ei ole.
 function drawCube() {
   if (game.crawford) return;
   const cl = cubeLook(prefs.style);
@@ -1661,7 +1663,7 @@ function renderStatus(isView) {
   show('new', game.over && !opts.nextOnDice);
   $('resign').style.display = game.over ? 'none' : '';
   placeActions();
-  $('cubeVal').textContent = game.crawford ? T.crawfordCube : game.cube.value;
+  $('cubeVal').textContent = game.dmp ? T.dmpCube : game.crawford ? T.crawfordCube : game.cube.value;
   $('rows').textContent = `${Math.ceil(game.half / 2)} / ${DRAW_ROWS}`;
   $('limit').value = String(match.limit);
   // Ottelu ja rangaistuspisteet yhtenä lohkona: pisteet suhteessa otteluun valittuun rajaan.
@@ -2013,7 +2015,9 @@ function showStep() {
   game = {
     s: [Int8Array.from(st.s[h]), Int8Array.from(st.s[1 - h])],
     cube: { value: st.cube.value, owner: owner === -1 ? -1 : owner === h ? 0 : 1 },
-    turn: side === h ? 0 : 1, phase: 'review', over: false, crawford: false,
+    turn: side === h ? 0 : 1, phase: 'review', over: false,
+    // Tuodun DMP:n laudalla ei ole kuutiota (Tommi 18.11.2026), kuten pelatussakaan.
+    crawford: review.kind === 'dmp', dmp: review.kind === 'dmp',
     dice: a?.kind === 'roll' && !stopped ? [...a.dice] : null, diceOwner: side === h ? 0 : 1,
     order: [], botUsed: [], partial: [], partialDice: [], hitsMarks: [], base: null, plays: null,
     lastBot: [], botMoves: null, log: [], moveNo: 0, half: 0, errors: [], analysed: 0, totalLoss: 0,
