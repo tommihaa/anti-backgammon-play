@@ -4,6 +4,15 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.1.1] - 2026-11-24
+
+### Changed
+
+- The rules now say under The idea who loses the match: the player who first reaches the agreed
+  penalty point limit.
+- The rules on the cube say that passing is resigning: the player who passes loses the game and
+  gets penalty points equal to the current cube value.
+
 ## [0.1.0] - 2026-11-18
 
 First numbered version. It covers everything published since 1 November 2026 and these
