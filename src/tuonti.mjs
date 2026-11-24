@@ -13,10 +13,47 @@
 // tähän tekoon (located) tai pudonnut pelin ensimmäiseen tekoon.
 
 import { initialState, BAR, OFF } from './engine.mjs';
+import { fromXGID } from './xgid.mjs';
 
 export function parseMatch(text) {
   const t = String(text).replace(/^﻿/, '');
+  if (/^\s*#?xgid=/i.test(t)) return parseLink(t);
   return /^\s*\(\s*;/.test(t) ? parseSgf(t) : parseMat(t);
+}
+
+// ---- Aseman linkki ----
+//
+// Aseman linkki (Tommin tilaus 24.11.2026) avaa aseman laudalle selattavaksi analyysin kanssa, ja
+// siitä voi jatkaa peliä bottia vastaan. Osoitteen fragmentti on
+//   xgid=<XGID ilman etuliitettä>&m=13/7,8/7&a=<nimi>&b=<nimi>
+// m on pelattu siirto siirtäjän numeroinnissa (25 muuri, 0 ulos). Ilman m:ää siirto on avoin,
+// ja analyysi näyttää vain verkon parhaat. a ja b ovat isojen ja pienten kirjainten pelaajat.
+// Linkki jäsennetään tuoduksi otteluksi, jossa on yksi peli tästä asemasta alkaen.
+export function linkFragment(xgid, moves, names) {
+  let f = `xgid=${String(xgid).replace(/^XGID=/, '')}`;
+  if (moves?.length) f += `&m=${moves.map(([a, b]) => `${a}/${b}`).join(',')}`;
+  names?.forEach((n, k) => { if (n) f += `&${'ab'[k]}=${encodeURIComponent(n)}`; });
+  return f;
+}
+
+export function parseLink(text) {
+  const q = new URLSearchParams(String(text).trim().replace(/^#/, ''));
+  const x = fromXGID(q.get('xgid') ?? '');
+  if (!x) return null;
+  let moves = null;
+  if (q.get('m')) {
+    moves = [];
+    for (const w of q.get('m').split(',')) {
+      const r = w.match(/^(\d+)\/(\d+)$/);
+      if (!r) return null;
+      moves.push([Number(r[1]), Number(r[2])]);
+    }
+  }
+  const actions = x.dice ? [{ kind: 'roll', side: x.turn, dice: x.dice, moves: moves ?? [], open: !moves }] : [];
+  return {
+    length: x.limit, players: [q.get('a') || 'A', q.get('b') || 'B'], link: true,
+    games: [{ players: [q.get('a') || 'A', q.get('b') || 'B'], scores: x.pen, crawford: x.crawford, start: { s: x.s, cube: x.cube }, turn: x.turn, actions, setup: false }],
+  };
 }
 
 // ---- .mat ----
@@ -191,8 +228,9 @@ export function parseSgf(text) {
 // owner on sivu tai -1 keskellä. Jos siirto lähtee tyhjästä pisteestä (toistettu peli tai
 // tavallisesta poikkeava alkuasema), toisto pysähtyy ja error kertoo teon.
 export function replay(g) {
-  const s = initialState().map(a => Int8Array.from(a));
-  let cube = { value: 1, owner: -1 }, offered = 2;
+  // Aseman linkin peli alkaa linkin asemasta (start), muut alkuasemasta.
+  const s = (g.start ? g.start.s : initialState()).map(a => Int8Array.from(a));
+  let cube = g.start ? { ...g.start.cube } : { value: 1, owner: -1 }, offered = 2 * cube.value;
   const steps = [];
   const snap = () => ({ s: [Int8Array.from(s[0]), Int8Array.from(s[1])], cube: { ...cube } });
   for (let k = 0; k < g.actions.length; k++) {

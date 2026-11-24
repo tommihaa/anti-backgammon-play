@@ -4,6 +4,17 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.2.0] - 2026-11-24
+
+### Added
+
+- Position links. Copy link in the Evaluation panel gives a link to the analysed move: the
+  position, the dice and the move played. Copy link under Settings > Position (XGID) gives a link
+  to the current position. The link opens the position for review. The Evaluation panel shows the
+  network's best moves and how far the played move was from the best. Without dice it shows the
+  winning chance and the network's cube decision. Play from here starts a game against the bot
+  from the linked position.
+
 ## [0.1.1] - 2026-11-24
 
 ### Changed

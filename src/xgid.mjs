@@ -48,10 +48,14 @@ export function fromXGID(text) {
   if (cv > 6) return null;
   const cp = Number(m[3]);
   const dice = /^[1-6]{2}$/.test(m[5]) ? [Number(m[5][0]), Number(m[5][1])] : null;
+  // Pisteet, Crawford ja ottelun pituus luetaan, jos ne ovat mukana. Aseman linkki tarvitsee ne.
+  const f = String(text).trim().replace(/^XGID=/, '').split(':');
+  const num = k => (/^\d+$/.test(f[k] ?? '') ? Number(f[k]) : 0);
   return {
     s: [me, bot],
     cube: { value: 2 ** cv, owner: cp === 1 ? 0 : cp === -1 ? 1 : -1 },
     turn: m[4] === '1' ? 0 : 1,
     dice,
+    pen: [num(5), num(6)], crawford: f[7] === '1', limit: num(8),
   };
 }

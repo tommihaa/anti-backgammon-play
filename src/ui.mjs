@@ -9,7 +9,7 @@ import { newStall, observe, stuck, botOffers, botAccepts } from './jumi.mjs';
 import { T, applyStatic, setLang } from './kieli.mjs';
 import { rankPlays, rollLuck, notation, topMoves, applyMove } from './analyysi.mjs';
 import { toXGID, fromXGID } from './xgid.mjs';
-import { parseMatch, replay } from './tuonti.mjs';
+import { parseMatch, replay, linkFragment } from './tuonti.mjs';
 import { gameHTML, cubeLabel, cubeEquityRows } from './vienti.mjs';
 import { buildAnalysisFile, parseAnalysisFile, FORMAT, EXT } from './analyysitiedosto.mjs';
 import { SOUNDS, playSound } from './aanet.mjs';
@@ -423,6 +423,14 @@ function renderEval() {
   if (!picked && live && HUMAN_PHASES.has(x.phase)) liveMarkLine(box);
   let d = sel.d !== null ? x.decisions?.[sel.d] : null;
   if (!d) {
+    // Aseman linkki ilman noppia: siirtäjän voitto ja verkon kuutiopäätös ennen heittoa.
+    if (review?.m.link && !x.decisions.length) {
+      const st = review.steps[0], h = review.h, g = reviewGame(), p = g.turn === h ? 0 : 1;
+      const s = [Int8Array.from(st.s[h]), Int8Array.from(st.s[1 - h])];
+      const cube = { value: st.cube.value, owner: st.cube.owner === -1 ? -1 : st.cube.owner === h ? 0 : 1 };
+      para(box, T.linkRoll(whoName(p), T.pct(x.cubePolicy.winProb(s, p)), !g.crawford && mayDouble(cube, p) ? x.cubePolicy.double(s, p, cube) : null));
+      return;
+    }
     if (!live) {
       renderSummary(box, x);
       para(box, x.decisions?.length ? T.evalPick : T.decisionsNone);
@@ -450,10 +458,12 @@ function renderEval() {
     ? (lv ? T.noteBad(d.text, T.levels[lv[2]], fmt(loss)) : loss < SAME ? T.noteSame(d.text) : T.noteGood(d.text, fmt(loss)))
     : T.evalTitle(d.n, who, d.text));
   const rows = d.r.top.map(t => ({ m: t.m, x: t.x, loss: t.loss, played: false }));
-  let k = rows.findIndex(r => r.m === played);
-  if (k < 0) k = rows.findIndex(r => Math.abs(r.x - d.r.played) < 1e-12);
-  if (k >= 0) rows[k].played = true;
-  else rows.push({ m: played, x: d.r.played, loss, played: true });
+  if (!d.open) {
+    let k = rows.findIndex(r => r.m === played);
+    if (k < 0) k = rows.findIndex(r => Math.abs(r.x - d.r.played) < 1e-12);
+    if (k >= 0) rows[k].played = true;
+    else rows.push({ m: played, x: d.r.played, loss, played: true });
+  }
   const table = document.createElement('table');
   table.className = 'eval';
   const head = table.insertRow();
@@ -471,6 +481,34 @@ function renderEval() {
   box.appendChild(table);
   luck();
   if (!live) para(box, T.evalHelp).className = 'caption';
+  // Aseman linkki analysoidusta siirrosta pelattuine siirtoineen (Tommi 24.11.2026).
+  linkButton(box, () => decisionLink(d));
+}
+
+// Linkin kopiointinappi ja ilmoitus. Jos leikepöytä ei ole käytettävissä, linkki näytetään valittuna.
+function linkButton(box, make) {
+  const b = document.createElement('button');
+  b.textContent = T.copyLink;
+  const msg = document.createElement('p');
+  msg.className = 'caption';
+  b.addEventListener('click', async () => {
+    const url = make();
+    try { await navigator.clipboard.writeText(url); msg.textContent = T.linkCopied; }
+    catch { msg.textContent = url; }
+  });
+  box.append(b, msg);
+}
+const linkURL = frag => `${location.origin}${location.pathname}#${frag}`;
+// Linkin nimet: oletusnimi Sinä jätetään pois, koska avaajalle se olisi väärä. Avaaja näkee silloin A:n.
+const linkNames = () => [whoName(0), whoName(1)].map(n => (n === T.static.you ? '' : n));
+// Päätöksen asema ennen siirtoa, nopat ja pelattu siirto. Pisteet ja pituus ovat pelin alun.
+function decisionLink(d) {
+  const x = selRec();
+  const pen0 = review ? [reviewGame().scores[review.h], reviewGame().scores[1 - review.h]] : x.score ?? pen;
+  const limit = review ? reviewLimit() : x.limit;
+  const s = [Int8Array.from(d.s[0]), Int8Array.from(d.s[1])];
+  const xgid = toXGID({ s, cube: d.cube, turn: d.p, dice: d.dice, pen: pen0, crawford: !!x.crawford, limit });
+  return linkURL(linkFragment(xgid, d.open ? null : d.moves, linkNames()));
 }
 // Aseman merkintä (Tommin tilaus 18.11.2026): pelaaja merkitsee valitun rivin aseman ja voi
 // kirjoittaa huomautuksen, esimerkiksi miksi botin siirto näyttää väärältä. Merkintä kuuluu
@@ -630,7 +668,8 @@ async function analyseRecord(x) {
     const r = w ? await ask(w, { kind: 'analyse', s: base, p: d.p, d1: d.dice[0], d2: d.dice[1], played: after, ply: depth })
       : rankPlays(net, base, d.p, d.dice[0], d.dice[1], after, depth);
     if (!r) d.forced = true;
-    else d.r = { best: r.best, played: r.played, top: topMoves(base, d.p, d.dice, r.top, r.best) };
+    // Avoimella siirrolla ei ole pelattua siirtoa, joten virhettä ei ole.
+    else d.r = { best: r.best, played: d.open ? r.best : r.played, top: topMoves(base, d.p, d.dice, r.top, r.best) };
     if (x.imported) {
       keep(d, { r: d.r, forced: d.forced, ply: d.ply });
       countImported(x, d);
@@ -710,7 +749,7 @@ function cubeEval(x, d) {
 }
 // Valitun pelaajan (0) siirrot lasketaan virheyhteenvetoon ja PR:ään kuten omassa pelissä.
 function countImported(x, d) {
-  if (d.p !== 0 || !d.r) return;
+  if (d.p !== 0 || !d.r || d.open) return;
   const loss = Math.max(0, 2 * (d.r.best - d.r.played));
   x.analysed++;
   x.totalLoss += loss;
@@ -2021,6 +2060,13 @@ $('xgidCopy').addEventListener('click', async () => {
   catch { $('xgid').select(); $('xgidMsg').textContent = T.xgidSelect; }
 });
 $('xgidSet').addEventListener('click', () => loadXGID($('xgid').value));
+// Nykyisen aseman linkki ilman pelattua siirtoa. Avaaja näkee verkon parhaat ja voi jatkaa.
+$('xgidLink').addEventListener('click', async () => {
+  const url = linkURL(linkFragment(currentXGID(), null, linkNames()));
+  $('xgid').value = url;
+  try { await navigator.clipboard.writeText(url); $('xgidMsg').textContent = T.linkCopied; }
+  catch { $('xgid').select(); $('xgidMsg').textContent = T.xgidSelect; }
+});
 $('xgid').addEventListener('keydown', ev => { if (ev.key === 'Enter') loadXGID($('xgid').value); });
 
 // Ottelun tuonti ja selaus (Tommin valinta 1.11.2026): DailyGammonin vienti (.mat) tai .sgf
@@ -2125,7 +2171,8 @@ function reviewRecord() {
     else { row = { n: ++n, me: p === 0 ? text : '', bot: p === 0 ? '' : text }; rec.log.push(row); }
     if (a.kind === 'win' || k + 1 >= steps.length) return;
     const d = { key: `${gi}:${k}`, p, n: row.n, s: view(st), cube: cubeOf(st), text };
-    if (a.kind === 'roll') Object.assign(d, { k: 'move', after: view(steps[k + 1]), dice: [...a.dice], ply, forced: a.moves.length === 0, moves: a.moves.map(m => [...m]) });
+    // Aseman linkin avoin siirto (open): nopat on heitetty, mutta siirtoa ei ole pelattu.
+    if (a.kind === 'roll') Object.assign(d, { k: 'move', after: view(steps[k + 1]), dice: [...a.dice], ply, forced: !a.open && a.moves.length === 0, open: !!a.open, moves: a.moves.map(m => [...m]) });
     else if (a.kind === 'double') Object.assign(d, { k: 'cube', act: 'double', value: (a.value ?? 2 * st.cube.value) / 2 });
     else Object.assign(d, { k: 'take', act: a.kind, value: st.cube.value });
     Object.assign(d, review.done.get(d.key));
@@ -2145,6 +2192,7 @@ function openRecord() {
 
 // Teon teksti siirtolistaan ja tilariville siirtäjän numeroinnissa.
 function actText(a, st) {
+  if (a.kind === 'roll' && a.open) return `${a.dice[0]}${a.dice[1]}: ?`;
   if (a.kind === 'roll') {
     const tmp = [Int8Array.from(st.s[0]), Int8Array.from(st.s[1])];
     const hits = a.moves.map(([f, t]) => applyMove(tmp, a.side, f, t));
@@ -2162,7 +2210,7 @@ function showStep() {
   const g = reviewGame();
   const st = steps[i];
   const a = i < g.actions.length ? g.actions[i] : null;
-  const side = a ? a.side : h;
+  const side = a ? a.side : g.turn ?? h;
   sel = { when: null, d: review.rec.act[i] ?? null };
   const stopped = review.error !== null && i === steps.length - 1;
   const name = g.players[side];
@@ -2215,13 +2263,15 @@ function playFromHere() {
   if (review.error !== null && i === review.steps.length - 1) return;
   if (['take', 'drop'].includes(g.actions[i]?.kind)) i--;
   const a = g.actions[i];
-  if (!a || a.kind === 'win') return;
+  // Aseman linkki ilman noppia: peli jatkuu linkin vuorosta heitolla.
+  if (!a && !(g.start && i === 0)) return;
+  if (a?.kind === 'win') return;
   const st = review.steps[i], h = review.h, owner = st.cube.owner;
   const x = {
     s: [Int8Array.from(st.s[h]), Int8Array.from(st.s[1 - h])],
     cube: { value: st.cube.value, owner: owner === -1 ? -1 : owner === h ? 0 : 1 },
-    turn: a.side === h ? 0 : 1,
-    dice: a.kind === 'roll' ? [...a.dice] : null,
+    turn: (a ? a.side : g.turn) === h ? 0 : 1,
+    dice: a?.kind === 'roll' ? [...a.dice] : null,
   };
   game = review.saved;
   review = null;
@@ -2749,6 +2799,17 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && (menus.some(m => m.open) || !$('langList').hidden)) closeMenus();
 });
 newGame();
+
+// Aseman linkki (#xgid=...) avautuu selaukseen kuten tuotu ottelu. Botin kesken oleva vuoro
+// odotetaan loppuun, koska selaus korvaa pelin näkymän.
+function openLink() {
+  const h = location.hash.slice(1);
+  if (!/^xgid=/i.test(h)) return;
+  if (!review && game.phase === 'bot') { setTimeout(openLink, 300); return; }
+  importMatch(h);
+}
+window.addEventListener('hashchange', openLink);
+openLink();
 
 // Testikoukku: ?debug antaa automaattiselle läpipeluulle pääsyn tilaan.
 if (location.search.includes('debug')) window.__dg = { get game() { return game; }, currentXGID, loadXGID, importMatch, get review() { return review; }, step, nextMark, playFromHere, closeReview, played, get ply() { return ply; }, match, prefs, opts, snd, newGame, clickSpot, swapDice, remainingDice, nextMoves, humanDouble, humanTake, humanDrop, botCube, humanOfferDraw, humanAcceptDraw, humanDeclineDraw };
