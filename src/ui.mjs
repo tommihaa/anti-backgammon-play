@@ -59,8 +59,9 @@ const prefs = {
 // Pelaamisen kytkimet DG Androidin Pelaaminen-ryhmästä (docs/ASETUKSET.md luku 3). Ahne uloskanto
 // jäi pois, koska tässä pelissä ulos ehtiminen on se mitä vältetään. Siirron jälkeinen analyysi on
 // oma kytkimensä (Tommin tilaus 1.11.2026). Tuodun ottelun analyysi on oma kytkimensä (Tommin
-// valinta 14.11.2026), koska 2-ply-analyysi vie koko ottelusta minuutteja.
-export const PLAY_TOGGLES = ['analysis', 'importAnalysis', 'forced', 'arrows', 'botArrows', 'press', 'diceSubmit', 'diceSwap', 'diceRoll', 'nextOnDice'];
+// valinta 14.11.2026), koska 2-ply-analyysi vie koko ottelusta minuutteja. Botin siirtojen
+// analyysi kesken pelin on oma kytkimensä (Tommin tilaus 24.11.2026).
+export const PLAY_TOGGLES = ['analysis', 'botAnalysis', 'importAnalysis', 'forced', 'arrows', 'botArrows', 'press', 'diceSubmit', 'diceSwap', 'diceRoll', 'nextOnDice'];
 // Kaikki kytkimet ovat oletuksena päällä 3.11.2026 alkaen (Tommin päätös debuggausta varten, Kaanon §4).
 const opts = Object.fromEntries(PLAY_TOGGLES.map(k => [k, true]));
 { const saved = store.get('ab-pelaaminen', {}); for (const k of PLAY_TOGGLES) if (typeof saved?.[k] === 'boolean') opts[k] = saved[k]; }
@@ -145,10 +146,10 @@ function botMove(s, d1, d2) {
   if (!botWorker) { deepBots[ply] ??= netBot(net, ply); return Promise.resolve(deepBots[ply](s, 1, d1, d2, Math.random)); }
   return ask(botWorker, { s, p: 1, d1, d2, ply });
 }
-// Siirtosi analyysi samalla syvyydellä kuin botti pelaa (src/analyysi.mjs).
-function rankMove(base, d1, d2, played) {
-  if (ply === 0 || !analysisWorker) return Promise.resolve(rankPlays(net, base, 0, d1, d2, played, ply));
-  return ask(analysisWorker, { kind: 'analyse', s: base, p: 0, d1, d2, played, ply });
+// Pelaajan p siirron analyysi samalla syvyydellä kuin botti pelaa (src/analyysi.mjs).
+function rankMove(base, d1, d2, played, p = 0) {
+  if (ply === 0 || !analysisWorker) return Promise.resolve(rankPlays(net, base, p, d1, d2, played, ply));
+  return ask(analysisWorker, { kind: 'analyse', s: base, p, d1, d2, played, ply });
 }
 const netPolicy = netCube(net);
 let botCube;
@@ -162,9 +163,12 @@ function newGame() {
   // (Kaanon §2.6).
   const limit = match.limit;
   // DMP on yhden pisteen ottelu, jonka jokainen peli on kuutioton kuten Crawford-peli.
-  const crawford = limit !== null && !match.crawford && pen.some(x => x === limit - 1);
-  if (crawford) match.crawford = true;
-  const dmp = limit === 1;
+  // match.crawford on Crawford-pelin numero (aiemmin true). Sivun lataus hylkää kesken olevan pelin,
+  // joten samalla numerolla alkava peli on yhä Crawford-peli. Aiemmin merkintä ohitti sen, ja
+  // DMP sai latauksen jälkeen kuution (Tommin havainto 24.11.2026).
+  const dmp = limit === 1, no = (match.done ?? 0) + 1;
+  const crawford = dmp || (limit !== null && (!match.crawford || match.crawford === no) && pen.some(x => x === limit - 1));
+  if (crawford && !dmp) match.crawford = no;
   saveMatch();
   // Rahapelissä kuutio käyttää rahapelin rajoja (Kaanon §4), ottelussa voittotaulukkoa.
   botCube = limit === null ? netPolicy : tablePolicy(netPolicy, { away: pen.map(x => limit - x), crawford });
@@ -177,7 +181,7 @@ function newGame() {
     lastBot: [], log: [], moveNo: 0, half: 0, over: false, errors: [], analysed: 0, totalLoss: 0,
     when: Date.now(), limit: match.limit, decisions: [], stall: newStall(), turnAct: null,
     names: [meName(), botLabel()],
-    msg: T.opening(a, b, a > b, crawford && !dmp), no: (match.done ?? 0) + 1, score: [...pen], match: match.id,
+    msg: T.opening(a, b, a > b, crawford && !dmp), no, score: [...pen], match: match.id,
   };
   if (!first) sound('gong');
   review = null;
@@ -398,11 +402,11 @@ $('clearHistory').addEventListener('click', async () => {
   render();
 });
 
-// Arvio-paneeli. Kesken olevassa pelissä näytetään vain omien siirtojen ero parhaaseen, ei
-// voittotodennäköisyyttä eikä kuutiopäätösten arviota (Tommin valinta 10.11.2026, Kaanonin linja:
-// analyysi ei kerro kesken pelin, kannattaako tuplata). Tutor-tila (kytkin analysis) näyttää
-// viimeisimmän oman siirron arvion jokaisen siirron jälkeen. Päättyneen pelin riveillä näkyvät
-// voittotodennäköisyys, equity ja ero parhaaseen molempien siirroista ja kuutiopäätöksistä.
+// Arvio-paneeli. Kesken pelin näkyy sama kuin päättyneessä pelissä: voittotodennäköisyys, equity,
+// ero parhaaseen, heiton onni ja kuutiopäätösten arvio. Tommi purki 24.11.2026 debuggausta varten
+// 10.11.2026 tehdyn rajauksen, jonka mukaan analyysi ei kertonut kesken pelin, kannattaako tuplata
+// (Kaanon §5). Omat päätökset näkyvät Tutor-tilassa (kytkin analysis), ja ilman valintaa
+// viimeisin oma siirto. Botin päätökset näkyvät kytkimellä botAnalysis.
 const para = (box, text) => { const p = document.createElement('p'); p.textContent = text; box.appendChild(p); return p; };
 const signed = x => (x >= 0 ? '+' : '−') + fmt(Math.abs(x));
 function renderEval() {
@@ -439,19 +443,18 @@ function renderEval() {
     d = [...(x.decisions ?? [])].reverse().find(y => y.k === 'move' && y.p === 0);
     if (!d) { para(box, T.evalNone); return; }
   }
-  if (live && !opts.analysis) { para(box, T.evalTutorOff); return; }
+  if (live && d.p === 0 && !opts.analysis) { para(box, T.evalTutorOff); return; }
   // Kesken pelin valitun botin siirron linkin voi kopioida, vaikka analyysi näkyy vasta pelin jälkeen
-  // (Tommi 24.11.2026). Linkin avaaja näkee analyysin.
-  if (live && d.p === 1) { para(box, T.evalBotLater); if (picked) linkButton(box, () => decisionLink(d)); return; }
-  if (d.k !== 'move') {
-    if (live) { para(box, T.evalCubeLater); return; }
-    renderCubeEval(box, d);
-    return;
-  }
+  // (Tommi 24.11.2026). Linkin avaaja näkee analyysin. Kytkimen botAnalysis kanssa botin siirto
+  // näkyy kuten omasi. Ennen kytkintä tai sivun latausta pelatut siirrot analysoidaan valittaessa.
+  if (live && d.p === 1 && !opts.botAnalysis) { para(box, T.evalBotLater); if (picked) linkButton(box, () => decisionLink(d)); return; }
+  if (live && d.p === 1 && d.k === 'move') analyseBot(d);
+  if (d.k !== 'move') { renderCubeEval(box, d); return; }
+  // Kesken pelin heiton onni lasketaan valittaessa (0-ply, noin 10 ms). Jälkianalyysi ohittaa sen.
+  if (live && d.luck === undefined && d.s && d.dice) d.luck = rollLuck(net, [Int8Array.from(d.s[0]), Int8Array.from(d.s[1])], d.p, d.dice[0], d.dice[1]);
   const who = whoName(d.p), mine = d.p === 0 && !review;
   const played = d.text.split(': ')[1] ?? d.text;
-  // Heiton onni päättyneen ja tuodun pelin riveillä, ei kesken pelin (Kaanonin linja kuten voitto-%).
-  const luck = () => { if (!live && d.luck !== undefined) para(box, T.luckLine(signed(d.luck))); };
+  const luck = () => { if (d.luck !== undefined) para(box, T.luckLine(signed(d.luck))); };
   if (d.forced) { para(box, T.evalTitle(d.n, who, d.text)); para(box, d.text.includes('/') ? T.evalForced : T.evalDance); luck(); return; }
   if (!d.r) { para(box, mine ? T.noteWait(d.text) : T.evalTitle(d.n, who, d.text) + ' ' + T.evalWait); luck(); return; }
   const loss = Math.max(0, 2 * (d.r.best - d.r.played)), lv = level(loss);
@@ -468,20 +471,19 @@ function renderEval() {
   const table = document.createElement('table');
   table.className = 'eval';
   const head = table.insertRow();
-  const cols = live ? [T.evalHead[0], T.evalHead[3]] : T.evalHead;
-  cols.forEach((c, i) => { const th = document.createElement('th'); th.textContent = c; if (i > 0) th.className = 'num'; head.appendChild(th); });
+  T.evalHead.forEach((c, i) => { const th = document.createElement('th'); th.textContent = c; if (i > 0) th.className = 'num'; head.appendChild(th); });
   for (const r of rows) {
     const tr = table.insertRow();
     const best = r.loss < SAME;
     tr.className = (best ? 'best' : 'worse') + (r.played ? ' played' : '');
     const cells = [(r.played && best ? '✓ ' : '') + r.m];
-    if (!live) cells.push(T.pct(r.x), signed(2 * r.x - 1));
+    cells.push(T.pct(r.x), signed(2 * r.x - 1));
     cells.push(best ? '' : '−' + fmt(r.loss));
     cells.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; td.className = i === 0 ? 'mv' : 'num'; });
   }
   box.appendChild(table);
   luck();
-  if (!live) para(box, T.evalHelp).className = 'caption';
+  para(box, T.evalHelp).className = 'caption';
   // Aseman linkki analysoidusta siirrosta pelattuine siirtoineen. Nappi näkyy, kun siirto on valittu
   // siirtolistasta, myös kesken pelin (Tommi 24.11.2026).
   if (picked) linkButton(box, () => decisionLink(d));
@@ -1191,6 +1193,23 @@ function analyse(base, dice, played, row, moveNo, dec) {
   });
 }
 
+// Botin siirron analyysi kesken pelin (kytkin botAnalysis, Tommin tilaus 24.11.2026). Se menee
+// samaan analyysisäikeeseen kuin omat siirtosi, joten 2-ply:llä oman siirron arvio voi tulla
+// myöhemmin. Botin vastaus ei hidastu, koska botilla on oma säikeensä. Botin siirrot eivät kuulu
+// pelin virhesummaan. Tulos kuuluu sille pelille, jossa se pyydettiin, kuten analyse().
+const botQueued = new WeakSet();
+function analyseBot(dec) {
+  if (dec.r || dec.forced || !dec.dice || botQueued.has(dec)) return;
+  botQueued.add(dec);
+  const g = game, arr = st => [Int8Array.from(st[0]), Int8Array.from(st[1])];
+  const base = arr(dec.s);
+  rankMove(base, dec.dice[0], dec.dice[1], arr(dec.after), 1).then(r => {
+    if (!r) dec.forced = true;
+    else dec.r = { best: r.best, played: r.played, top: topMoves(base, 1, dec.dice, r.top, r.best) };
+    if (game === g) render(); else if (g.over) saveFinished();
+  });
+}
+
 // Ero, joka näkyy kolmella desimaalilla nollana, on sama kuin verkon paras.
 const SAME = 0.0005;
 
@@ -1276,8 +1295,9 @@ function botPlayed(play, ms) {
   const last = game.log[game.log.length - 1];
   const joins = last && last.bot === '' && last.me !== '';
   if (!joins) game.moveNo++;
-  decide({ k: 'move', p: 1, n: game.moveNo, s: before, after: plain(play.s), dice: [...game.dice], text, ply,
+  const dec = decide({ k: 'move', p: 1, n: game.moveNo, s: before, after: plain(play.s), dice: [...game.dice], text, ply,
     forced: play.moves.length === 0, moves: play.moves.map(m => [...m]), cube: { ...game.cube } });
+  if (opts.botAnalysis && play.moves.length) analyseBot(dec);
   if (joins) { last.bot = text; last.botD = lastDecision(); }
   else game.log.push({ n: game.moveNo, me: '', bot: text, botD: lastDecision() });
   const d = `${game.dice[0]}${game.dice[1]}`;

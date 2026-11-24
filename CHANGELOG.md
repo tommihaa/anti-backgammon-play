@@ -4,6 +4,27 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.4.0] - 2026-11-24
+
+### Added
+
+- Settings has a new switch, Analyse the bot's moves during the game. When it is on, a bot move
+  shows its analysis as soon as you pick it from the move list. The bot does not reply more
+  slowly, but at 2-ply the analysis of your own move may come a moment later.
+
+### Changed
+
+- During a game the Evaluation panel shows the same as after it: winning chances, equity, the
+  difference to the best move, the luck of the roll and the evaluation of cube decisions. The
+  analysis now also tells you during the game whether to double. Your own decisions show in
+  Tutor mode, and the bot's decisions with the new switch.
+
+### Fixed
+
+- A 1-point match no longer shows the doubling cube after the page is reloaded.
+- A Crawford game interrupted by reloading the page is played again as a Crawford game, without
+  the cube.
+
 ## [0.3.0] - 2026-11-24
 
 ### Added

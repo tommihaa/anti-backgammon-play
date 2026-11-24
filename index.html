@@ -557,9 +557,14 @@
         (0,08) ja ?? vakava virhe (0,16). Pelin päätyttyä siirto on listassa <span class="c-good">vihreä</span>, kun se menetti
         yli 0,020, ja <span class="c-bad">punainen</span>, kun se menetti yli 0,080. Kuutiopäätöksiä ei väritetä.</p>
         <p>Kun Pelaaminen-kohdan Tutor-tila on päällä, niin
-        Arvio-paneeli näyttää jokaisen siirtosi jälkeen arvion ja verkon parhaat siirrot eroineen.
-        Pelin aikana näet vain eroja parhaaseen siirtoon etkä aseman arviota, joten analyysi ei
-        kerro, kannattaako tuplata. Botin siirrot ja kuutiopäätökset arvioidaan pelin päätyttyä.
+        Arvio-paneeli näyttää jokaisen siirtosi jälkeen arvion ja verkon parhaat siirrot
+        voittotodennäköisyyksineen, equityineen ja eroineen sekä heiton onnen. Kun valitset
+        kuutiopäätöksesi Peli-paneelin listasta, näet sen arvion jo pelin aikana. Analyysi kertoo
+        siis kesken pelin myös sen, kannattaako tuplata. Kun Analysoi botin siirrot kesken pelin on
+        päällä, niin botin siirrot ja kuutiopäätökset näkyvät samalla tavalla. Muuten ne
+        arvioidaan pelin päätyttyä. Botin
+        vastaus ei hidastu, mutta 2-ply-syvyydellä oman siirtosi arvio voi tulla hetken myöhemmin,
+        koska molemmat lasketaan samassa jonossa.
         Pelin lopussa Arvio-paneeli näyttää virheiden summan ja kolme suurinta virhettä, kunkin
         kohdalla verkon kolme parasta.</p>
         <h4>Puhelin ja tabletti</h4>
@@ -741,9 +746,13 @@
         Cube decisions are not coloured.</p>
         <p>When Tutor mode under
         Playing is on, the Evaluation panel shows the verdict and the network's best moves with
-        their differences after each of your moves. During the game you see only differences from
-        the best move and never the evaluation of the position, so the analysis does not tell you
-        whether to double. The bot's moves and the cube decisions are evaluated when the game ends.
+        their winning chances, equities and differences, plus the luck of the roll, after each of
+        your moves. When you pick one of your cube decisions from the list in the Game panel, you
+        see its evaluation during the game, so the analysis also tells you whether to double. When
+        Analyse the bot's moves during the game is on, the bot's moves and cube decisions show the
+        same way. Otherwise they are evaluated when the game ends.
+        The bot does not reply more slowly, but at 2-ply the evaluation of your own move may come a
+        moment later, because both are computed in the same queue.
         At the end of the game the Evaluation panel shows the total error and the three biggest
         errors, each with the network's top three.</p>
         <h4>Phone and tablet</h4>
@@ -942,10 +951,14 @@
         verloren hat, und <span class="c-bad">rot</span>, wenn er mehr als 0,080 verloren hat. Würfelentscheidungen werden nicht
         eingefärbt.</p>
         <p>Wenn der Tutor-Modus unter Spielen an ist, zeigt das Bewertung-Panel nach
-        jedem deiner Züge das Urteil und die besten Züge des Netzes mit ihren Abständen. Während des
-        Spiels siehst du nur Abstände zum besten Zug und nie die Bewertung der Stellung, daher sagt
-        dir die Analyse nicht, ob du verdoppeln sollst. Die Züge des Bots und die
-        Würfelentscheidungen werden am Spielende bewertet. Am Ende des Spiels zeigt das
+        jedem deiner Züge das Urteil, die besten Züge des Netzes mit Gewinnchance, Equity und
+        Abstand sowie das Würfelglück. Wenn du eine deiner Würfelentscheidungen in der Liste des
+        Spiel-Panels wählst, siehst du ihre Bewertung schon während des Spiels. Die Analyse sagt dir
+        also auch, ob du verdoppeln sollst. Wenn Züge des Bots während des Spiels analysieren an
+        ist, erscheinen die Züge und Würfelentscheidungen des Bots genauso. Sonst werden sie am
+        Spielende bewertet. Der Bot antwortet nicht langsamer, aber bei 2-ply kann
+        die Bewertung deines eigenen Zugs einen Moment später kommen, weil beide in derselben
+        Warteschlange berechnet werden. Am Ende des Spiels zeigt das
         Bewertung-Panel die Fehlersumme und die drei größten Fehler, jeweils mit den drei besten
         Zügen des Netzes.</p>
         <h4>Handy und Tablet</h4>
@@ -1144,10 +1157,14 @@
         erreur (0,16). Une fois la partie terminée, un coup de la liste est <span class="c-good">vert</span> s'il a perdu plus de
         0,020 et <span class="c-bad">rouge</span> s'il a perdu plus de 0,080. Les décisions de videau ne sont pas colorées.</p>
         <p>Quand le mode tuteur sous Jeu est activé, le panneau Évaluation affiche après
-        chacun de vos coups le verdict et les meilleurs coups du réseau avec leurs écarts. Pendant la
-        partie, vous ne voyez que les écarts avec le meilleur coup et jamais l'évaluation de la
-        position, donc l'analyse ne vous dit pas s'il faut doubler. Les coups du bot et les décisions
-        de videau sont évalués à la fin de la partie. À la fin de la partie, le panneau Évaluation
+        chacun de vos coups le verdict, les meilleurs coups du réseau avec leurs chances de gain,
+        equity et écarts, ainsi que la chance du lancer. Quand vous choisissez une de vos décisions
+        de videau dans la liste du panneau Partie, vous voyez son évaluation pendant la partie.
+        L'analyse vous dit donc aussi s'il faut doubler. Quand Analyser les coups du bot pendant la
+        partie est activé, les coups et les décisions de videau du bot s'affichent de la même façon.
+        Sinon, ils sont évalués à la fin de la partie. Le bot ne
+        répond pas plus lentement, mais à 2-ply l'évaluation de votre propre coup peut arriver un
+        peu plus tard, car les deux sont calculées dans la même file. À la fin de la partie, le panneau Évaluation
         affiche l'erreur totale et les trois plus grosses erreurs, chacune avec les trois meilleurs
         coups du réseau.</p>
         <h4>Téléphone et tablette</h4>
