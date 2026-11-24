@@ -498,17 +498,20 @@ function linkButton(box, make) {
   });
   box.append(b, msg);
 }
-const linkURL = frag => `${location.origin}${location.pathname}#${frag}`;
-// Linkin nimet: oletusnimi Sinä jätetään pois, koska avaajalle se olisi väärä. Avaaja näkee silloin A:n.
-const linkNames = () => [whoName(0), whoName(1)].map(n => (n === T.static.you ? '' : n));
+// Julkiselta laudalta linkki osoittaa lyhyeen ohjaussivuun, koska DailyGammonin foorumi rivittää
+// viestin noin 72 merkin kohdalta ja tunnistaa linkiksi vain http-osoitteen (Tommi 24.11.2026).
+// Paikallisessa kehityksessä linkki osoittaa samaan sivuun, jotta sen voi kokeilla.
+const LINK_BASE = location.hostname === 'tommihaa.github.io' ? 'http://tommihaa.github.io/abg/#' : `${location.origin}${location.pathname}#`;
+const linkURL = frag => LINK_BASE + frag;
 // Päätöksen asema ennen siirtoa, nopat ja pelattu siirto. Pisteet ja pituus ovat pelin alun.
 function decisionLink(d) {
   const x = selRec();
   const pen0 = review ? [reviewGame().scores[review.h], reviewGame().scores[1 - review.h]] : x.score ?? pen;
   const limit = review ? reviewLimit() : x.limit;
   const s = [Int8Array.from(d.s[0]), Int8Array.from(d.s[1])];
-  const xgid = toXGID({ s, cube: d.cube, turn: d.p, dice: d.dice, pen: pen0, crawford: !!x.crawford, limit });
-  return linkURL(linkFragment(xgid, d.open ? null : d.moves, linkNames()));
+  // Selauksessa Crawford on tuodun pelin (aseman linkki) tai DMP:n, jossa jokainen peli on Crawford-peli.
+  const crawford = review ? !!reviewGame().crawford || review.kind === 'dmp' : !!x.crawford;
+  return linkURL(linkFragment({ s, cube: d.cube, turn: d.p, dice: d.dice, pen: pen0, crawford, limit }, d.open ? null : d.moves));
 }
 // Aseman merkintä (Tommin tilaus 18.11.2026): pelaaja merkitsee valitun rivin aseman ja voi
 // kirjoittaa huomautuksen, esimerkiksi miksi botin siirto näyttää väärältä. Merkintä kuuluu
@@ -2062,7 +2065,7 @@ $('xgidCopy').addEventListener('click', async () => {
 $('xgidSet').addEventListener('click', () => loadXGID($('xgid').value));
 // Nykyisen aseman linkki ilman pelattua siirtoa. Avaaja näkee verkon parhaat ja voi jatkaa.
 $('xgidLink').addEventListener('click', async () => {
-  const url = linkURL(linkFragment(currentXGID(), null, linkNames()));
+  const url = linkURL(linkFragment(fromXGID(currentXGID()), null));
   $('xgid').value = url;
   try { await navigator.clipboard.writeText(url); $('xgidMsg').textContent = T.linkCopied; }
   catch { $('xgid').select(); $('xgidMsg').textContent = T.xgidSelect; }
@@ -2078,6 +2081,8 @@ const reviewGame = () => review.m.games[review.gi];
 function importMatch(text) {
   const m = parseMatch(text);
   if (!m) { $('importMsg').textContent = T.importBad; return; }
+  // Aseman linkissä ei ole nimiä: siirtäjä on Pelaaja ja vastapuoli laudan botti.
+  if (m.link) m.players = m.games[0].players = m.players.map((n, k) => n || (k ? botLabel() : T.linkPlayer));
   if (!review && game.phase === 'bot') { $('importMsg').textContent = T.reviewBusy; return; }
   const name = store.get('ab-tuonti-nimi', null);
   // Saman ottelun uusi tuonti avaa tallennetun analyysin. done säilyttää valmiit analyysit teon
@@ -2804,7 +2809,7 @@ newGame();
 // odotetaan loppuun, koska selaus korvaa pelin näkymän.
 function openLink() {
   const h = location.hash.slice(1);
-  if (!/^xgid=/i.test(h)) return;
+  if (!h || !parseMatch(h)?.link) return;
   if (!review && game.phase === 'bot') { setTimeout(openLink, 300); return; }
   importMatch(h);
 }

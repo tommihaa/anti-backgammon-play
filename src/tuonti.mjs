@@ -17,42 +17,107 @@ import { fromXGID } from './xgid.mjs';
 
 export function parseMatch(text) {
   const t = String(text).replace(/^﻿/, '');
-  if (/^\s*#?xgid=/i.test(t)) return parseLink(t);
+  if (/^\s*#?xgid=/i.test(t) || SHORT.test(t.trim().replace(/^#/, ''))) return parseLink(t);
   return /^\s*\(\s*;/.test(t) ? parseSgf(t) : parseMat(t);
 }
 
 // ---- Aseman linkki ----
 //
 // Aseman linkki (Tommin tilaus 24.11.2026) avaa aseman laudalle selattavaksi analyysin kanssa, ja
-// siitä voi jatkaa peliä bottia vastaan. Osoitteen fragmentti on
-//   xgid=<XGID ilman etuliitettä>&m=13/7,8/7&a=<nimi>&b=<nimi>
-// m on pelattu siirto siirtäjän numeroinnissa (25 muuri, 0 ulos). Ilman m:ää siirto on avoin,
-// ja analyysi näyttää vain verkon parhaat. a ja b ovat isojen ja pienten kirjainten pelaajat.
-// Linkki jäsennetään tuoduksi otteluksi, jossa on yksi peli tästä asemasta alkaen.
-export function linkFragment(xgid, moves, names) {
-  let f = `xgid=${String(xgid).replace(/^XGID=/, '')}`;
-  if (moves?.length) f += `&m=${moves.map(([a, b]) => `${a}/${b}`).join(',')}`;
-  names?.forEach((n, k) => { if (n) f += `&${'ab'[k]}=${encodeURIComponent(n)}`; });
+// siitä voi jatkaa peliä bottia vastaan. Linkki jäsennetään tuoduksi otteluksi, jossa on yksi peli
+// tästä asemasta alkaen.
+//
+// DailyGammonin foorumi rivittää viestin noin 72 merkin kohdalta, ja rivinvaihto katkaisee linkin
+// (Tommin koe 24.11.2026). Siksi fragmentti on tiivis:
+//   <asema>.<vuoro><nopat><siirto>[.<pituus>[c][.<p1>.<p2>[.<kuutio><omistaja>]]]
+// Asema on 14 merkkiä: kummankin pelaajan pisteet 1–24 ja muuri omassa numeroinnissaan, kukin
+// nappulamäärän verran ykkösbittejä ja nolla perään (GNU Backgammonin Position ID:n tapaan,
+// enintään 80 bittiä), base64url-merkein. Vuoro on a (isot kirjaimet, pelaaja 0) tai b. Nopat ovat
+// kaksi numeroa tai puuttuvat. Siirto on pistepareja kirjaimina a–z = 0–25 (25 muuri, 0 ulos).
+// Ilman siirtoa siirto on avoin, ja analyysi näyttää vain verkon parhaat. Pituus 0 on rahapeli, c
+// Crawford-peli, p1 ja p2 rangaistuspisteet ja kuutio arvon kaksikantainen logaritmi ja omistaja
+// n (keskellä), a tai b. Oletusarvoiset loppukentät jätetään pois.
+//
+// Vanha muoto xgid=<XGID>&m=13/7,8/7&a=<nimi>&b=<nimi> (versio 0.2.0) jäsentyy edelleen.
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+const SHORT = /^([A-Za-z0-9_-]{14})\.([ab])([1-6]{2})?((?:[a-z]{2})*)(?:\.(\d+)(c?)(?:\.(\d+)\.(\d+)(?:\.(\d)([nab]))?)?)?$/;
+const letter = n => String.fromCharCode(97 + n);
+
+function encodePosition(s) {
+  const bits = [];
+  for (const side of s) for (let i = 1; i <= 25; i++) { for (let k = 0; k < side[i]; k++) bits.push(1); bits.push(0); }
+  while (bits.length < 84) bits.push(0);
+  let out = '';
+  for (let i = 0; i < 84; i += 6) out += B64[bits.slice(i, i + 6).reduce((a, b) => 2 * a + b, 0)];
+  return out;
+}
+
+function decodePosition(code) {
+  const bits = [];
+  for (const ch of code) { const v = B64.indexOf(ch); for (let k = 5; k >= 0; k--) bits.push((v >> k) & 1); }
+  const s = [new Int8Array(26), new Int8Array(26)];
+  let j = 0;
+  for (const side of s) {
+    for (let i = 1; i <= 25; i++) { while (bits[j] === 1) { side[i]++; j++; } if (j >= bits.length) return null; j++; }
+    const on = side.reduce((a, b) => a + b, 0);
+    // Pelaaja, jonka kaikki nappulat ovat ulkona, on jo poistunut pelistä.
+    if (on > 15 || on === 0) return null;
+    side[OFF] = 15 - on;
+  }
+  return s;
+}
+
+// x on { s, cube, turn, dice, pen, crawford, limit } kuten fromXGID:n tulos, moves pelattu siirto tai null.
+export function linkFragment(x, moves) {
+  let f = `${encodePosition(x.s)}.${'ab'[x.turn]}${x.dice ? `${x.dice[0]}${x.dice[1]}` : ''}`;
+  if (x.dice && moves?.length) f += moves.map(([a, b]) => letter(a) + letter(b)).join('');
+  const cv = Math.round(Math.log2(x.cube.value)), co = x.cube.owner === -1 ? 'n' : 'ab'[x.cube.owner];
+  const tail = [`${x.limit ?? 0}${x.crawford ? 'c' : ''}`, String(x.pen?.[0] ?? 0), String(x.pen?.[1] ?? 0), `${cv}${co}`];
+  const dflt = ['0', '0', '0', '0n'];
+  let n = tail.length;
+  while (n > 0 && tail[n - 1] === dflt[n - 1]) n--;
+  // Pisteet kulkevat parina, joten kuutio vaatii molemmat ja toinen piste ensimmäisen.
+  if (n === 2) n = 3;
+  if (n) f += `.${tail.slice(0, n).join('.')}`;
   return f;
 }
 
 export function parseLink(text) {
-  const q = new URLSearchParams(String(text).trim().replace(/^#/, ''));
-  const x = fromXGID(q.get('xgid') ?? '');
-  if (!x) return null;
-  let moves = null;
-  if (q.get('m')) {
-    moves = [];
-    for (const w of q.get('m').split(',')) {
-      const r = w.match(/^(\d+)\/(\d+)$/);
-      if (!r) return null;
-      moves.push([Number(r[1]), Number(r[2])]);
+  const t = String(text).trim().replace(/^#/, '');
+  const r = t.match(SHORT);
+  let x, moves = null, names = [null, null];
+  if (r) {
+    const s = decodePosition(r[1]);
+    if (!s) return null;
+    x = {
+      s, turn: r[2] === 'a' ? 0 : 1, dice: r[3] ? [Number(r[3][0]), Number(r[3][1])] : null,
+      limit: Number(r[5] ?? 0), crawford: r[6] === 'c', pen: [Number(r[7] ?? 0), Number(r[8] ?? 0)],
+      cube: { value: 2 ** Number(r[9] ?? 0), owner: r[10] === 'a' ? 0 : r[10] === 'b' ? 1 : -1 },
+    };
+    if (x.cube.value > 64) return null;
+    if (r[4]) {
+      moves = [];
+      for (let i = 0; i < r[4].length; i += 2) moves.push([r[4].charCodeAt(i) - 97, r[4].charCodeAt(i + 1) - 97]);
     }
+  } else {
+    const q = new URLSearchParams(t);
+    x = fromXGID(q.get('xgid') ?? '');
+    if (!x) return null;
+    if (q.get('m')) {
+      moves = [];
+      for (const w of q.get('m').split(',')) {
+        const m = w.match(/^(\d+)\/(\d+)$/);
+        if (!m) return null;
+        moves.push([Number(m[1]), Number(m[2])]);
+      }
+    }
+    names = [q.get('a'), q.get('b')];
   }
   const actions = x.dice ? [{ kind: 'roll', side: x.turn, dice: x.dice, moves: moves ?? [], open: !moves }] : [];
+  // Nimet täydentää käyttöliittymä, jos linkissä niitä ei ole.
   return {
-    length: x.limit, players: [q.get('a') || 'A', q.get('b') || 'B'], link: true,
-    games: [{ players: [q.get('a') || 'A', q.get('b') || 'B'], scores: x.pen, crawford: x.crawford, start: { s: x.s, cube: x.cube }, turn: x.turn, actions, setup: false }],
+    length: x.limit, players: names, link: true,
+    games: [{ players: names, scores: x.pen, crawford: x.crawford, start: { s: x.s, cube: x.cube }, turn: x.turn, actions, setup: false }],
   };
 }
 

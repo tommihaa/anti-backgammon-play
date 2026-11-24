@@ -4,6 +4,15 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.2.1] - 2026-11-24
+
+### Fixed
+
+- Position links are short enough for the DailyGammon forum, which wraps a message at about 72
+  characters and broke the old links. A link now looks like
+  http://tommihaa.github.io/abg/#E-YngAxVcg-ADA.a36ifnh.1c and stays under 72 characters. It no
+  longer carries player names. Links from version 0.2.0 still open.
+
 ## [0.2.0] - 2026-11-24
 
 ### Added

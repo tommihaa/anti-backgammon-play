@@ -42,7 +42,7 @@ const fi = {
   xgidBad: 'Tunniste ei ole kelvollinen XGID.', xgidLoaded: 'Asema asetettu tunnisteesta.',
   linkRoll: (who, w, dbl) => `${who} heittää seuraavaksi. Voiton todennäköisyys on verkon arviona ${w}.`
     + (dbl === null ? '' : dbl ? ' Verkko tuplaisi ennen heittoa.' : ' Verkko ei tuplaisi.') + ' Jatka tästä aloittaa pelin tästä asemasta.',
-  copyLink: 'Kopioi linkki', linkCopied: 'Linkki kopioitu leikepöydälle. Se avaa aseman analyysin kanssa. Siitä voi myös jatkaa peliä.',
+  linkPlayer: 'Pelaaja', copyLink: 'Kopioi linkki', linkCopied: 'Linkki kopioitu leikepöydälle. Se avaa aseman analyysin kanssa. Siitä voi myös jatkaa peliä.',
   xgidCopied: 'Kopioitu leikepöydälle.', xgidSelect: 'Kopioi valittu teksti näppäimillä Ctrl+C.',
   logImport: 'Asema XGID:stä',
   importBad: 'Tekstistä ei löytynyt ottelua. Tuonti lukee DailyGammonin viennin (.mat) ja .sgf-tiedoston.',
@@ -210,7 +210,7 @@ const en = {
   xgidBad: 'This is not a valid XGID.', xgidLoaded: 'Position set from the ID.',
   linkRoll: (who, w, dbl) => `${who} rolls next. The network puts the winning chance at ${w}.`
     + (dbl === null ? '' : dbl ? ' The network would double before rolling.' : ' The network would not double.') + ' Play from here starts a game from this position.',
-  copyLink: 'Copy link', linkCopied: 'Link copied to the clipboard. It opens the position with the analysis, and you can play on from it.',
+  linkPlayer: 'Player', copyLink: 'Copy link', linkCopied: 'Link copied to the clipboard. It opens the position with the analysis, and you can play on from it.',
   xgidCopied: 'Copied to the clipboard.', xgidSelect: 'Copy the selected text with Ctrl+C.',
   logImport: 'Position from XGID',
   importBad: 'No match found in the text. Import reads a DailyGammon export (.mat) and an .sgf file.',
@@ -383,7 +383,7 @@ const de = {
   xgidBad: 'Das ist keine gültige XGID.', xgidLoaded: 'Stellung aus der ID gesetzt.',
   linkRoll: (who, w, dbl) => `${who} würfelt als Nächstes. Das Netz schätzt die Gewinnchance auf ${w}.`
     + (dbl === null ? '' : dbl ? ' Das Netz würde vor dem Würfeln verdoppeln.' : ' Das Netz würde nicht verdoppeln.') + ' Von hier spielen beginnt ein Spiel ab dieser Stellung.',
-  copyLink: 'Link kopieren', linkCopied: 'Link in die Zwischenablage kopiert. Er öffnet die Stellung mit der Analyse, und von dort kannst du weiterspielen.',
+  linkPlayer: 'Spieler', copyLink: 'Link kopieren', linkCopied: 'Link in die Zwischenablage kopiert. Er öffnet die Stellung mit der Analyse, und von dort kannst du weiterspielen.',
   xgidCopied: 'In die Zwischenablage kopiert.', xgidSelect: 'Kopiere den markierten Text mit Strg+C.',
   logImport: 'Stellung aus XGID',
   importBad: 'Im Text wurde kein Match gefunden. Der Import liest einen DailyGammon-Export (.mat) und eine .sgf-Datei.',
@@ -551,7 +551,7 @@ const fr = {
   xgidBad: "Ce n'est pas un XGID valide.", xgidLoaded: "Position définie à partir de l'ID.",
   linkRoll: (who, w, dbl) => `${who} lance les dés ensuite. Le réseau estime la chance de gagner à ${w}.`
     + (dbl === null ? '' : dbl ? ' Le réseau doublerait avant de lancer.' : ' Le réseau ne doublerait pas.') + " Jouer à partir d'ici commence une partie depuis cette position.",
-  copyLink: 'Copier le lien', linkCopied: "Lien copié dans le presse-papiers. Il ouvre la position avec l'analyse, et vous pouvez continuer la partie à partir de là.",
+  linkPlayer: 'Joueur', copyLink: 'Copier le lien', linkCopied: "Lien copié dans le presse-papiers. Il ouvre la position avec l'analyse, et vous pouvez continuer la partie à partir de là.",
   xgidCopied: 'Copié dans le presse-papiers.', xgidSelect: 'Copiez le texte sélectionné avec Ctrl+C.',
   logImport: 'Position depuis XGID',
   importBad: "Aucun match trouvé dans le texte. L'import lit un export DailyGammon (.mat) et un fichier .sgf.",
