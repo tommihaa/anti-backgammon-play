@@ -4,6 +4,14 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.2.2] - 2026-11-24
+
+### Changed
+
+- Copy link in the Evaluation panel appears when the game has ended, at the same time as the
+  analysis of the bot's moves. It works for your moves and the bot's moves alike. During a game
+  the tutor still shows your own moves, without the link.
+
 ## [0.2.1] - 2026-11-24
 
 ### Fixed

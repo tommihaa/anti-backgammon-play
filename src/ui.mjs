@@ -481,8 +481,9 @@ function renderEval() {
   box.appendChild(table);
   luck();
   if (!live) para(box, T.evalHelp).className = 'caption';
-  // Aseman linkki analysoidusta siirrosta pelattuine siirtoineen (Tommi 24.11.2026).
-  linkButton(box, () => decisionLink(d));
+  // Aseman linkki analysoidusta siirrosta pelattuine siirtoineen (Tommi 24.11.2026). Nappi näkyy
+  // päättyneen ja tuodun pelin siirroilla, samaan aikaan kuin botin siirtojen analyysi (Tommi 24.11.2026).
+  if (!live) linkButton(box, () => decisionLink(d));
 }
 
 // Linkin kopiointinappi ja ilmoitus. Jos leikepöytä ei ole käytettävissä, linkki näytetään valittuna.
