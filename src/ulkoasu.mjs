@@ -57,8 +57,9 @@ const oakLeather = wood('#6B4830', '#A5743C', '#4E361C', '#3E2A15', '#231709', '
 const olive = wood('#D8C295', '#7D6334', '#4A3A1C', '#3A2D15', '#22190A', '#2F3B28', '#86382A',
   '#F2E8D2', '#231A12', '#D8C295', 'rgba(58,42,16,0.18)', 'rgba(0,0,0,0.25)');
 
-// Tyylit valintajärjestyksessä. Ensimmäinen on oletus.
-export const STYLES = ['x22', 'mcVariant', 'deco', 'maple', 'walnut', 'oakLeather', 'olive'];
+// Tyylit valintajärjestyksessä. Ensimmäinen on oletus: Deco 24.11.2026 alkaen (Tommin valinta
+// DailyGammonin väripalautteen jälkeen), aiemmin X-22.
+export const STYLES = ['deco', 'x22', 'mcVariant', 'maple', 'walnut', 'oakLeather', 'olive'];
 const BOARDS = { x22, mcVariant, deco, maple, walnut, oakLeather, olive };
 
 export function boardLook(style, dark) {

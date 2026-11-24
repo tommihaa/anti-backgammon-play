@@ -14,10 +14,11 @@
 <meta name="apple-mobile-web-app-title" content="Anti-BG">
 <style>
   /* Ympäristön värit asettaa src/ui.mjs lautatyylistä ja laitteen tummasta tilasta
-     (src/ulkoasu.mjs). Nämä ovat oletustyylin X-22 arvot ennen skriptiä. */
+     (src/ulkoasu.mjs). Nämä ovat oletustyylin Deco arvot ennen skriptiä (Deco oletukseksi Tommin valinnalla
+     24.11.2026, aiemmin X-22). */
   :root {
-    --bg: #FBF8F4; --panel: #F1EBE4; --ink: #1E1A16; --muted: #4C443B; --frame: #B8AA98;
-    --accent: #6B5844; --on-accent: #FBF8F4; --link: #6B5844;
+    --bg: #F6EFE0; --panel: #EDE3CC; --ink: #2A241A; --muted: #6B5D40; --frame: #C9A14A;
+    --accent: #1B1A17; --on-accent: #E9C766; --link: #7A5C14;
     --hl: #3fcf8e; --last: #e8b44a; --good: #2b7a36; --bad: #b3261e;
     /* Heiton onni siirtolistassa: sininen ja oranssi, koska vihreä ja punainen ovat virheiden. */
     --lucky: #185FA5; --unlucky: #9A5A0C;
@@ -31,7 +32,7 @@
   @media (prefers-color-scheme: dark) {
     :root {
       --good: #7fd18b; --bad: #f2867c; --lucky: #85B7EB; --unlucky: #EF9F27;
-      --bg: #1B1712; --panel: #17120F; --ink: #F0E7D6; --muted: #9A8D7A; --frame: #6E6154;
+      --bg: #121212; --panel: #17120F; --ink: #F0E7D6; --muted: #B8A77E; --frame: #8C7440;
       --accent: #F0EBC0; --on-accent: #17120F; --link: #E9973F;
     }
   }
@@ -441,7 +442,8 @@
         niin nappula siirtyy seuraavan verran. Nopat ovat sen pelaajan puolella, jonka heitto se on.
         Käytetty noppa harmaantuu. Tuplilla noppia on neljä. Kun muurilla on nappulasi, niin
         laudan nappulan klikkaus tuo muurin nappulat ensin sisään ja siirtää sitten klikatun
-        nappulan. Kumoa (<kbd>↶</kbd>) peruu viimeisen osasiirron.</p>
+        nappulan. Voit myös raahata nappulan kohdepisteeseen. Siirto käyttää silloin ne nopat, joilla
+        nappula sinne kulkee. Uloskannossa kohde on lokero. Kumoa (<kbd>↶</kbd>) peruu viimeisen osasiirron.</p>
         <p>Pelin napit ovat laudan päällä: <kbd>Heitä</kbd>
         oman puoliskosi keskellä, Tarjoa tasapeliä (<kbd>½</kbd>) muurin keskellä sekä Kumoa ja Valmis (<kbd>✓</kbd>)
         noppiesi vasemmalla ja oikealla puolella. Kun laillista siirtoa ei ole, <kbd>✓</kbd> jatkaa. Laudalle
@@ -544,7 +546,7 @@
         kytkimillä noppien klikkaus vahvistaa valmiin siirron, vaihtaa käyttämättömien noppien
         järjestyksen tai heittää, kun botin nopat ovat laudalla. Seuraava peli noppien paikalle tuo
         napin laudan keskelle pelin päätyttyä.</p>
-        <p>Ulkoasu-kohdasta valitset laudan (Monte Carlo X-22, Monte Carlo variant, Deco, vaahtera,
+        <p>Ulkoasu-kohdasta valitset laudan (Deco, Monte Carlo X-22, Monte Carlo variant, vaahtera,
         pähkinä, tammi ja nahka tai oliivi) ja kotialueen puolen. Kotialue vasemmalla
         peilaa laudan ja siirtää laudan vieressä olevat paneelit vasemmalle. Laudan yläpuolella on vastapuolen
         kortti ja alapuolella omasi: nimi, rangaistuspisteet ja vuoro. Tuodun ottelun selauksessa kortit
@@ -634,7 +636,9 @@
         the first unused die. If that die has no legal move for it, the checker moves by the next
         one. The dice are on the side of the player who rolled them. A used die turns grey, and
         doubles show four dice. When you have a checker on the bar, clicking a checker on the board
-        first brings the bar checkers in and then moves the clicked one. Undo (<kbd>↶</kbd>) takes back the last
+        first brings the bar checkers in and then moves the clicked one. You can also drag a checker
+        to the point where it should go. The move then uses the dice that take it there. To bear off,
+        drop it on the tray. Undo (<kbd>↶</kbd>) takes back the last
         part of the move.</p>
         <p>The game buttons are on the board: <kbd>Roll</kbd> in the middle of your half, Offer a
         draw (<kbd>½</kbd>) in the middle of the bar and Undo (<kbd>↶</kbd>) and Done (<kbd>✓</kbd>) to the left and right of your
@@ -737,7 +741,7 @@
         can move from there, crossed out means it can't. With the dice switches a click on the dice
         submits a complete move, swaps the unused dice or rolls when the bot's dice are on the board.
         Next game where the dice were puts the button in the middle of the board when a game ends.</p>
-        <p>Under Appearance you choose the board (Monte Carlo X-22, Monte Carlo variant, Deco, maple,
+        <p>Under Appearance you choose the board (Deco, Monte Carlo X-22, Monte Carlo variant, maple,
         walnut, oak leather or olive) and the side of your home board. Home board
         on the left mirrors the board and moves the panels next to the board to the left. The opponent's card is above the
         board and yours below it, with the name, penalty points and who is to move. When you review an
@@ -832,7 +836,9 @@
         zieht der Stein um den nächsten. Die Würfel liegen auf der Seite des Spielers, der sie
         geworfen hat. Ein benutzter Würfel wird grau, und bei einem Pasch gibt es vier Würfel. Wenn
         du einen Stein auf der Bar hast, bringt ein Klick auf einen Stein auf dem Brett zuerst die
-        Steine von der Bar herein und zieht dann den angeklickten. Rückgängig (<kbd>↶</kbd>) nimmt den letzten Teil
+        Steine von der Bar herein und zieht dann den angeklickten. Du kannst einen Stein auch auf
+        seinen Zielpunkt ziehen. Der Zug nutzt dann die Würfel, mit denen er dorthin kommt. Zum
+        Abtragen legst du ihn in die Ablage. Rückgängig (<kbd>↶</kbd>) nimmt den letzten Teil
         des Zuges zurück.</p>
         <p>Die Knöpfe des Spiels liegen auf dem Brett: <kbd>Würfeln</kbd> in der Mitte deiner
         Hälfte, Remis anbieten (<kbd>½</kbd>) in der Mitte der Bar und Rückgängig (<kbd>↶</kbd>) und Fertig (<kbd>✓</kbd>) links und
@@ -946,7 +952,7 @@
         unbenutzten Würfel oder würfelt, wenn die Würfel des Bots auf dem Brett liegen. Nächstes
         Spiel an der Stelle der Würfel setzt die Schaltfläche in die Brettmitte, wenn ein Spiel
         endet.</p>
-        <p>Unter Aussehen wählst du das Brett (Monte Carlo X-22, Monte Carlo variant, Deco, Ahorn,
+        <p>Unter Aussehen wählst du das Brett (Deco, Monte Carlo X-22, Monte Carlo variant, Ahorn,
         Nussbaum, Eiche und Leder oder Olive) und die Seite deines Heimfelds. Heimfeld
         links spiegelt das Brett und setzt die Panels neben dem Brett nach links. Über dem Brett steht die Karte
         des Gegners und darunter deine, mit Name, Strafpunkten und wer am Zug ist. Beim Ansehen eines
@@ -1042,7 +1048,9 @@
         déplacer du premier dé inutilisé. Si ce dé ne lui permet aucun coup légal, la dame se déplace
         du suivant. Les dés sont du côté du joueur qui les a lancés. Un dé utilisé devient gris, et un
         double affiche quatre dés. Quand vous avez une dame sur la barre, un clic sur une dame du
-        plateau fait d'abord entrer les dames de la barre, puis déplace la dame cliquée. Annuler (<kbd>↶</kbd>)
+        plateau fait d'abord entrer les dames de la barre, puis déplace la dame cliquée. Vous pouvez
+        aussi faire glisser une dame vers sa case d'arrivée. Le coup utilise alors les dés qui l'y
+        mènent. Pour sortir une dame, déposez-la dans le casier. Annuler (<kbd>↶</kbd>)
         reprend la dernière partie du coup.</p>
         <p>Les boutons du jeu sont sur le plateau&nbsp;: <kbd>Lancer</kbd> au
         milieu de votre moitié, Proposer la nulle (<kbd>½</kbd>) au milieu de la barre et Annuler (<kbd>↶</kbd>) et Terminé
@@ -1159,7 +1167,7 @@
         interrupteurs des dés, un clic sur les dés confirme un coup complet, inverse les dés
         inutilisés ou lance les dés quand ceux du bot sont sur le plateau. Partie suivante à la place
         des dés met le bouton au milieu du plateau à la fin d'une partie.</p>
-        <p>Sous Apparence, vous choisissez le plateau (Monte Carlo X-22, Monte Carlo variant, Deco,
+        <p>Sous Apparence, vous choisissez le plateau (Deco, Monte Carlo X-22, Monte Carlo variant,
         érable, noyer, chêne et cuir ou olivier) et le côté de votre jan intérieur. Le jan intérieur à gauche inverse le plateau et place les panneaux à côté
         du plateau à gauche. La carte de l'adversaire est au-dessus
         du plateau et la vôtre en dessous, avec le nom, les points de pénalité et le joueur au trait. En

@@ -4,6 +4,20 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.6.0] - 2026-11-24
+
+### Added
+
+- You can drag a checker to the point where it should go. The move uses the dice that take that
+  checker there, so one drag can play both dice. To bear off, drop the checker on the tray. A
+  short tap still moves the checker by one die as before.
+- Before your first move, the Evaluation panel tells you how to analyse a DailyGammon match:
+  export it as a .mat file and open Settings > Import match.
+
+### Changed
+
+- The default board style is now Deco. If you have chosen a style yourself, the board keeps it.
+
 ## [0.5.1] - 2026-11-24
 
 ### Added

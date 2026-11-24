@@ -53,7 +53,7 @@ const store = {
 
 // Ulkoasun asetukset: lautatyyli, kotialue vasemmalla (peilaus) ja pystylauta kapealla ruudulla.
 const prefs = {
-  style: STYLES.includes(store.get('ab-tyyli', 'x22')) ? store.get('ab-tyyli', 'x22') : 'x22',
+  style: STYLES.includes(store.get('ab-tyyli', STYLES[0])) ? store.get('ab-tyyli', STYLES[0]) : STYLES[0],
   left: store.get('ab-koti-vasen', false) === true,
 };
 // Pelaamisen kytkimet DG Androidin Pelaaminen-ryhmästä (docs/ASETUKSET.md luku 3). Ahne uloskanto
@@ -459,7 +459,9 @@ function renderEval() {
     }
     if (!opts.analysis) { para(box, T.evalTutorOff); return; }
     d = [...(x.decisions ?? [])].reverse().find(y => y.k === 'move' && y.p === 0);
-    if (!d) { para(box, T.evalNone); return; }
+    // Tuonnin vihje tyhjään paneeliin, koska analyysi on pelaajille vaikea löytää (DailyGammonin
+    // palaute 23.11.2026, Kaanon YHTEYDENOTTO_FORUM64419 kohta 5).
+    if (!d) { para(box, T.evalNone); para(box, T.evalImportHint); return; }
   }
   if (live && d.p === 0 && !opts.analysis) { para(box, T.evalTutorOff); return; }
   // Kesken pelin valitun botin siirron linkin voi kopioida, vaikka analyysi näkyy vasta pelin jälkeen
@@ -1110,7 +1112,7 @@ function remainingDice() {
 // ensimmäisellä ei jää laillista siirtoa (DG Androidin CompositionSession.step, Tommin valinta
 // 1.11.2026).
 function clickSpot(spot) {
-  if (viewing() || game.over || game.turn !== 0 || game.phase !== 'move') return;
+  if (dragEnded || viewing() || game.over || game.turn !== 0 || game.phase !== 'move') return;
   const ns = nextSteps();
   for (const d of new Set(remainingDice())) {
     const st = ns.find(x => x.m[0] === spot && x.d === d);
@@ -1771,6 +1773,80 @@ for (const t of ['pointerup', 'pointercancel', 'pointerleave']) {
     pressTimer = setTimeout(() => { pressed = null; drawPress(); }, 700);
   });
 }
+
+// Raahaus (Tommin tilaus 24.11.2026, DailyGammonin palaute sujuvammasta käytöstä): nappula
+// viedään lähtöpisteestä kohteeseen, ja siirto käyttää ne nopat, joilla sama nappula sinne
+// laillisesti kulkee. Lyhyt liike on klikkaus, joka siirtää nopan verran kuten ennenkin.
+// Pudotus lähtöpisteeseen peruu raahauksen. Lokero on uloskannon kohde.
+const DRAG_PX = 8;
+let drag = null, dragEnded = false;
+function spotAt(ev) {
+  const r = svg.getBoundingClientRect();
+  const x = (ev.clientX - r.left) / r.width * W, y = (ev.clientY - r.top) / r.height * Math.round(H);
+  if (y < TOP || y > BOTTOM) return null;
+  const bx = X(BAR_X, COL), tx = X(TRAY_X, TRAY_W);
+  if (x >= bx && x < bx + COL) return BAR;
+  if (x >= tx && x < tx + TRAY_W) return OFF;
+  return pointAt(ev);
+}
+function svgPoint(ev) {
+  const r = svg.getBoundingClientRect();
+  return [(ev.clientX - r.left) / r.width * W, (ev.clientY - r.top) / r.height * Math.round(H)];
+}
+// Lyhin osasiirtojen ketju, joka vie yhden nappulan lähteestä kohteeseen. Kun ketjuja on monta,
+// etusijalla on se, joka alkaa ensimmäisellä käyttämättömällä nopalla.
+function dragPath(from, to) {
+  const k = game.partial.length, first = remainingDice()[0];
+  let best = null;
+  for (const p of candidates()) {
+    const rest = p.moves.slice(k);
+    if (!rest.length || rest[0][0] !== from) continue;
+    let j = 0;
+    while (j < rest.length && rest[j][1] !== to && rest[j + 1]?.[0] === rest[j][1]) j++;
+    if (j >= rest.length || rest[j][1] !== to) continue;
+    const path = rest.slice(0, j + 1).map((m, i) => ({ m, d: p.dice[k + i] }));
+    if (!best || path.length < best.length || (path.length === best.length && path[0].d === first && best[0].d !== first)) best = path;
+  }
+  return best;
+}
+function drawGhost(ev) {
+  svg.querySelector('[data-ghost]')?.remove();
+  if (!drag?.moved) return;
+  const [x, y] = svgPoint(ev);
+  const L = boardLook(prefs.style, isDark());
+  const g = el('g', { 'pointer-events': 'none', 'data-ghost': '', opacity: 0.85 });
+  el('circle', { cx: x, cy: y, r: R - 0.75, fill: L.self.fill, stroke: L.self.inlay ?? L.self.ring ?? OUTLINE, 'stroke-width': 1.5 }, g);
+}
+svg.addEventListener('pointerdown', ev => {
+  if (ev.button !== 0 || viewing() || game.over || game.turn !== 0 || game.phase !== 'move') return;
+  const from = spotAt(ev);
+  if (from === null || !nextMoves().some(m => m[0] === from)) return;
+  drag = { from, x: ev.clientX, y: ev.clientY, moved: false };
+});
+document.addEventListener('pointermove', ev => {
+  if (!drag) return;
+  if (!drag.moved && Math.hypot(ev.clientX - drag.x, ev.clientY - drag.y) < DRAG_PX) return;
+  drag.moved = true;
+  drawGhost(ev);
+});
+document.addEventListener('pointerup', ev => {
+  const d = drag;
+  drag = null;
+  if (!d?.moved) return;
+  svg.querySelector('[data-ghost]')?.remove();
+  // Raahauksen päättävä klikkaus ei saa siirtää nappulaa uudelleen nopan verran.
+  dragEnded = true;
+  setTimeout(() => { dragEnded = false; }, 0);
+  const to = spotAt(ev);
+  if (to === null || to === d.from) return;
+  const path = dragPath(d.from, to);
+  if (!path) { sound('miss'); return; }
+  for (const { m, d: die } of path) {
+    doMove(m[0], m[1], die);
+    if (game.phase !== 'move' || game.turn !== 0) break;
+  }
+});
+document.addEventListener('pointercancel', () => { drag = null; svg.querySelector('[data-ghost]')?.remove(); });
 
 function render() {
   // Valitun rivin asema piirretään näyttöoliosta. Peli itse jatkuu taustalla ennallaan.
