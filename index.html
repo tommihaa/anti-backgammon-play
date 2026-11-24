@@ -19,6 +19,8 @@
     --bg: #FBF8F4; --panel: #F1EBE4; --ink: #1E1A16; --muted: #4C443B; --frame: #B8AA98;
     --accent: #6B5844; --on-accent: #FBF8F4; --link: #6B5844;
     --hl: #3fcf8e; --last: #e8b44a; --good: #2b7a36; --bad: #b3261e;
+    /* Heiton onni siirtolistassa: sininen ja oranssi, koska vihreä ja punainen ovat virheiden. */
+    --lucky: #185FA5; --unlucky: #9A5A0C;
     /* Laudan pyöreiden nappien vähimmäiskoko (src/ui.mjs placeActions lukee tämän). Otsikon ja
        ottelurivin varaus laudan korkeudesta ja näkymän korkeus, mobiilissa ilman osoitepalkkia. */
     --icon-min: 22px; --hdr: 215px; --vh: 100vh;
@@ -28,7 +30,7 @@
   @media (pointer: coarse) { :root { --icon-min: 32px; } }
   @media (prefers-color-scheme: dark) {
     :root {
-      --good: #7fd18b; --bad: #f2867c;
+      --good: #7fd18b; --bad: #f2867c; --lucky: #85B7EB; --unlucky: #EF9F27;
       --bg: #1B1712; --panel: #17120F; --ink: #F0E7D6; --muted: #9A8D7A; --frame: #6E6154;
       --accent: #F0EBC0; --on-accent: #17120F; --link: #E9973F;
     }
@@ -126,6 +128,9 @@
   @media (hover: hover) { .gl-line:not(:disabled):hover { background: color-mix(in srgb, var(--accent) 12%, transparent); } }
   .gl-line.gl-error { color: var(--good); }
   .gl-line.gl-blunder { color: var(--bad); }
+  .gl-luck { margin-left: auto; padding-left: 8px; font-size: 0.85em; color: var(--muted); }
+  .gl-luck.gl-lucky { color: var(--lucky); }
+  .gl-luck.gl-unlucky { color: var(--unlucky); }
   .gl-line.sel { background: color-mix(in srgb, var(--accent) 24%, transparent); }
   .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--ink); }
   .dot.me { background: var(--dot-me, #f4efe6); } .dot.bot { background: var(--dot-bot, #222); }
@@ -554,8 +559,13 @@
         <p>Jokaista siirtoasi verrataan verkon parhaaseen siirtoon verkon omalla arviolla botin
         syvyydellä. Ero on
         equityä ilman kuutiota. Peli-paneelin siirtolistassa ?! on epätarkka (vähintään 0,04), ? virhe
-        (0,08) ja ?? vakava virhe (0,16). Pelin päätyttyä siirto on listassa <span class="c-good">vihreä</span>, kun se menetti
-        yli 0,020, ja <span class="c-bad">punainen</span>, kun se menetti yli 0,080. Kuutiopäätöksiä ei väritetä.</p>
+        (0,08) ja ?? vakava virhe (0,16). Analysoitu siirto on listassa <span class="c-good">vihreä</span>, kun se menetti
+        yli 0,020, ja <span class="c-bad">punainen</span>, kun se menetti yli 0,080. Kuutiopäätöksiä ei väritetä.
+        Kesken pelin omat siirrot väritetään Tutor-tilassa ja botin siirrot kytkimellä Analysoi botin
+        siirrot kesken pelin. Heiton onni näkyy rivin lopussa kuten GNU Backgammonissa: + on onnekas
+        heitto (vähintään 0,08 equityä yli keskimääräisen heiton) ja ++ erittäin onnekas (0,16), − ja −−
+        vastaavasti epäonniset. Rajat ovat pienemmät kuin GNU Backgammonin 0,3 ja 0,6, koska tässä pelissä
+        heitot heiluttavat equityä vähemmän.</p>
         <p>Kun Pelaaminen-kohdan Tutor-tila on päällä, niin
         Arvio-paneeli näyttää jokaisen siirtosi jälkeen arvion ja verkon parhaat siirrot
         voittotodennäköisyyksineen, equityineen ja eroineen sekä heiton onnen. Kun valitset
@@ -741,9 +751,14 @@
         <h4>Move analysis</h4>
         <p>Each of your moves is compared with the network's best move, using the network's own
         evaluation at the bot's depth. The difference is cubeless equity. In the move list of the Game panel ?! is
-        doubtful (at least 0.04), ? an error (0.08) and ?? a blunder (0.16). When the game has ended, a
+        doubtful (at least 0.04), ? an error (0.08) and ?? a blunder (0.16). An analysed
         move in the list is <span class="c-good">green</span> when it lost more than 0.020 and <span class="c-bad">red</span> when it lost more than 0.080.
-        Cube decisions are not coloured.</p>
+        Cube decisions are not coloured. During the game your moves
+        are coloured in Tutor mode and the bot's moves with Analyse the bot's moves during the game.
+        The luck of the roll is marked at the end of the line as in GNU Backgammon: + is a lucky roll
+        (at least 0.08 equity above the average roll) and ++ a very lucky one (0.16), − and −− the
+        unlucky ones. The limits are lower than GNU Backgammon's 0.3 and 0.6, because in this game the
+        dice swing the equity less.</p>
         <p>When Tutor mode under
         Playing is on, the Evaluation panel shows the verdict and the network's best moves with
         their winning chances, equities and differences, plus the luck of the roll, after each of
@@ -947,9 +962,14 @@
         <p>Jeder deiner Züge wird mit dem besten Zug des Netzes verglichen, nach der eigenen Bewertung
         des Netzes in der Suchtiefe des Bots. Der Unterschied ist Equity ohne Würfel. In der Zugliste
         des Spiel-Panels ist ?! ungenau (mindestens 0,04), ? ein Fehler (0,08) und ?? ein grober
-        Fehler (0,16). Nach dem Spielende ist ein Zug in der Liste <span class="c-good">grün</span>, wenn er mehr als 0,020
+        Fehler (0,16). Ein analysierter Zug ist in der Liste <span class="c-good">grün</span>, wenn er mehr als 0,020
         verloren hat, und <span class="c-bad">rot</span>, wenn er mehr als 0,080 verloren hat. Würfelentscheidungen werden nicht
-        eingefärbt.</p>
+        eingefärbt. Während des Spiels werden deine Züge im Tutor-Modus eingefärbt und die Züge des
+        Bots mit Züge des Bots während des Spiels analysieren.
+        Das Würfelglück steht wie in GNU Backgammon am Zeilenende: + ist ein glücklicher Wurf
+        (mindestens 0,08 Equity über dem durchschnittlichen Wurf) und ++ ein sehr glücklicher (0,16),
+        − und −− entsprechend die unglücklichen. Die Grenzen sind kleiner als die 0,3 und 0,6 von GNU
+        Backgammon, weil die Würfel in diesem Spiel die Equity weniger bewegen.</p>
         <p>Wenn der Tutor-Modus unter Spielen an ist, zeigt das Bewertung-Panel nach
         jedem deiner Züge das Urteil, die besten Züge des Netzes mit Gewinnchance, Equity und
         Abstand sowie das Würfelglück. Wenn du eine deiner Würfelentscheidungen in der Liste des
@@ -1154,8 +1174,14 @@
         <p>Chacun de vos coups est comparé au meilleur coup du réseau, selon la propre évaluation du
         réseau à la profondeur du bot. L'écart est de l'équité sans videau. Dans la liste des coups du
         panneau Partie, ?! signifie douteux (au moins 0,04), ? une erreur (0,08) et ?? une grosse
-        erreur (0,16). Une fois la partie terminée, un coup de la liste est <span class="c-good">vert</span> s'il a perdu plus de
-        0,020 et <span class="c-bad">rouge</span> s'il a perdu plus de 0,080. Les décisions de videau ne sont pas colorées.</p>
+        erreur (0,16). Un coup analysé de la liste est <span class="c-good">vert</span> s'il a perdu plus de
+        0,020 et <span class="c-bad">rouge</span> s'il a perdu plus de 0,080. Les décisions de videau ne sont pas colorées.
+        Pendant la partie, vos coups sont colorés en mode tuteur et ceux du bot avec Analyser les coups
+        du bot pendant la partie.
+        La chance du lancer est marquée en fin de ligne comme dans GNU Backgammon&nbsp;: + est un lancer
+        chanceux (au moins 0,08 d'équité au-dessus du lancer moyen) et ++ un lancer très chanceux (0,16),
+        − et −− les lancers malchanceux. Les limites sont plus basses que les 0,3 et 0,6 de GNU
+        Backgammon, car dans ce jeu les dés font moins varier l'équité.</p>
         <p>Quand le mode tuteur sous Jeu est activé, le panneau Évaluation affiche après
         chacun de vos coups le verdict, les meilleurs coups du réseau avec leurs chances de gain,
         equity et écarts, ainsi que la chance du lancer. Quand vous choisissez une de vos décisions

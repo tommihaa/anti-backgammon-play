@@ -309,14 +309,27 @@ function renderGamePanel() {
   // Vienti päättyneestä tai tuodusta pelistä, jossa on päätöksiä.
   $('exportHtml').hidden = !x.decisions?.length || (live && !x.over);
   $('exportFile').hidden = $('exportHtml').hidden;
-  // Päättyneen pelin siirrot väritetään equity-menetyksen mukaan (Tommin rajat 13.11.2026):
-  // yli 0,020 vihreä (error) ja yli 0,080 punainen (blunder). Kuutiopäätöksistä ei ole
-  // menetyksen suuruutta, joten ne jäävät värittä.
+  // Siirrot väritetään equity-menetyksen mukaan (Tommin rajat 13.11.2026): yli 0,020 vihreä
+  // (error) ja yli 0,080 punainen (blunder). Kuutiopäätöksistä ei ole menetyksen suuruutta, joten
+  // ne jäävät värittä. Kesken pelin väri tulee analyysin valmistuttua (Tommi 24.11.2026), omille
+  // siirroille Tutor-tilassa ja botin siirroille kytkimellä botAnalysis, kuten Arvio-paneelissa.
   const ended = !live || game.over;
   const lossClass = d => {
-    if (!ended || d?.k !== 'move' || !d.r) return null;
+    if (d?.k !== 'move' || !d.r) return null;
+    if (!ended && !(d.p === 0 ? opts.analysis : opts.botAnalysis)) return null;
     const loss = 2 * (d.r.best - d.r.played);
     return loss > 0.08 ? 'gl-blunder' : loss > 0.02 ? 'gl-error' : null;
+  };
+  // Heiton onni rivin loppuun gnubg:n tapaan merkeillä + ja ++ sekä − ja −− (Tommin valinta
+  // 24.11.2026). Rajat ovat samat kuin virheillä (0,08 ja 0,16), koska gnubg:n 0,3 ja 0,6 ovat
+  // tavallisen backgammonin asteikkoa: Anti-Backgammonin 0-ply-itsepeluussa |onni| ylitti 0,08:n
+  // 13 %:ssa ja 0,16:n noin 3 %:ssa heitoista. Kesken pelin samat kytkimet kuin väreillä.
+  const luckMark = d => {
+    if (d?.k !== 'move' || d.luck === undefined) return null;
+    if (!ended && !(d.p === 0 ? opts.analysis : opts.botAnalysis)) return null;
+    const a = Math.abs(d.luck), k = a >= LUCK[1] ? 2 : a >= LUCK[0] ? 1 : 0;
+    if (!k) return null;
+    return { text: (d.luck > 0 ? '+' : '−').repeat(k), cls: d.luck > 0 ? 'gl-lucky' : 'gl-unlucky', label: T.luckMarks[d.luck > 0 ? k - 1 : k + 1] };
   };
   list.textContent = '';
   navOrder = [];
@@ -340,7 +353,15 @@ function renderGamePanel() {
       b.append(dot, t);
       const lc = e.d === undefined ? null : lossClass(x.decisions?.[e.d]);
       if (lc) b.classList.add(lc);
-      b.setAttribute('aria-label', `${namesOf(x)[e.p]}: ${e.t}`);
+      const lm = e.d === undefined ? null : luckMark(x.decisions?.[e.d]);
+      if (lm) {
+        const m = document.createElement('span');
+        m.className = 'gl-luck ' + lm.cls;
+        m.textContent = lm.text;
+        m.title = lm.label;
+        b.appendChild(m);
+      }
+      b.setAttribute('aria-label', `${namesOf(x)[e.p]}: ${e.t}${lm ? `, ${lm.label}` : ''}`);
       if (e.d === undefined || !x.decisions?.[e.d]) b.disabled = true;
       else {
         navOrder.push(e.d);
@@ -1210,6 +1231,14 @@ function analyseBot(dec) {
   });
 }
 
+// Heiton onnen merkintärajat siirtolistassa (+ ja ++, − ja −−), ks. renderGamePanel.
+const LUCK = [0.08, 0.16];
+// Heiton onni lasketaan heti siirron kirjauksessa (0-ply, noin 10 ms), jotta siirtolista voi
+// merkitä sen kesken pelin. Jälkianalyysi ohittaa jo lasketun.
+function recordLuck(dec) {
+  dec.luck = rollLuck(net, [Int8Array.from(dec.s[0]), Int8Array.from(dec.s[1])], dec.p, dec.dice[0], dec.dice[1]);
+}
+
 // Ero, joka näkyy kolmella desimaalilla nollana, on sama kuin verkon paras.
 const SAME = 0.0005;
 
@@ -1234,6 +1263,7 @@ function finishHuman() {
     text: played, ply, forced: game.partial.length === 0, moves: game.partial.map(m => [...m]), cube: { ...game.cube },
   });
   row.meD = lastDecision();
+  recordLuck(dec);
   if (game.partial.length) analyse(game.base, [...game.dice], played, row, game.moveNo, dec);
   game.half++;
   if (checkEnd(0) || checkDraw()) return;
@@ -1297,6 +1327,7 @@ function botPlayed(play, ms) {
   if (!joins) game.moveNo++;
   const dec = decide({ k: 'move', p: 1, n: game.moveNo, s: before, after: plain(play.s), dice: [...game.dice], text, ply,
     forced: play.moves.length === 0, moves: play.moves.map(m => [...m]), cube: { ...game.cube } });
+  recordLuck(dec);
   if (opts.botAnalysis && play.moves.length) analyseBot(dec);
   if (joins) { last.bot = text; last.botD = lastDecision(); }
   else game.log.push({ n: game.moveNo, me: '', bot: text, botD: lastDecision() });

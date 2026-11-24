@@ -4,6 +4,22 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.5.0] - 2026-11-24
+
+### Added
+
+- The move list marks the luck of the roll at the end of the line, as GNU Backgammon does: + for
+  a lucky roll and ++ for a very lucky one, − and −− for the unlucky ones. A roll is marked when
+  it is at least 0.08 (++ at 0.16) equity better or worse than the average roll. The limits are
+  lower than GNU Backgammon's 0.3 and 0.6, because in Anti-Backgammon the dice swing the equity
+  less.
+
+### Changed
+
+- Moves in the move list get their colours during the game as soon as they are analysed, not
+  only when the game ends. Your moves are coloured in Tutor mode and the bot's moves with Analyse
+  the bot's moves during the game.
+
 ## [0.4.0] - 2026-11-24
 
 ### Added
