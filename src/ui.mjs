@@ -14,7 +14,7 @@ import { gameHTML, cubeLabel, cubeEquityRows } from './vienti.mjs';
 import { buildAnalysisFile, parseAnalysisFile, FORMAT, EXT } from './analyysitiedosto.mjs';
 import { SOUNDS, playSound } from './aanet.mjs';
 import { VERSION } from './versio.mjs';
-import { NET_SHORT, netHistory } from './historia.mjs';
+import { NET_SHORT, NET_CODE, netHistory } from './historia.mjs';
 import {
   STYLES, boardLook, panelLook, cubeLook, OUTLINE, NUMBER_INK, PIP_INK, CHECKER_PER_COLUMN, TRAY_PER_COLUMN,
   DICE_PER_CHECKER, CUBE_PER_CHECKER, CHECKERS_APART, BAND_PER_CHECKER, CORNER_PER_SIDE, SPENT_DIE_DIM,
@@ -55,7 +55,6 @@ const store = {
 const prefs = {
   style: STYLES.includes(store.get('ab-tyyli', 'x22')) ? store.get('ab-tyyli', 'x22') : 'x22',
   left: store.get('ab-koti-vasen', false) === true,
-  portrait: store.get('ab-pysty', false) === true,
 };
 // Pelaamisen kytkimet DG Androidin Pelaaminen-ryhmästä (docs/ASETUKSET.md luku 3). Ahne uloskanto
 // jäi pois, koska tässä pelissä ulos ehtiminen on se mitä vältetään. Siirron jälkeinen analyysi on
@@ -441,7 +440,9 @@ function renderEval() {
     if (!d) { para(box, T.evalNone); return; }
   }
   if (live && !opts.analysis) { para(box, T.evalTutorOff); return; }
-  if (live && d.p === 1) { para(box, T.evalBotLater); return; }
+  // Kesken pelin valitun botin siirron linkin voi kopioida, vaikka analyysi näkyy vasta pelin jälkeen
+  // (Tommi 24.11.2026). Linkin avaaja näkee analyysin.
+  if (live && d.p === 1) { para(box, T.evalBotLater); if (picked) linkButton(box, () => decisionLink(d)); return; }
   if (d.k !== 'move') {
     if (live) { para(box, T.evalCubeLater); return; }
     renderCubeEval(box, d);
@@ -481,9 +482,9 @@ function renderEval() {
   box.appendChild(table);
   luck();
   if (!live) para(box, T.evalHelp).className = 'caption';
-  // Aseman linkki analysoidusta siirrosta pelattuine siirtoineen (Tommi 24.11.2026). Nappi näkyy
-  // päättyneen ja tuodun pelin siirroilla, samaan aikaan kuin botin siirtojen analyysi (Tommi 24.11.2026).
-  if (!live) linkButton(box, () => decisionLink(d));
+  // Aseman linkki analysoidusta siirrosta pelattuine siirtoineen. Nappi näkyy, kun siirto on valittu
+  // siirtolistasta, myös kesken pelin (Tommi 24.11.2026).
+  if (picked) linkButton(box, () => decisionLink(d));
 }
 
 // Linkin kopiointinappi ja ilmoitus. Jos leikepöytä ei ole käytettävissä, linkki näytetään valittuna.
@@ -504,6 +505,13 @@ function linkButton(box, make) {
 // Paikallisessa kehityksessä linkki osoittaa samaan sivuun, jotta sen voi kokeilla.
 const LINK_BASE = location.hostname === 'tommihaa.github.io' ? 'http://tommihaa.github.io/abg/#' : `${location.origin}${location.pathname}#`;
 const linkURL = frag => LINK_BASE + frag;
+// Vastustajabotti linkkiin (Tommi 24.11.2026): verkon kirjain ja syvyys. Omassa pelissä botti on
+// pelaaja 1, aseman linkin selauksessa linkin botti. Tuodussa ottelussa bottia ei ole.
+function linkBot(x, d) {
+  if (review) return review.m.bot ?? null;
+  const code = NET_CODE[x.net ?? NET_FILE];
+  return code ? { ply: d?.ply ?? ply, code } : null;
+}
 // Päätöksen asema ennen siirtoa, nopat ja pelattu siirto. Pisteet ja pituus ovat pelin alun.
 function decisionLink(d) {
   const x = selRec();
@@ -512,7 +520,7 @@ function decisionLink(d) {
   const s = [Int8Array.from(d.s[0]), Int8Array.from(d.s[1])];
   // Selauksessa Crawford on tuodun pelin (aseman linkki) tai DMP:n, jossa jokainen peli on Crawford-peli.
   const crawford = review ? !!reviewGame().crawford || review.kind === 'dmp' : !!x.crawford;
-  return linkURL(linkFragment({ s, cube: d.cube, turn: d.p, dice: d.dice, pen: pen0, crawford, limit }, d.open ? null : d.moves));
+  return linkURL(linkFragment({ s, cube: d.cube, turn: d.p, dice: d.dice, pen: pen0, crawford, limit }, d.open ? null : d.moves, linkBot(x, d)));
 }
 // Aseman merkintä (Tommin tilaus 18.11.2026): pelaaja merkitsee valitun rivin aseman ja voi
 // kirjoittaa huomautuksen, esimerkiksi miksi botin siirto näyttää väärältä. Merkintä kuuluu
@@ -1868,10 +1876,16 @@ function renderStatus(isView) {
   // Ottelu ja rangaistuspisteet yhtenä lohkona: pisteet suhteessa otteluun valittuun rajaan.
   $('penMe').textContent = T.penScore(pen[0], match.limit);
   $('penBot').textContent = T.penScore(pen[1], match.limit);
-  // Pelaajakortit pystylaudan ylä- ja alapuolella: botti ylhäällä, oma alhaalla.
-  const nm = namesOf(liveGame());
-  $('cardBot').textContent = T.card(nm[1], pen[1], game.turn === 1 && !game.over);
-  $('cardMe').textContent = T.card(nm[0], pen[0], game.turn === 0 && !game.over);
+  // Pelaajakortit laudan ylä- ja alapuolella: vastapuoli ylhäällä, oma alhaalla. Selauksessa
+  // tuodun pelin pelaajat ja pisteet pelin alussa, muuten oma ottelu (Tommi 24.11.2026).
+  const rg = review ? reviewGame() : null;
+  const nm = rg ? [rg.players[review.h], rg.players[1 - review.h]] : namesOf(liveGame());
+  const pp = rg ? [rg.scores[review.h], rg.scores[1 - review.h]] : pen;
+  for (const [id, k] of [['cardBot', 1], ['cardMe', 0]]) {
+    const turn = game.turn === k && !game.over;
+    $(id).textContent = T.card(nm[k], pp[k], turn);
+    $(id).classList.toggle('turn', turn);
+  }
   $('review').hidden = !review;
   $('actions').hidden = !!review || isView;
   $('viewBar').hidden = !isView;
@@ -1954,19 +1968,18 @@ async function clickCube() {
   humanDouble();
 }
 
-// Selauksessa pelaajakortit ja pisteet ovat tuodun pelin: nimet ja pisteet pelin alussa.
+// Selauksessa pisteet ovat tuodun pelin alun pisteet. Pelaajakortit piirtää render.
 function renderReview() {
   const g = reviewGame(), h = review.h, len = reviewLimit();
   $('penMe').textContent = T.penScore(g.scores[h], len);
   $('penBot').textContent = T.penScore(g.scores[1 - h], len);
-  $('cardBot').textContent = g.players[1 - h];
-  $('cardMe').textContent = g.players[h];
   $('resign').style.display = 'none';
   const last = review.steps.length - 1;
   $('reviewFirst').disabled = $('reviewPrev').disabled = review.i === 0;
   $('reviewNext').disabled = $('reviewLast').disabled = review.i === last;
   const a = g.actions[review.i];
-  $('reviewPlay').disabled = !a || a.kind === 'win' || (review.error !== null && review.i === last);
+  // Aseman linkki ilman noppia jatkuu alusta, vaikka teko puuttuu (playFromHere).
+  $('reviewPlay').disabled = (!a && !(g.start && review.i === 0)) || a?.kind === 'win' || (review.error !== null && review.i === last);
 }
 
 $('roll').addEventListener('click', humanRoll);
@@ -2066,7 +2079,7 @@ $('xgidCopy').addEventListener('click', async () => {
 $('xgidSet').addEventListener('click', () => loadXGID($('xgid').value));
 // Nykyisen aseman linkki ilman pelattua siirtoa. Avaaja näkee verkon parhaat ja voi jatkaa.
 $('xgidLink').addEventListener('click', async () => {
-  const url = linkURL(linkFragment(fromXGID(currentXGID()), null));
+  const url = linkURL(linkFragment(fromXGID(currentXGID()), null, linkBot(liveGame())));
   $('xgid').value = url;
   try { await navigator.clipboard.writeText(url); $('xgidMsg').textContent = T.linkCopied; }
   catch { $('xgid').select(); $('xgidMsg').textContent = T.xgidSelect; }
@@ -2082,8 +2095,14 @@ const reviewGame = () => review.m.games[review.gi];
 function importMatch(text) {
   const m = parseMatch(text);
   if (!m) { $('importMsg').textContent = T.importBad; return; }
-  // Aseman linkissä ei ole nimiä: siirtäjä on Pelaaja ja vastapuoli laudan botti.
-  if (m.link) m.players = m.games[0].players = m.players.map((n, k) => n || (k ? botLabel() : T.linkPlayer));
+  // Aseman linkissä ei ole nimiä: a-pelaaja on Pelaaja ja b-pelaaja linkin botti tai laudan botti.
+  if (m.link) {
+    // Tuntematon syvyys hylätään, koska analyysi laskee vain laudan syvyyksillä.
+    if (m.bot && !PLIES.includes(m.bot.ply)) m.bot = null;
+    const net = Object.keys(NET_CODE).find(k => NET_CODE[k] === m.bot?.code);
+    const bot = m.bot ? (net ? botLabel(net, m.bot.ply) : `${T.static.bot} ${m.bot.ply}-ply`) : botLabel();
+    m.players = m.games[0].players = m.players.map((n, k) => n || (k ? bot : T.linkPlayer));
+  }
   if (!review && game.phase === 'bot') { $('importMsg').textContent = T.reviewBusy; return; }
   const name = store.get('ab-tuonti-nimi', null);
   // Saman ottelun uusi tuonti avaa tallennetun analyysin. done säilyttää valmiit analyysit teon
@@ -2178,7 +2197,7 @@ function reviewRecord() {
     if (a.kind === 'win' || k + 1 >= steps.length) return;
     const d = { key: `${gi}:${k}`, p, n: row.n, s: view(st), cube: cubeOf(st), text };
     // Aseman linkin avoin siirto (open): nopat on heitetty, mutta siirtoa ei ole pelattu.
-    if (a.kind === 'roll') Object.assign(d, { k: 'move', after: view(steps[k + 1]), dice: [...a.dice], ply, forced: !a.open && a.moves.length === 0, open: !!a.open, moves: a.moves.map(m => [...m]) });
+    if (a.kind === 'roll') Object.assign(d, { k: 'move', after: view(steps[k + 1]), dice: [...a.dice], ply: review.m.bot?.ply ?? ply, forced: !a.open && a.moves.length === 0, open: !!a.open, moves: a.moves.map(m => [...m]) });
     else if (a.kind === 'double') Object.assign(d, { k: 'cube', act: 'double', value: (a.value ?? 2 * st.cube.value) / 2 });
     else Object.assign(d, { k: 'take', act: a.kind, value: st.cube.value });
     Object.assign(d, review.done.get(d.key));
@@ -2344,7 +2363,6 @@ function applyLook() {
   // Puhelimen tila- ja osoitepalkki sekä asennetun sovelluksen yläpalkki sivun taustan värissä.
   for (const m of document.querySelectorAll('meta[name="theme-color"]')) m.content = P.background;
   document.body.classList.toggle('home-left', prefs.left);
-  document.body.classList.toggle('portrait', prefs.portrait);
 }
 function fillLook() {
   const sel = $('style');
@@ -2365,7 +2383,6 @@ function fillLook() {
     home.appendChild(o);
   }
   home.value = prefs.left ? 'left' : 'right';
-  $('portrait').checked = prefs.portrait;
   // Äänet: pääkytkin ja kunkin äänen ruutu, kuten DG Androidin Game sounds.
   const sbox = $('sounds');
   sbox.textContent = '';
@@ -2471,7 +2488,6 @@ function fillLook() {
 }
 $('style').addEventListener('change', e => { prefs.style = e.target.value; store.set('ab-tyyli', prefs.style); applyLook(); render(); });
 $('home').addEventListener('change', e => { prefs.left = e.target.value === 'left'; store.set('ab-koti-vasen', prefs.left); applyLook(); render(); });
-$('portrait').addEventListener('change', e => { prefs.portrait = e.target.checked; store.set('ab-pysty', prefs.portrait); applyLook(); });
 darkQuery?.addEventListener?.('change', () => { applyLook(); render(); });
 
 // Pikanäppäimet Windows-työpöydälle (Tommin valinta 1.11.2026): Ctrl+Z kumoaa, välilyönti heittää,

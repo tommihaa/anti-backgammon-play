@@ -8,6 +8,9 @@
 
 // Laudan verkon lyhyt nimi botin nimeen. Avain on verkon tiedosto.
 export const NET_SHORT = { 'verkot/jatko-raw-g4-p3000.json': 'g4-jatko' };
+// Verkon kirjain aseman linkissä (src/tuonti.mjs). Lista vain kasvaa: vanhan linkin kirjain ei saa
+// vaihtaa merkitystä, kun laudan verkko vaihtuu.
+export const NET_CODE = { 'verkot/jatko-raw-g4-p3000.json': 'a' };
 
 const LINE = {
   fi: [

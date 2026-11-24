@@ -4,6 +4,26 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.3.0] - 2026-11-24
+
+### Added
+
+- Player cards above and below the board on every screen: the name, the penalty points and who is
+  to move. When you review an imported match or a position link, the cards show the players and
+  score of that game.
+- A position link carries the bot that played, its network and depth. The reader sees the same
+  bot as the opponent, and the analysis uses that depth.
+
+### Changed
+
+- Copy link appears when you pick a played move from the move list, also during a game. For the
+  bot's moves the analysis still waits until the game ends.
+- The portrait board setting is gone. It only placed the player cards, which are now always shown.
+
+### Fixed
+
+- Play from here works for a position link without dice.
+
 ## [0.2.2] - 2026-11-24
 
 ### Changed

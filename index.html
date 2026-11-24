@@ -144,8 +144,15 @@
   .side-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .side-btns button { flex: 1 1 auto; padding: 6px 10px; }
   #viewBar[hidden] { display: none; }
-  .card { display: none; background: var(--panel); border: 1px solid var(--frame); border-radius: 8px;
+  /* Pelaajakortit laudan ylä- ja alapuolella aina (Tommin valinta 24.11.2026, luonnos A): nimi,
+     rangaistuspisteet ja vuoro. Merkki on laudan nappulan värinen. */
+  .card { background: var(--panel); border: 1px solid var(--frame); border-radius: 8px;
     padding: 6px 10px; margin: 6px 0; }
+  .card::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    margin-right: 8px; vertical-align: -1px; border: 1px solid var(--frame); }
+  #cardMe::before { background: var(--dot-me); }
+  #cardBot::before { background: var(--dot-bot); }
+  .card.turn { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
   @media (max-width: 760px) {
     main { width: auto; }
     .head-tools { justify-content: flex-start; }
@@ -157,7 +164,6 @@
     .below { flex-direction: column; align-items: stretch; gap: 12px; margin-top: 12px; }
     .below > .panel { flex: none !important; }
     .side > #evalPanel { order: -1; }
-    body.portrait .card { display: block; }
     /* Kapealla pystyruudulla reunus ja otsikko pienenevät, jotta lauta saa leveyden (Tommin
        tilaus 14.11.2026: mobiilipelaajan optimointi). */
     main { padding: 10px 8px; }
@@ -383,7 +389,6 @@
         <div class="look">
           <label for="style" data-t="styleLabel">Lauta</label><select id="style"></select>
           <label for="home" data-t="homeLabel">Kotialue</label><select id="home"></select>
-          <label class="wide"><input type="checkbox" id="portrait"><span data-t="portraitLabel">Pystylauta kapealla ruudulla</span></label>
         </div>
       </details>
       <details>
@@ -451,7 +456,7 @@
         pisteet ja pituus pysyvät ennallaan. Isot kirjaimet ovat sinun nappulasi.</p>
         <p><kbd>Kopioi linkki</kbd> antaa aseman linkkinä, jonka voi jakaa esimerkiksi foorumilla. Linkki avaa
         aseman selattavaksi. Arvio-paneeli näyttää siinä verkon parhaat siirrot. Arvio-paneelin <kbd>Kopioi linkki</kbd>
-        näkyy päättyneen pelin siirroilla ja ottaa mukaan myös analysoidun siirron, jolloin avaaja näkee sen eron parhaaseen. <kbd>Jatka tästä</kbd>
+        näkyy, kun valitset pelatun siirron siirtolistasta, myös kesken pelin. Se ottaa mukaan pelatun siirron, jolloin avaaja näkee sen eron parhaaseen. <kbd>Jatka tästä</kbd>
         aloittaa pelin bottia vastaan linkin asemasta.</p>
         <p>Tuo ottelu -kohta lukee DailyGammonin viennin (.mat) tai .sgf-tiedoston, myös DG Androidin
         merkityin asemin. Valitse tiedosto tai liitä teksti ja paina <kbd>Tuo</kbd>. Ottelua selataan nuolilla
@@ -535,9 +540,10 @@
         järjestyksen tai heittää, kun botin nopat ovat laudalla. Seuraava peli noppien paikalle tuo
         napin laudan keskelle pelin päätyttyä.</p>
         <p>Ulkoasu-kohdasta valitset laudan (Monte Carlo X-22, Monte Carlo variant, Deco, vaahtera,
-        pähkinä, tammi ja nahka tai oliivi), kotialueen puolen ja pystylaudan. Kotialue vasemmalla
-        peilaa laudan ja siirtää laudan vieressä olevat paneelit vasemmalle. Pystylauta näyttää kapealla ruudulla botin
-        kortin laudan yläpuolella ja omasi alapuolella. Tumma tila seuraa laitteen asetusta.
+        pähkinä, tammi ja nahka tai oliivi) ja kotialueen puolen. Kotialue vasemmalla
+        peilaa laudan ja siirtää laudan vieressä olevat paneelit vasemmalle. Laudan yläpuolella on vastapuolen
+        kortti ja alapuolella omasi: nimi, rangaistuspisteet ja vuoro. Tuodun ottelun selauksessa kortit
+        näyttävät tuodun pelin pelaajat ja pisteet. Tumma tila seuraa laitteen asetusta.
         Valinnat säilyvät selaimessa.</p>
         <p>Äänet-kohdan Pelin äänet on oletuksena pois. Päällä nopat ja nappulat kolahtavat puuhun,
         kuutio kolahtaa kun tuplaat tai otat vastaan ja gongi soi seuraavan pelin alkaessa.
@@ -634,7 +640,7 @@
         score and length stay as they are. Capital letters are your checkers.</p>
         <p><kbd>Copy link</kbd> gives the position as a link you can share, for example on a forum. The link
         opens the position for review, and the Evaluation panel shows the network's best moves. <kbd>Copy link</kbd>
-        in the Evaluation panel appears on the moves of a finished game and also includes the analysed move, so the reader sees how far it was from the best.
+        in the Evaluation panel appears when you pick a played move from the move list, also during a game. It includes the move, so the reader sees how far it was from the best.
         <kbd>Play from here</kbd> starts a game against the bot from the linked position.</p>
         <p>Import match reads a DailyGammon export (.mat) or an .sgf file, also with the positions
         marked in DG Android. Choose a file or paste the text and press <kbd>Import</kbd>. Step through the
@@ -717,9 +723,10 @@
         submits a complete move, swaps the unused dice or rolls when the bot's dice are on the board.
         Next game where the dice were puts the button in the middle of the board when a game ends.</p>
         <p>Under Appearance you choose the board (Monte Carlo X-22, Monte Carlo variant, Deco, maple,
-        walnut, oak leather or olive), the side of your home board and the portrait board. Home board
-        on the left mirrors the board and moves the panels next to the board to the left. The portrait board shows the
-        bot's card above the board and yours below it on a narrow screen. Dark mode follows the
+        walnut, oak leather or olive) and the side of your home board. Home board
+        on the left mirrors the board and moves the panels next to the board to the left. The opponent's card is above the
+        board and yours below it, with the name, penalty points and who is to move. When you review an
+        imported match, the cards show the players and score of that game. Dark mode follows the
         device setting. Your choices are kept in the browser.</p>
         <p>Game sounds under Sounds is off by default. When it is on, the dice and the checkers knock
         on wood, the cube knocks when you double or take and a gong sounds when the next game starts.
@@ -822,7 +829,7 @@
         Matchstand und Länge bleiben, wie sie sind. Großbuchstaben sind deine Steine.</p>
         <p><kbd>Link kopieren</kbd> gibt die Stellung als Link aus, den du teilen kannst, zum Beispiel in einem Forum.
         Der Link öffnet die Stellung zur Ansicht, und das Bewertungs-Panel zeigt die besten Züge des Netzes.
-        <kbd>Link kopieren</kbd> im Bewertungs-Panel erscheint bei den Zügen eines beendeten Spiels und nimmt auch den analysierten Zug mit, sodass der Leser seinen
+        <kbd>Link kopieren</kbd> im Bewertungs-Panel erscheint, wenn du einen gespielten Zug in der Zugliste wählst, auch während des Spiels. Er nimmt den Zug mit, sodass der Leser seinen
         Abstand zum besten Zug sieht. <kbd>Von hier spielen</kbd> beginnt ab der verlinkten Stellung ein Spiel gegen den Bot.</p>
         <p>Match importieren liest einen DailyGammon-Export (.mat) oder eine .sgf-Datei, auch mit den in
         DG Android markierten Stellungen. Wähle eine Datei oder füge den Text ein und drücke
@@ -916,9 +923,10 @@
         Spiel an der Stelle der Würfel setzt die Schaltfläche in die Brettmitte, wenn ein Spiel
         endet.</p>
         <p>Unter Aussehen wählst du das Brett (Monte Carlo X-22, Monte Carlo variant, Deco, Ahorn,
-        Nussbaum, Eiche und Leder oder Olive), die Seite deines Heimfelds und das Hochformat. Heimfeld
-        links spiegelt das Brett und setzt die Panels neben dem Brett nach links. Das Hochformat
-        zeigt auf einem schmalen Bildschirm die Karte des Bots über dem Brett und deine darunter. Der
+        Nussbaum, Eiche und Leder oder Olive) und die Seite deines Heimfelds. Heimfeld
+        links spiegelt das Brett und setzt die Panels neben dem Brett nach links. Über dem Brett steht die Karte
+        des Gegners und darunter deine, mit Name, Strafpunkten und wer am Zug ist. Beim Ansehen eines
+        importierten Matches zeigen die Karten die Spieler und den Stand dieses Spiels. Der
         dunkle Modus folgt der Geräteeinstellung. Deine Auswahl bleibt im Browser gespeichert.</p>
         <p>Spielgeräusche unter Töne ist standardmäßig aus. Wenn es an ist, klopfen Würfel und Steine
         auf Holz, der Würfel klopft, wenn du verdoppelst oder annimmst, und ein Gong ertönt, wenn das
@@ -1023,7 +1031,7 @@
         position. Le score et la longueur du match restent inchangés. Les majuscules sont vos dames.</p>
         <p><kbd>Copier le lien</kbd> donne la position sous forme de lien à partager, par exemple sur un forum. Le
         lien ouvre la position en revue, et le panneau Évaluation montre les meilleurs coups du réseau.
-        <kbd>Copier le lien</kbd> dans le panneau Évaluation apparaît sur les coups d'une partie terminée et inclut aussi le coup analysé, et le lecteur voit son écart
+        <kbd>Copier le lien</kbd> dans le panneau Évaluation apparaît quand vous choisissez un coup joué dans la liste des coups, même pendant la partie. Il inclut le coup, et le lecteur voit son écart
         avec le meilleur. <kbd>Jouer à partir d'ici</kbd> commence une partie contre le bot depuis la position du lien.</p>
         <p>Importer un match lit un export DailyGammon (.mat) ou un fichier .sgf, y compris les
         positions marquées dans DG Android. Choisissez un fichier ou collez le texte et appuyez sur
@@ -1119,10 +1127,10 @@
         inutilisés ou lance les dés quand ceux du bot sont sur le plateau. Partie suivante à la place
         des dés met le bouton au milieu du plateau à la fin d'une partie.</p>
         <p>Sous Apparence, vous choisissez le plateau (Monte Carlo X-22, Monte Carlo variant, Deco,
-        érable, noyer, chêne et cuir ou olivier), le côté de votre jan intérieur et le plateau
-        vertical. Le jan intérieur à gauche inverse le plateau et place les panneaux à côté
-        du plateau à gauche. Le plateau vertical affiche sur un écran étroit la carte du bot
-        au-dessus du plateau et la vôtre en dessous. Le mode sombre suit le réglage de l'appareil.
+        érable, noyer, chêne et cuir ou olivier) et le côté de votre jan intérieur. Le jan intérieur à gauche inverse le plateau et place les panneaux à côté
+        du plateau à gauche. La carte de l'adversaire est au-dessus
+        du plateau et la vôtre en dessous, avec le nom, les points de pénalité et le joueur au trait. En
+        revue d'un match importé, les cartes montrent les joueurs et le score de cette partie. Le mode sombre suit le réglage de l'appareil.
         Vos choix sont conservés dans le navigateur.</p>
         <p>Sons du jeu, sous Sons, est désactivé par défaut. Activé, les dés et les dames frappent le
         bois, le videau frappe quand vous doublez ou acceptez et un gong retentit au début de la

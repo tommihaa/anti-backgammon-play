@@ -29,18 +29,22 @@ export function parseMatch(text) {
 //
 // DailyGammonin foorumi rivittää viestin noin 72 merkin kohdalta, ja rivinvaihto katkaisee linkin
 // (Tommin koe 24.11.2026). Siksi fragmentti on tiivis:
-//   <asema>.<vuoro><nopat><siirto>[.<pituus>[c][.<p1>.<p2>[.<kuutio><omistaja>]]]
+//   <asema>.<vuoro><nopat><siirto>[.<pituus>[c][.<p1>.<p2>[<omistaja><kuutio>]]]
 // Asema on 14 merkkiä: kummankin pelaajan pisteet 1–24 ja muuri omassa numeroinnissaan, kukin
 // nappulamäärän verran ykkösbittejä ja nolla perään (GNU Backgammonin Position ID:n tapaan,
 // enintään 80 bittiä), base64url-merkein. Vuoro on a (isot kirjaimet, pelaaja 0) tai b. Nopat ovat
 // kaksi numeroa tai puuttuvat. Siirto on pistepareja kirjaimina a–z = 0–25 (25 muuri, 0 ulos).
 // Ilman siirtoa siirto on avoin, ja analyysi näyttää vain verkon parhaat. Pituus 0 on rahapeli, c
-// Crawford-peli, p1 ja p2 rangaistuspisteet ja kuutio arvon kaksikantainen logaritmi ja omistaja
-// n (keskellä), a tai b. Oletusarvoiset loppukentät jätetään pois.
+// Crawford-peli ja p1 ja p2 rangaistuspisteet. Kuution omistaja n (keskellä), a tai b ja arvon
+// kaksikantainen logaritmi liittyvät p2:een. Oletusarvoiset loppukentät jätetään pois.
+//
+// Perään voi tulla vastustajabotti ~<syvyys><verkon kirjain> (Tommi 24.11.2026): b-pelaaja on botti,
+// ja avaajan analyysi käyttää samaa syvyyttä. Verkon kirjaimet ovat src/historia.mjs:n NET_CODE-listassa.
+// Pelaajien nimiä linkissä ei ole, vaan käyttöliittymä täydentää ne.
 //
 // Vanha muoto xgid=<XGID>&m=13/7,8/7&a=<nimi>&b=<nimi> (versio 0.2.0) jäsentyy edelleen.
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-const SHORT = /^([A-Za-z0-9_-]{14})\.([ab])([1-6]{2})?((?:[a-z]{2})*)(?:\.(\d+)(c?)(?:\.(\d+)\.(\d+)(?:\.(\d)([nab]))?)?)?$/;
+const SHORT = /^([A-Za-z0-9_-]{14})\.([ab])([1-6]{2})?((?:[a-z]{2})*)(?:\.(\d+)(c?)(?:\.(\d+)\.(\d+)(?:([nab])(\d))?)?)?(?:~([0-9])([a-z]))?$/;
 const letter = n => String.fromCharCode(97 + n);
 
 function encodePosition(s) {
@@ -68,33 +72,37 @@ function decodePosition(code) {
 }
 
 // x on { s, cube, turn, dice, pen, crawford, limit } kuten fromXGID:n tulos, moves pelattu siirto tai null.
-export function linkFragment(x, moves) {
+export function linkFragment(x, moves, bot) {
   let f = `${encodePosition(x.s)}.${'ab'[x.turn]}${x.dice ? `${x.dice[0]}${x.dice[1]}` : ''}`;
   if (x.dice && moves?.length) f += moves.map(([a, b]) => letter(a) + letter(b)).join('');
   const cv = Math.round(Math.log2(x.cube.value)), co = x.cube.owner === -1 ? 'n' : 'ab'[x.cube.owner];
-  const tail = [`${x.limit ?? 0}${x.crawford ? 'c' : ''}`, String(x.pen?.[0] ?? 0), String(x.pen?.[1] ?? 0), `${cv}${co}`];
-  const dflt = ['0', '0', '0', '0n'];
+  const tail = [`${x.limit ?? 0}${x.crawford ? 'c' : ''}`, String(x.pen?.[0] ?? 0), String(x.pen?.[1] ?? 0), `${co}${cv}`];
+  const dflt = ['0', '0', '0', 'n0'];
   let n = tail.length;
   while (n > 0 && tail[n - 1] === dflt[n - 1]) n--;
   // Pisteet kulkevat parina, joten kuutio vaatii molemmat ja toinen piste ensimmäisen.
   if (n === 2) n = 3;
-  if (n) f += `.${tail.slice(0, n).join('.')}`;
+  // Kuutio liittyy toiseen pisteeseen ilman pistettä, koska se alkaa kirjaimella.
+  if (n) f += `.${tail.slice(0, Math.min(n, 3)).join('.')}${n === 4 ? tail[3] : ''}`;
+  // bot on { ply, code } tai null.
+  if (bot) f += `~${bot.ply}${bot.code}`;
   return f;
 }
 
 export function parseLink(text) {
   const t = String(text).trim().replace(/^#/, '');
   const r = t.match(SHORT);
-  let x, moves = null, names = [null, null];
+  let x, moves = null, names = [null, null], bot = null;
   if (r) {
     const s = decodePosition(r[1]);
     if (!s) return null;
     x = {
       s, turn: r[2] === 'a' ? 0 : 1, dice: r[3] ? [Number(r[3][0]), Number(r[3][1])] : null,
       limit: Number(r[5] ?? 0), crawford: r[6] === 'c', pen: [Number(r[7] ?? 0), Number(r[8] ?? 0)],
-      cube: { value: 2 ** Number(r[9] ?? 0), owner: r[10] === 'a' ? 0 : r[10] === 'b' ? 1 : -1 },
+      cube: { value: 2 ** Number(r[10] ?? 0), owner: r[9] === 'a' ? 0 : r[9] === 'b' ? 1 : -1 },
     };
     if (x.cube.value > 64) return null;
+    if (r[11]) bot = { ply: Number(r[11]), code: r[12] };
     if (r[4]) {
       moves = [];
       for (let i = 0; i < r[4].length; i += 2) moves.push([r[4].charCodeAt(i) - 97, r[4].charCodeAt(i + 1) - 97]);
@@ -116,7 +124,7 @@ export function parseLink(text) {
   const actions = x.dice ? [{ kind: 'roll', side: x.turn, dice: x.dice, moves: moves ?? [], open: !moves }] : [];
   // Nimet täydentää käyttöliittymä, jos linkissä niitä ei ole.
   return {
-    length: x.limit, players: names, link: true,
+    length: x.limit, players: names, link: true, bot,
     games: [{ players: names, scores: x.pen, crawford: x.crawford, start: { s: x.s, cube: x.cube }, turn: x.turn, actions, setup: false }],
   };
 }
