@@ -10,7 +10,7 @@ import { T, applyStatic, setLang } from './kieli.mjs';
 import { rankPlays, rollLuck, notation, topMoves, applyMove } from './analyysi.mjs';
 import { toXGID, fromXGID } from './xgid.mjs';
 import { parseMatch, replay, linkFragment } from './tuonti.mjs';
-import { gameHTML, cubeLabel, cubeEquityRows } from './vienti.mjs';
+import { gameHTML, cubeLabel, cubeEquityRows, luckMarkOf } from './vienti.mjs';
 import { buildAnalysisFile, parseAnalysisFile, FORMAT, EXT } from './analyysitiedosto.mjs';
 import { SOUNDS, playSound } from './aanet.mjs';
 import { VERSION } from './versio.mjs';
@@ -320,16 +320,13 @@ function renderGamePanel() {
     const loss = 2 * (d.r.best - d.r.played);
     return loss > 0.08 ? 'gl-blunder' : loss > 0.02 ? 'gl-error' : null;
   };
-  // Heiton onni rivin loppuun gnubg:n tapaan merkeillä + ja ++ sekä − ja −− (Tommin valinta
-  // 24.11.2026). Rajat ovat samat kuin virheillä (0,08 ja 0,16), koska gnubg:n 0,3 ja 0,6 ovat
-  // tavallisen backgammonin asteikkoa: Anti-Backgammonin 0-ply-itsepeluussa |onni| ylitti 0,08:n
-  // 13 %:ssa ja 0,16:n noin 3 %:ssa heitoista. Kesken pelin samat kytkimet kuin väreillä.
+  // Heiton onni rivin loppuun gnubg:n tapaan (src/vienti.mjs luckMarkOf, sama HTML-viennissä).
+  // Kesken pelin samat kytkimet kuin väreillä.
   const luckMark = d => {
-    if (d?.k !== 'move' || d.luck === undefined) return null;
+    if (d?.k !== 'move') return null;
     if (!ended && !(d.p === 0 ? opts.analysis : opts.botAnalysis)) return null;
-    const a = Math.abs(d.luck), k = a >= LUCK[1] ? 2 : a >= LUCK[0] ? 1 : 0;
-    if (!k) return null;
-    return { text: (d.luck > 0 ? '+' : '−').repeat(k), cls: d.luck > 0 ? 'gl-lucky' : 'gl-unlucky', label: T.luckMarks[d.luck > 0 ? k - 1 : k + 1] };
+    const m = luckMarkOf(d.luck);
+    return m && { text: m.text, cls: 'gl-' + m.cls, label: T.luckMarks[m.idx] };
   };
   list.textContent = '';
   navOrder = [];
@@ -1231,8 +1228,6 @@ function analyseBot(dec) {
   });
 }
 
-// Heiton onnen merkintärajat siirtolistassa (+ ja ++, − ja −−), ks. renderGamePanel.
-const LUCK = [0.08, 0.16];
 // Heiton onni lasketaan heti siirron kirjauksessa (0-ply, noin 10 ms), jotta siirtolista voi
 // merkitä sen kesken pelin. Jälkianalyysi ohittaa jo lasketun.
 function recordLuck(dec) {

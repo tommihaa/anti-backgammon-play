@@ -4,6 +4,13 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.5.1] - 2026-11-24
+
+### Added
+
+- The HTML export marks the luck of the roll in each move's heading with the same +, ++, − and −−
+  marks and limits as the move list.
+
 ## [0.5.0] - 2026-11-24
 
 ### Added

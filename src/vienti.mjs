@@ -18,6 +18,17 @@ const LEFT = 0, RIGHT = 6 * COL + BAR_W, TRAY_X = 12 * COL + BAR_W;
 const W = TRAY_X + TRAY_W, TOP = NUM_H, BOTTOM = NUM_H + 2 * HALF_H + MID_H, H = BOTTOM + NUM_H;
 const R = 13, STEP = 26, SHOWN = 5, CUBE = 28;
 export const BLUNDER = 0.08, ERROR = 0.02;
+// Heiton onnen merkit gnubg:n tapaan: + ja ++, − ja −− (Tommin valinta 24.11.2026). Rajat ovat
+// samat kuin virheillä, koska gnubg:n 0,3 ja 0,6 ovat tavallisen backgammonin asteikkoa:
+// Anti-Backgammonin 0-ply-itsepeluussa |onni| ylitti 0,08:n 13 %:ssa ja 0,16:n noin 3 %:ssa
+// heitoista. Palauttaa merkin, luokan ja T.luckMarks-indeksin tai null, kun heittoa ei merkitä.
+export const LUCK = [0.08, 0.16];
+export function luckMarkOf(luck) {
+  if (luck === undefined) return null;
+  const a = Math.abs(luck), k = a >= LUCK[1] ? 2 : a >= LUCK[0] ? 1 : 0;
+  if (!k) return null;
+  return { text: (luck > 0 ? '+' : '−').repeat(k), cls: luck > 0 ? 'lucky' : 'unlucky', idx: luck > 0 ? k - 1 : k + 1 };
+}
 // Nopan silmät keskipisteen suhteen (−1, 0 tai 1 kertaa silmäväli).
 const PIPS = {
   1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]],
@@ -200,6 +211,8 @@ function cubeTable(d, T) {
 export function gameHTML({ T, lang, title, names, info, summary, decisions, look, signed, crawford = false, style = 'x22', markLabel = m => m.text }) {
   const blocks = decisions.map((d, i) => {
     const loss = lossOf(d), cls = classOf(loss);
+    const lm = d.k === 'move' ? luckMarkOf(d.luck) : null;
+    const luckSpan = lm ? ` <span class="lm ${lm.cls}" title="${esc(T.luckMarks[lm.idx])}" aria-label="${esc(T.luckMarks[lm.idx])}">${lm.text}</span>` : '';
     const who = names[d.p];
     const titleText = T.evalTitle(d.n, who, textOf(d, T));
     let body;
@@ -212,7 +225,7 @@ export function gameHTML({ T, lang, title, names, info, summary, decisions, look
     if (d.mark) body = `<p class="mark">${esc(markLabel(d.mark))}</p>` + body;
     const board = boardSVG(d.s, { dice: d.k === 'move' ? d.dice : null, mover: d.p, cube: d.cube ?? { value: 1, owner: -1 }, look, flip: d.p === 1, crawford, style });
     const nav = `<nav>${i ? `<a href="#d${i - 1}">◀</a>` : ''} <a href="#top">▲</a> ${i < decisions.length - 1 ? `<a href="#d${i + 1}">▶</a>` : ''}</nav>`;
-    return `<section id="d${i}" class="${cls}"><h3><span class="dot p${d.p}"></span>${d.mark ? '✱ ' : ''}${esc(titleText)}${loss !== null && loss >= 0.0005 ? ` <small>−${esc(T.num(loss))}</small>` : ''}</h3>`
+    return `<section id="d${i}" class="${cls}"><h3><span class="dot p${d.p}"></span>${d.mark ? '✱ ' : ''}${esc(titleText)}${loss !== null && loss >= 0.0005 ? ` <small>−${esc(T.num(loss))}</small>` : ''}${luckSpan}</h3>`
       + `<div class="pos">${board}<div class="an">${body}${nav}</div></div></section>`;
   });
   // Virheluettelo linkkeineen, suurin ensin, avattavan otsikon takana (Tommin pyyntö 14.11.2026).
@@ -227,8 +240,8 @@ export function gameHTML({ T, lang, title, names, info, summary, decisions, look
     ? `<details open><summary>${esc(T.exportMarks(marked.length))}</summary><ol class="marks">${marked.map(e => `<li><a href="#d${e.i}">${esc(T.evalTitle(e.d.n, names[e.d.p], textOf(e.d, T)))}</a>${e.d.mark.text ? `: ${esc(e.d.mark.text)}` : ''}</li>`).join('')}</ol></details>`
     : '';
   const css = `
-  :root { color-scheme: light dark; --bg: #FBF8F4; --ink: #1E1A16; --muted: #4C443B; --line: #B8AA98; --good: #2E7D32; --bad: #C62828; --accent: #6B5844; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #1B1712; --ink: #F0E7D6; --muted: #9A8D7A; --line: #6E6154; --good: #7CC47F; --bad: #FF786E; --accent: #E9973F; } }
+  :root { color-scheme: light dark; --bg: #FBF8F4; --ink: #1E1A16; --muted: #4C443B; --line: #B8AA98; --good: #2E7D32; --bad: #C62828; --accent: #6B5844; --lucky: #185FA5; --unlucky: #9A5A0C; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1B1712; --ink: #F0E7D6; --muted: #9A8D7A; --line: #6E6154; --good: #7CC47F; --bad: #FF786E; --accent: #E9973F; --lucky: #85B7EB; --unlucky: #EF9F27; } }
   body { margin: 0; padding: 16px; background: var(--bg); color: var(--ink); font: 15px/1.45 Georgia, serif; }
   main { max-width: 980px; margin: 0 auto; }
   h1 { font-size: 1.5em; margin: 0 0 6px; } h2 { font-size: 1.15em; margin: 18px 0 6px; }
@@ -249,6 +262,7 @@ export function gameHTML({ T, lang, title, names, info, summary, decisions, look
   .dot.p0 { background: ${look.self.fill}; } .dot.p1 { background: ${look.opp.fill}; }
   nav { margin-top: 8px; display: flex; gap: 14px; } a { color: var(--accent); }
   small { font-weight: normal; }
+  .lm { font: 0.9em ui-monospace, Consolas, monospace; } .lm.lucky { color: var(--lucky); } .lm.unlucky { color: var(--unlucky); }
   details { margin: 8px 0; } summary { cursor: pointer; color: var(--accent); }
   p.mark { font-style: italic; border-left: 3px solid var(--accent); padding-left: 8px; white-space: pre-wrap; }`;
   return `<!doctype html>
