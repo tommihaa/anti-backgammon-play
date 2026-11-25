@@ -4,6 +4,13 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.6.1] - 2026-11-25
+
+### Fixed
+
+- Dragging a checker now works on touch screens, including the installed app. Before, the page
+  started to scroll under your finger and the drag was cancelled.
+
 ## [0.6.0] - 2026-11-24
 
 ### Added

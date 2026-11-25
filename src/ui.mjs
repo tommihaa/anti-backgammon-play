@@ -1823,6 +1823,11 @@ svg.addEventListener('pointerdown', ev => {
   if (from === null || !nextMoves().some(m => m[0] === from)) return;
   drag = { from, x: ev.clientX, y: ev.clientY, moved: false };
 });
+// Kosketuksella laudan touch-action: manipulation antaa selaimen vierittää sivua. Vieritys perii
+// eleen ja lähettää pointercancelin, joten raahaus katkesi tabletilla (Tommi 25.11.2026). Kun
+// ele alkaa siirrettävästä nappulasta, touchmove perutaan eikä vieritys ala. Napautus tuottaa
+// yhä klikkauksen, koska touchstartia ei peruta.
+svg.addEventListener('touchmove', ev => { if (drag) ev.preventDefault(); }, { passive: false });
 document.addEventListener('pointermove', ev => {
   if (!drag) return;
   if (!drag.moved && Math.hypot(ev.clientX - drag.x, ev.clientY - drag.y) < DRAG_PX) return;
