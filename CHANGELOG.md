@@ -4,6 +4,16 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.7.0] - 2026-11-25
+
+### Added
+
+- A new switch under Settings > Playing: Roll automatically when I can't double. It is off by
+  default. When it is on, your turn starts with a roll in the Crawford game (also in a 1-point
+  match) and when the bot owns the cube or it is at 64. When you can double, Roll waits as
+  before. On those turns you can't offer a draw before the roll. The arrows for the bot's move
+  stay until your first checker move.
+
 ## [0.6.1] - 2026-11-25
 
 ### Fixed

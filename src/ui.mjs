@@ -60,10 +60,13 @@ const prefs = {
 // jäi pois, koska tässä pelissä ulos ehtiminen on se mitä vältetään. Siirron jälkeinen analyysi on
 // oma kytkimensä (Tommin tilaus 1.11.2026). Tuodun ottelun analyysi on oma kytkimensä (Tommin
 // valinta 14.11.2026), koska 2-ply-analyysi vie koko ottelusta minuutteja. Botin siirtojen
-// analyysi kesken pelin on oma kytkimensä (Tommin tilaus 24.11.2026).
-export const PLAY_TOGGLES = ['analysis', 'botAnalysis', 'importAnalysis', 'forced', 'arrows', 'botArrows', 'press', 'diceSubmit', 'diceSwap', 'diceRoll', 'nextOnDice'];
-// Kaikki kytkimet ovat oletuksena päällä 3.11.2026 alkaen (Tommin päätös debuggausta varten, Kaanon §4).
-const opts = Object.fromEntries(PLAY_TOGGLES.map(k => [k, true]));
+// analyysi kesken pelin on oma kytkimensä (Tommin tilaus 24.11.2026). Automaattiheitto heittää
+// vain vuoroilla, joilla et voi tuplata (Tommin valinta 25.11.2026), jotta tuplaus säilyy.
+export const PLAY_TOGGLES = ['analysis', 'botAnalysis', 'importAnalysis', 'forced', 'arrows', 'botArrows', 'press', 'diceSubmit', 'diceSwap', 'diceRoll', 'autoRoll', 'nextOnDice'];
+// Kytkimet ovat oletuksena päällä 3.11.2026 alkaen (Tommin päätös debuggausta varten, Kaanon §4).
+// Automaattiheitto on poikkeus (Tommi 25.11.2026): se vie tasapelitarjouksen hetken ennen heittoa.
+const OFF_BY_DEFAULT = ['autoRoll'];
+const opts = Object.fromEntries(PLAY_TOGGLES.map(k => [k, !OFF_BY_DEFAULT.includes(k)]));
 { const saved = store.get('ab-pelaaminen', {}); for (const k of PLAY_TOGGLES) if (typeof saved?.[k] === 'boolean') opts[k] = saved[k]; }
 // Botin hakusyvyys: 0-ply on verkon suora arvio, 1- ja 2-ply katsovat vastustajan heitot eteenpäin.
 // Pelaaja valitsee, koska syvempi haku vie koneesta riippuen sekunteja (Tommin tilaus 1.11.2026).
@@ -1164,6 +1167,8 @@ function swapDice() {
 
 // Valmiiksi asetettu siirto (auto) ei päätä peliä itse, vaan Valmis jää pelaajalle.
 function doMove(from, to, die, auto = false) {
+  // Automaattiheiton jälkeen botin siirron merkinnät näkyvät ensimmäiseen omaan osasiirtoon asti.
+  if (game.autoRolled && !auto) { game.autoRolled = false; game.lastBot = []; }
   game.partial.push([from, to]);
   game.partialDice.push(die);
   game.hitsMarks.push(applyMove(game.s, 0, from, to));
@@ -1335,6 +1340,19 @@ function botPlayed(play, ms) {
   game.turn = 0; game.phase = 'roll';
   turnStart(0);
   render();
+  autoRoll();
+}
+
+// Automaattiheitto (Tommin valinta 25.11.2026): vuoro alkaa heitolla, kun et voi tuplata
+// (Crawford-peli, kuutio vastustajalla tai katossa). Kun voit tuplata, Heitä odottaa kuten ennen.
+// Lyhyt viive jättää botin siirron hetkeksi näkyviin ennen noppia.
+function autoRoll() {
+  if (!opts.autoRoll || game.over || game.turn !== 0 || game.phase !== 'roll' || canDouble(0)) return;
+  const g = game;
+  later(() => {
+    if (game !== g || !opts.autoRoll || viewing() || game.phase !== 'roll' || game.turnAct !== null || canDouble(0)) return;
+    humanRoll(true);
+  }, 500);
 }
 
 // Tasapeli 300 rivin eli 600 puolisiirron jälkeen (Kaanon §2.7), kuution arvosta riippumatta.
@@ -1452,12 +1470,13 @@ function humanDeclineDraw() {
   later(() => botTurn(false, true), 350);
 }
 
-function humanRoll() {
+function humanRoll(auto = false) {
   if (game.phase !== 'roll') return;
   if (canDouble(0) && game.turnAct !== 'offer') cubeDecision(0, 'nodouble');
   game.dice = roll();
   sound('dice');
-  game.lastBot = [];
+  game.autoRolled = auto === true;
+  if (!game.autoRolled) game.lastBot = [];
   beginHumanMove();
   if (game.phase === 'move') game.msg = T.youRolled(`${game.dice[0]}${game.dice[1]}`);
   render();
@@ -1637,7 +1656,7 @@ function drawArrows(L) {
       list.push(game.viewP === 0 ? { f, t, own: true } : { f: f === BAR ? BAR : 25 - f, t: t <= 0 ? 0 : 25 - t, own: false });
     }
   }
-  if (opts.botArrows && game.turn === 0 && game.phase === 'roll' && game.botMoves) {
+  if (opts.botArrows && game.turn === 0 && (game.phase === 'roll' || game.autoRolled) && game.botMoves) {
     for (const [f, t] of game.botMoves) list.push({ f: f === BAR ? BAR : 25 - f, t: t <= 0 ? 0 : 25 - t, own: false });
   }
   if (!list.length) return;
@@ -2190,7 +2209,7 @@ function setPosition(x, logText, msg) {
     msg, when: Date.now(), limit: match.limit, decisions: [], stall: newStall(), turnAct: null,
   };
   if (x.turn === 0) {
-    if (x.dice) beginHumanMove(); else { game.turn = 0; game.phase = 'roll'; turnStart(0); }
+    if (x.dice) beginHumanMove(); else { game.turn = 0; game.phase = 'roll'; turnStart(0); autoRoll(); }
   } else {
     game.turn = 1; game.phase = 'bot';
     later(() => botTurn(!!x.dice), 400);

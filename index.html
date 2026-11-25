@@ -538,13 +538,16 @@
         vahvemmin, mutta 2-ply vie koneesta riippuen sekunteja siirtoa kohden. Oletus on 2-ply, ja botin viesti kertoo, kauanko haku kesti. Siirtojesi analyysi
         tehdään samalla syvyydellä kuin botti pelaa. Syvemmällä haulla analyysi ilmestyy hetken
         viiveellä. Botin kuutiopäätökset tehdään aina 0-ply-arviolla.</p>
-        <p>Kaikki Pelaaminen-kohdan kytkimet ovat oletuksena päällä. Pelaa pakkosiirrot puolestani asettaa
+        <p>Pelaaminen-kohdan kytkimet ovat oletuksena päällä automaattiheittoa lukuun ottamatta. Pelaa pakkosiirrot puolestani asettaa
         valmiiksi ne osasiirrot, jotka ovat mukana jokaisessa laillisessa siirrossa. Kun laillinen
         siirto on vain yksi tai siirtoa ei ole, vuoro päättyy itsestään. Muuten Valmis jää sinulle. Nuolet näyttävät omat osasiirtosi ennen Valmista ja botin edellisen siirron
         heittoosi asti. Muurin kohdalla nuoli himmenee, jotta pipit näkyvät sen alta. Näytä painettu piste suurentaa laudan reunassa sen pisteen numeron, jota
         painat: oranssi tarkoittaa että pisteeltä voi siirtää, yliviivattu että ei voi. Noppien
         kytkimillä noppien klikkaus vahvistaa valmiin siirron, vaihtaa käyttämättömien noppien
-        järjestyksen tai heittää, kun botin nopat ovat laudalla. Seuraava peli noppien paikalle tuo
+        järjestyksen tai heittää, kun botin nopat ovat laudalla. Heitä automaattisesti, kun en voi tuplata
+        heittää puolestasi Crawford-pelissä ja silloin, kun kuutio on botilla tai arvossa 64. Silloin et voi
+        myöskään tarjota tasapeliä ennen heittoa. Botin siirron nuolet näkyvät ensimmäiseen omaan
+        osasiirtoosi asti. Seuraava peli noppien paikalle tuo
         napin laudan keskelle pelin päätyttyä.</p>
         <p>Ulkoasu-kohdasta valitset laudan (Deco, Monte Carlo X-22, Monte Carlo variant, vaahtera,
         pähkinä, tammi ja nahka tai oliivi) ja kotialueen puolen. Kotialue vasemmalla
@@ -733,14 +736,16 @@
         stronger, but 2-ply can take seconds per move depending on your computer. The default is 2-ply, and the bot's message tells how long the search took. Your moves are
         analysed at the same depth as the bot plays, so with a deeper search the analysis appears
         after a short delay. The bot's cube decisions always use the 0-ply evaluation.</p>
-        <p>All switches under Playing are on by default. Play forced checkers for me places the
+        <p>All switches under Playing are on by default except automatic rolling. Play forced checkers for me places the
         parts of the move that are in every legal move. When there is only one legal move or no move
         at all, your turn ends by itself. Otherwise Done stays yours. The arrows show your
         moves before Done and the bot's last move until you roll. Over the bar an arrow fades so the pips show through. Show which point I'm pressing
         enlarges the number of the point under your finger at the board edge: orange means a checker
         can move from there, crossed out means it can't. With the dice switches a click on the dice
         submits a complete move, swaps the unused dice or rolls when the bot's dice are on the board.
-        Next game where the dice were puts the button in the middle of the board when a game ends.</p>
+        Roll automatically when I can't double rolls for you in the Crawford game and when the bot
+        owns the cube or it is at 64. You then can't offer a draw before the roll. The arrows for the
+        bot's move stay until your first checker move. Next game where the dice were puts the button in the middle of the board when a game ends.</p>
         <p>Under Appearance you choose the board (Deco, Monte Carlo X-22, Monte Carlo variant, maple,
         walnut, oak leather or olive) and the side of your home board. Home board
         on the left mirrors the board and moves the panels next to the board to the left. The opponent's card is above the
@@ -942,14 +947,17 @@
         Züge werden in derselben Tiefe analysiert, in der der Bot spielt, daher erscheint die Analyse
         bei tieferer Suche mit kurzer Verzögerung. Die Würfelentscheidungen des Bots verwenden immer
         die 0-ply-Bewertung.</p>
-        <p>Alle Schalter unter Spielen sind standardmäßig an. Erzwungene Züge für mich spielen setzt
+        <p>Alle Schalter unter Spielen sind standardmäßig an, außer dem automatischen Würfeln. Erzwungene Züge für mich spielen setzt
         die Teile des Zuges, die in jedem legalen Zug vorkommen. Gibt es nur einen legalen Zug oder
         gar keinen, endet dein Zug von selbst. Sonst bleibt Fertig dir überlassen. Die
         Pfeile zeigen deine Züge vor Fertig und den letzten Zug des Bots, bis du würfelst. Über der Bar wird ein Pfeil blass, damit die Pips sichtbar bleiben. Gedrückten
         Punkt zeigen vergrößert am Brettrand die Nummer des Punktes unter deinem Finger: Orange
         bedeutet, dass von dort ein Stein ziehen kann, durchgestrichen, dass keiner kann. Mit den
         Würfelschaltern bestätigt ein Klick auf die Würfel einen vollständigen Zug, tauscht die
-        unbenutzten Würfel oder würfelt, wenn die Würfel des Bots auf dem Brett liegen. Nächstes
+        unbenutzten Würfel oder würfelt, wenn die Würfel des Bots auf dem Brett liegen. Automatisch
+        würfeln, wenn ich nicht verdoppeln kann würfelt für dich im Crawford-Spiel und wenn der Bot den
+        Würfel besitzt oder er auf 64 steht. Dann kannst du vor dem Wurf kein Remis anbieten. Die Pfeile
+        für den Zug des Bots bleiben bis zu deinem ersten Steinzug. Nächstes
         Spiel an der Stelle der Würfel setzt die Schaltfläche in die Brettmitte, wenn ein Spiel
         endet.</p>
         <p>Unter Aussehen wählst du das Brett (Deco, Monte Carlo X-22, Monte Carlo variant, Ahorn,
@@ -1158,14 +1166,17 @@
         bot indique la durée de la recherche. Vos coups sont analysés à la même profondeur que celle
         du bot, donc avec une recherche plus profonde l'analyse apparaît après un court délai. Les
         décisions de videau du bot utilisent toujours l'évaluation 0-ply.</p>
-        <p>Tous les interrupteurs sous Jeu sont activés par défaut. Jouer les déplacements forcés pour
+        <p>Tous les interrupteurs sous Jeu sont activés par défaut, sauf le lancer automatique. Jouer les déplacements forcés pour
         moi place les parties du coup présentes dans tous les coups légaux. S'il n'y a qu'un seul coup
         légal ou aucun, votre tour se termine tout seul. Sinon Terminé reste à vous. Les
         flèches montrent vos déplacements avant Terminé et le dernier coup du bot jusqu'à votre
         lancer. Au-dessus de la barre, une flèche pâlit pour laisser voir les pips. Afficher la case touchée agrandit au bord du plateau le numéro de la case sous votre
         doigt&nbsp;: orange signifie qu'une dame peut partir de là, barré qu'aucune ne le peut. Avec les
         interrupteurs des dés, un clic sur les dés confirme un coup complet, inverse les dés
-        inutilisés ou lance les dés quand ceux du bot sont sur le plateau. Partie suivante à la place
+        inutilisés ou lance les dés quand ceux du bot sont sur le plateau. Lancer automatiquement quand
+        je ne peux pas doubler lance pour vous pendant la partie Crawford et quand le bot possède le
+        videau ou qu'il est à 64. Vous ne pouvez alors pas proposer la nulle avant le lancer. Les flèches
+        du coup du bot restent jusqu'à votre premier déplacement. Partie suivante à la place
         des dés met le bouton au milieu du plateau à la fin d'une partie.</p>
         <p>Sous Apparence, vous choisissez le plateau (Deco, Monte Carlo X-22, Monte Carlo variant,
         érable, noyer, chêne et cuir ou olivier) et le côté de votre jan intérieur. Le jan intérieur à gauche inverse le plateau et place les panneaux à côté
