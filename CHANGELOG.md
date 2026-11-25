@@ -4,6 +4,13 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.8.1] - 2026-11-25
+
+### Changed
+
+- The version next to the title is a link to this changelog, and so is the mention of
+  CHANGELOG.md in the Help text.
+
 ## [0.8.0] - 2026-11-25
 
 ### Added
