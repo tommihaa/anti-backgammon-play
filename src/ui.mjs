@@ -10,7 +10,7 @@ import { T, applyStatic, setLang } from './kieli.mjs';
 import { rankPlays, rollLuck, notation, topMoves, applyMove, rollBest } from './analyysi.mjs';
 import { toXGID, fromXGID } from './xgid.mjs';
 import { parseMatch, replay, linkFragment } from './tuonti.mjs';
-import { emptyPosition, placeCheckers, clearPosition, positionError, crawfordPossible, createdFragment } from './luonti.mjs';
+import { emptyPosition, placeCheckers, clearPosition, positionError, crawfordPossible, cubeless, isDmp, createdFragment } from './luonti.mjs';
 import { gameHTML, cubeLabel, cubeEquityRows, luckMarkOf } from './vienti.mjs';
 import { buildAnalysisFile, parseAnalysisFile, FORMAT, EXT } from './analyysitiedosto.mjs';
 import { SOUNDS, playSound } from './aanet.mjs';
@@ -2261,7 +2261,7 @@ function renderStatus(isView) {
   $('penBot').textContent = T.penScore(pen[1], match.limit);
   // Pelaajakortit laudan ylä- ja alapuolella: vastapuoli ylhäällä, oma alhaalla. Selauksessa
   // tuodun pelin pelaajat ja pisteet pelin alussa, muuten oma ottelu (Tommi 24.11.2026).
-  const rg = review ? reviewGame() : null;
+  const rg = review && !edit ? reviewGame() : null;
   const nm = rg ? [rg.players[review.h], rg.players[1 - review.h]] : namesOf(liveGame());
   const pp = rg ? [rg.scores[review.h], rg.scores[1 - review.h]] : edit ? edit.pen : pen;
   for (const [id, k] of [['cardBot', 1], ['cardMe', 0]]) {
@@ -2274,7 +2274,7 @@ function renderStatus(isView) {
   $('actions').hidden = !!review || isView || !!edit;
   $('viewBar').hidden = !isView;
   renderPanels();
-  if (review) renderReview();
+  if (review && !edit) renderReview();
   if (document.activeElement !== $('xgid')) $('xgid').value = currentXGID();
 }
 
@@ -2421,8 +2421,8 @@ function currentXGID() {
     s: moving ? game.base : game.s, cube: game.cube, turn: game.turn,
     dice: moving || game.phase === 'review' || game.phase === 'edit' ? game.dice : null, offered: game.phase === 'offer', crawford: game.crawford,
     // Selauksessa pisteet ja pituus ovat tuodun pelin ja aseman luonnissa luotavan aseman.
-    pen: review ? [reviewGame().scores[review.h], reviewGame().scores[1 - review.h]] : edit ? edit.pen : pen,
-    limit: review ? reviewLimit() : edit ? edit.limit : match.limit,
+    pen: edit ? edit.pen : review ? [reviewGame().scores[review.h], reviewGame().scores[1 - review.h]] : pen,
+    limit: edit ? edit.limit : review ? reviewLimit() : match.limit,
   });
 }
 
@@ -2470,13 +2470,15 @@ $('xgidLink').addEventListener('click', async () => {
 });
 $('xgid').addEventListener('keydown', ev => { if (ev.key === 'Enter') loadXGID($('xgid').value); });
 
-// Aseman luonti (src/luonti.mjs, Tommin valinnat 25.11.2026): tyhjä lauta, nappulat klikkaamalla
-// värivalitsimen värillä, vuoro, heitto, kuutio ja ottelun tilanne lomakkeelta. Analysoi avaa
-// aseman selaukseen aseman linkkinä. Luonnin aikana peli odottaa taustalla, ja lauta piirretään
-// luonnin asemasta (render). Tila edit on määritelty tiedoston alussa reviewin vieressä.
+// Aseman luonti (src/luonti.mjs, Tommin valinnat 25.11.2026): tyhjä lauta tai laudalla näkyvä
+// asema (Muokkaa asemaa), nappulat klikkaamalla, vuoro, heitto, kuutio ja ottelun tilanne
+// lomakkeelta. Analysoi avaa aseman selaukseen aseman linkkinä. Luonnin aikana peli tai selaus
+// odottaa taustalla, ja lauta piirretään luonnin asemasta (render). Peruuta palaa niihin. Tila
+// edit on määritelty tiedoston alussa reviewin vieressä.
+// Yhden pisteen ottelu on DMP: kuution paikalla ei ole kuutiota kuten pelissä (crawford ja dmp).
 const editGame = () => ({
   ...game, s: edit.s, turn: edit.turn, dice: edit.dice, diceOwner: edit.turn, order: edit.dice ? [...edit.dice] : [],
-  cube: edit.cube.value === 1 ? { value: 1, owner: -1 } : edit.cube, crawford: edit.crawford && crawfordPossible(edit), dmp: false,
+  cube: edit.cube.value === 1 || cubeless(edit) ? { value: 1, owner: -1 } : edit.cube, crawford: cubeless(edit), dmp: isDmp(edit),
   phase: 'edit', over: false, base: null, partial: [], partialDice: [], botUsed: [], botMoves: null, lastBot: [],
   autoRolled: false, mark: null, engineNote: '', msg: '',
 });
@@ -2502,9 +2504,11 @@ function editForm() {
   $('editDice').value = edit.dice ? `${edit.dice[0]}${edit.dice[1]}` : '';
   $('editCubeValue').value = String(edit.cube.value);
   $('editCubeOwner').value = String(edit.cube.value === 1 ? -1 : edit.cube.owner);
-  $('editCubeOwner').disabled = edit.cube.value === 1;
+  // DMP:ssä ja Crawford-pelissä kuutiota ei ole, joten sen kentät eivät ole käytössä.
+  $('editCubeValue').disabled = cubeless(edit);
+  $('editCubeOwner').disabled = edit.cube.value === 1 || cubeless(edit);
   $('editLimit').value = String(edit.limit);
-  $('editLimitNote').textContent = edit.limit ? '' : T.limitOption(null);
+  $('editLimitNote').textContent = !edit.limit ? T.limitOption(null) : isDmp(edit) ? T.matchKind.dmp : '';
   $('editPenMe').value = String(edit.pen[0]);
   $('editPenBot').value = String(edit.pen[1]);
   $('editCrawford').disabled = !crawfordPossible(edit);
@@ -2525,13 +2529,23 @@ function readEditor() {
   editForm();
   render();
 }
-function startEdit() {
+// Laudalla näkyvä asema: rivin aseman katselu, selattava siirto tai peli. Kesken olevasta
+// siirrosta asema ennen siirtoa ja nopat kuten XGID:ssä (currentXGID).
+function shownPosition() {
+  if (viewing()) {
+    const v = viewGame(), x = selRec();
+    return { s: v.s, cube: { ...v.cube }, turn: v.turn, dice: v.dice ? [...v.dice] : null, limit: x.limit ?? 0, pen: [...(x.score ?? [0, 0])], crawford: !!x.crawford };
+  }
+  return fromXGID(currentXGID());
+}
+// Ottelun pituuden oletus on 1 eli DMP (Tommin kuittaus 25.11.2026), ei käynnissä olevan ottelun.
+function startEdit(from = null) {
   if (!review && game.phase === 'bot') { $('xgidMsg').textContent = T.editBusy; return; }
-  if (review) closeReview();
-  sel = { when: null, d: null };
+  const x = from ?? { s: emptyPosition(), turn: 0, dice: null, cube: { value: 1, owner: -1 }, limit: 1, pen: [0, 0], crawford: false };
+  sel = review ? sel : { when: null, d: null };
   edit = {
-    s: emptyPosition(), color: 0, turn: 0, dice: null, cube: { value: 1, owner: -1 },
-    limit: match.limit ?? 0, pen: [0, 0], crawford: false,
+    s: x.s.map(a => Int8Array.from(a)), color: 0, turn: x.turn, dice: x.dice, cube: { ...x.cube },
+    limit: x.limit, pen: [...x.pen], crawford: x.limit > 1 && !!x.crawford,
   };
   $('editColorMe').checked = true;
   $('editMsg').textContent = '';
@@ -2555,13 +2569,14 @@ function finishEdit() {
   importMatch(f);
 }
 // Klikkauskohdan korkeus pisteen tyvestä nappuloina. Muurin yläpuolisko on oma ja alapuolisko
-// botin, kuten muurin pinot piirretään.
-svg.addEventListener('click', ev => {
-  if (!edit) return;
+// botin, kuten muurin pinot piirretään. Hiiren oikea näppäin asettaa toisen värin kuin
+// värivalitsin, joten oletuksena vasen asettaa omat ja oikea vastustajan kuten XG:ssä (Tommin
+// pyyntö 25.11.2026). Värivalitsin jää kosketusnäyttöä varten, jolla oikeaa näppäintä ei ole.
+function editClick(ev, other) {
   const spot = spotAt(ev);
   if (spot === null || spot === OFF) return;
   const y = svgPoint(ev)[1];
-  let p = edit.color, slot;
+  let p = other ? 1 - edit.color : edit.color, slot;
   if (spot === BAR) {
     p = y < MID ? 0 : 1;
     const from = p === 0 ? MID - BAND / 2 - y : y - MID - BAND / 2;
@@ -2570,8 +2585,13 @@ svg.addEventListener('click', ev => {
   placeCheckers(edit.s, p, spot, slot);
   $('editMsg').textContent = '';
   render();
-});
-$('editStart').addEventListener('click', startEdit);
+}
+svg.addEventListener('click', ev => { if (edit) editClick(ev, false); });
+svg.addEventListener('contextmenu', ev => { if (!edit) return; ev.preventDefault(); editClick(ev, true); });
+$('editStart').addEventListener('click', () => startEdit());
+// Muokkaa asemaa avaa laudalla näkyvän aseman luontiin (Tommin pyyntö 25.11.2026). Kesken
+// olevaa luontia ei korvata.
+$('editShown').addEventListener('click', () => { if (!edit) startEdit(shownPosition()); else closeMenus(); });
 $('editor').addEventListener('change', readEditor);
 $('editClear').addEventListener('click', () => { clearPosition(edit.s); $('editMsg').textContent = ''; render(); });
 $('editDone').addEventListener('click', finishEdit);
@@ -2605,7 +2625,8 @@ function importMatch(text) {
   review = {
     m, h, gi: 0, i: 0, steps: [], error: null, saved: review?.saved ?? game, rec: null, done,
     id, text, when: old?.when ?? Date.now(), net: old?.net ?? NET_FILE, stale: !!old && old.net !== NET_FILE && done.size > 0,
-    kind: old?.kind ?? (m.length ? 'match' : 'money'), rollouts: old?.rollouts ?? {}, marks: old?.marks ?? {},
+    // Yhden pisteen ottelu on DMP ilman kuutiota kuten pelissä (25.11.2026).
+    kind: old?.kind ?? (m.length === 1 ? 'dmp' : m.length ? 'match' : 'money'), rollouts: old?.rollouts ?? {}, marks: old?.marks ?? {},
   };
   $('importMsg').textContent = T.importLoaded(m.players[0], m.players[1], m.games.length);
   fillReview();

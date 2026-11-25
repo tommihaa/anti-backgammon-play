@@ -58,12 +58,19 @@ export function positionError(x) {
   return null;
 }
 
-// Crawford-peli on mahdollinen vain ottelussa, jossa jompikumpi on pisteen päässä rajasta.
-export const crawfordPossible = x => x.limit > 0 && x.pen.some(v => v === x.limit - 1);
+// Yhden pisteen ottelu on DMP ilman kuutiota kuten pelissä (Tommin kuittaus 25.11.2026).
+export const isDmp = x => x.limit === 1;
 
-// Luodun aseman linkin fragmentti. Kuutio arvolla 1 on aina keskellä, ja Crawford-pelissä
-// kuutiota ei ole.
+// Crawford-peli on mahdollinen vain DMP:tä pidemmässä ottelussa, jossa jompikumpi on pisteen
+// päässä rajasta.
+export const crawfordPossible = x => x.limit > 1 && x.pen.some(v => v === x.limit - 1);
+
+// Kuutioton asema: DMP tai Crawford-peli.
+export const cubeless = x => isDmp(x) || (x.crawford && crawfordPossible(x));
+
+// Luodun aseman linkin fragmentti. Kuutio arvolla 1 on aina keskellä, ja DMP:ssä ja
+// Crawford-pelissä kuutiota ei ole.
 export function createdFragment(x) {
-  const cube = x.cube.value === 1 || x.crawford ? { value: 1, owner: -1 } : x.cube;
+  const cube = x.cube.value === 1 || cubeless(x) ? { value: 1, owner: -1 } : x.cube;
   return linkFragment({ ...x, cube, crawford: x.crawford && crawfordPossible(x) }, null, null);
 }

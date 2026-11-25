@@ -4,6 +4,26 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.10.0] - 2026-11-25
+
+### Added
+
+- Edit position under Position (XGID) opens the position on the board for editing: the game,
+  a move being reviewed or the selected row, with its turn, roll, cube and match score. Cancel
+  returns to the game or the review.
+- When creating or editing a position, the left mouse button places your checkers and the right
+  button the opponent's, as in XG. The colour choice stays for touch screens.
+
+### Changed
+
+- A created position is a one-point match (DMP) by default instead of the length of the match
+  being played.
+
+### Fixed
+
+- A one-point match shows no cube, neither while creating the position nor in the review of a
+  created or imported one-point match.
+
 ## [0.9.0] - 2026-11-25
 
 ### Added
