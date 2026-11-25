@@ -207,6 +207,9 @@
   #importFile { margin-top: 4px; max-width: 100%; }
   .review { display: grid; gap: 8px; margin: 0 0 10px; }
   .review[hidden], #actions[hidden] { display: none; }
+  .editor-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; }
+  .editor-grid .pair { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .editor-grid input[type=number] { width: 4.5em; }
   #played { margin: 8px 0 4px; max-width: 100%; }
   .decisions { margin-top: 10px; }
   .table-wrap { overflow-x: auto; }
@@ -389,6 +392,7 @@
           <button id="xgidCopy" data-t="xgidCopy">Kopioi</button>
           <button id="xgidSet" data-t="xgidSet">Aseta</button>
           <button id="xgidLink" data-t="xgidLink">Kopioi linkki</button>
+          <button id="editStart" data-t="editStart">Luo asema</button>
         </div>
         <p class="xgid-msg" id="xgidMsg" aria-live="polite"></p>
       </details>
@@ -476,6 +480,15 @@
         aseman selattavaksi. Arvio-paneeli näyttää siinä verkon parhaat siirrot. Arvio-paneelin <kbd>Kopioi linkki</kbd>
         näkyy, kun valitset pelatun siirron siirtolistasta, myös kesken pelin. Se ottaa mukaan pelatun siirron, jolloin avaaja näkee sen eron parhaaseen. <kbd>Jatka tästä</kbd>
         aloittaa pelin bottia vastaan linkin asemasta.</p>
+        <p><kbd>Luo asema</kbd> avaa tyhjän laudan, jolle asetat analysoitavan aseman itse. Valitse
+        Nappulat-kohdasta Sinä tai Botti ja klikkaa pistettä. Pisteelle tulee niin monta nappulaa kuin
+        klikkauskohdan korkeus osoittaa. Ylimmän nappulan klikkaus poistaa sen. Kun pisteellä on jo viisi
+        nappulaa, niin ylimmän klikkaus lisää yhden. Muurin yläpuolisko on sinun ja alapuolisko botin.
+        Nappulat, joita ei ole laudalla, ovat ulkona. <kbd>Tyhjennä</kbd> tyhjentää laudan. Laudan alla
+        valitset vuoron, heiton, kuution arvon ja omistajan, ottelun pituuden (0 on rahapeli),
+        rangaistuspisteet ja Crawford-pelin. <kbd>Analysoi</kbd> avaa aseman selattavaksi kuten aseman
+        linkin. <kbd>Peruuta</kbd> tai <kbd>Esc</kbd> palaa peliin. Ilman heittoa Arvio-paneeli näyttää
+        voiton todennäköisyyden ja sen, tuplaisiko verkko. Heiton kanssa se näyttää verkon parhaat siirrot.</p>
         <p>Tuo ottelu -kohta lukee DailyGammonin viennin (.mat) tai .sgf-tiedoston, myös DG Androidin
         merkityin asemin. Valitse tiedosto tai liitä teksti ja paina <kbd>Tuo</kbd>. Ottelua selataan nuolilla
         tai näppäimillä vasen ja oikea. <kbd>Seuraava merkki</kbd> hyppää merkittyyn asemaan. Valitse
@@ -677,6 +690,15 @@
         opens the position for review, and the Evaluation panel shows the network's best moves. <kbd>Copy link</kbd>
         in the Evaluation panel appears when you pick a played move from the move list, also during a game. It includes the move, so the reader sees how far it was from the best.
         <kbd>Play from here</kbd> starts a game against the bot from the linked position.</p>
+        <p><kbd>Create position</kbd> opens an empty board where you set up a position to analyse yourself.
+        Choose You or Bot under Checkers and click a point. The point gets as many checkers as the height
+        you click. Clicking the top checker removes it. When a point already has five checkers, clicking the
+        top one adds one more. The upper half of the bar is yours and the lower half the bot's. Checkers not
+        on the board are borne off. <kbd>Clear</kbd> empties the board. Below the board you choose the turn,
+        the roll, the cube value and owner, the match length (0 is a money game), the penalty points and the
+        Crawford game. <kbd>Analyse</kbd> opens the position for review like a position link. <kbd>Cancel</kbd>
+        or <kbd>Esc</kbd> returns to the game. Without a roll the Evaluation panel shows the winning chance
+        and whether the network would double. With a roll it shows the network's best moves.</p>
         <p>Import match reads a DailyGammon export (.mat) or an .sgf file, also with the positions
         marked in DG Android. Choose a file or paste the text and press <kbd>Import</kbd>. Step through the
         match with the arrow buttons or the left and right keys, and <kbd>Next mark</kbd> jumps to a marked
@@ -881,6 +903,16 @@
         Der Link öffnet die Stellung zur Ansicht, und das Bewertungs-Panel zeigt die besten Züge des Netzes.
         <kbd>Link kopieren</kbd> im Bewertungs-Panel erscheint, wenn du einen gespielten Zug in der Zugliste wählst, auch während des Spiels. Er nimmt den Zug mit, sodass der Leser seinen
         Abstand zum besten Zug sieht. <kbd>Von hier spielen</kbd> beginnt ab der verlinkten Stellung ein Spiel gegen den Bot.</p>
+        <p><kbd>Stellung erstellen</kbd> öffnet ein leeres Brett, auf dem du selbst eine Stellung zur Analyse
+        aufbaust. Wähle unter Steine Du oder Bot und klicke auf einen Punkt. Der Punkt bekommt so viele Steine,
+        wie die geklickte Höhe anzeigt. Ein Klick auf den obersten Stein entfernt ihn. Hat ein Punkt schon fünf
+        Steine, fügt ein Klick auf den obersten einen weiteren hinzu. Die obere Hälfte der Bar gehört dir, die
+        untere dem Bot. Steine, die nicht auf dem Brett sind, sind abgetragen. <kbd>Leeren</kbd> leert das Brett.
+        Unter dem Brett wählst du, wer am Zug ist, den Wurf, Wert und Besitzer des Dopplerwürfels, die Matchlänge
+        (0 ist ein Geldspiel), die Strafpunkte und das Crawford-Spiel. <kbd>Analysieren</kbd> öffnet die
+        Stellung zur Ansicht wie ein Stellungslink. <kbd>Abbrechen</kbd> oder <kbd>Esc</kbd> führt zurück zum
+        Spiel. Ohne Wurf zeigt das Bewertungs-Panel die Siegchance und ob das Netz doppeln würde. Mit Wurf zeigt
+        es die besten Züge des Netzes.</p>
         <p>Match importieren liest einen DailyGammon-Export (.mat) oder eine .sgf-Datei, auch mit den in
         DG Android markierten Stellungen. Wähle eine Datei oder füge den Text ein und drücke
         <kbd>Importieren</kbd>. Blättere mit den Pfeiltasten auf dem Bildschirm oder den Tasten links und rechts
@@ -1099,6 +1131,16 @@
         lien ouvre la position en revue, et le panneau Évaluation montre les meilleurs coups du réseau.
         <kbd>Copier le lien</kbd> dans le panneau Évaluation apparaît quand vous choisissez un coup joué dans la liste des coups, même pendant la partie. Il inclut le coup, et le lecteur voit son écart
         avec le meilleur. <kbd>Jouer à partir d'ici</kbd> commence une partie contre le bot depuis la position du lien.</p>
+        <p><kbd>Créer une position</kbd> ouvre un plateau vide sur lequel vous composez vous-même une position à
+        analyser. Choisissez Vous ou Bot sous Pions et cliquez sur une flèche. La flèche reçoit autant de pions
+        que la hauteur cliquée l'indique. Un clic sur le pion du haut le retire. Quand une flèche a déjà cinq
+        pions, un clic sur celui du haut en ajoute un. La moitié haute de la barre est à vous et la moitié basse
+        au bot. Les pions absents du plateau sont sortis. <kbd>Vider</kbd> vide le plateau. Sous le plateau, vous
+        choisissez le joueur au trait, le lancer, la valeur et le propriétaire du videau, la longueur du match
+        (0 pour une partie d'argent), les points de pénalité et la partie Crawford. <kbd>Analyser</kbd> ouvre
+        la position en revue comme un lien de position. <kbd>Annuler</kbd> ou <kbd>Échap</kbd> revient à la
+        partie. Sans lancer, le panneau Évaluation montre la probabilité de victoire et si le réseau doublerait.
+        Avec un lancer, il montre les meilleurs coups du réseau.</p>
         <p>Importer un match lit un export DailyGammon (.mat) ou un fichier .sgf, y compris les
         positions marquées dans DG Android. Choisissez un fichier ou collez le texte et appuyez sur
         <kbd>Importer</kbd>. Parcourez le match avec les boutons fléchés ou les touches gauche et droite. <kbd>Marque
@@ -1295,6 +1337,37 @@
       </div>
       <div class="card" id="cardMe"></div>
       <div class="analysis" id="analysis" aria-live="polite"></div>
+      <div class="review" id="editor" hidden>
+        <p class="caption" id="editHelp" data-t="editHelp"></p>
+        <div class="editor-grid">
+          <span data-t="editColor">Nappulat</span>
+          <div class="pair" role="radiogroup">
+            <label><input type="radio" name="editColor" id="editColorMe" value="0" checked> <span data-t="you">Sinä</span></label>
+            <label><input type="radio" name="editColor" id="editColorBot" value="1"> <span data-t="bot">Botti</span></label>
+            <button id="editClear" data-t="editClear">Tyhjennä</button>
+          </div>
+          <label for="editTurn" data-t="editTurn">Vuoro</label><select id="editTurn"></select>
+          <label for="editDice" data-t="editDice">Heitto</label><select id="editDice"></select>
+          <span data-t="editCube">Kuutio</span>
+          <div class="pair">
+            <select id="editCubeValue" aria-label="Kuution arvo"></select>
+            <select id="editCubeOwner" aria-label="Kuution omistaja"></select>
+          </div>
+          <label for="editLimit" data-t="editLimit">Ottelun pituus</label>
+          <div class="pair"><input type="number" id="editLimit" min="0" max="25" value="0"> <span id="editLimitNote" class="caption"></span></div>
+          <span data-t="penalty">Rangaistuspisteet</span>
+          <div class="pair">
+            <label><span data-t="you">Sinä</span> <input type="number" id="editPenMe" min="0" max="24" value="0"></label>
+            <label><span data-t="bot">Botti</span> <input type="number" id="editPenBot" min="0" max="24" value="0"></label>
+            <label><input type="checkbox" id="editCrawford"> Crawford</label>
+          </div>
+        </div>
+        <p class="xgid-msg" id="editMsg" aria-live="polite"></p>
+        <div class="row">
+          <button id="editDone" class="primary" data-t="editDone">Analysoi</button>
+          <button id="editCancel" data-t="editCancel">Peruuta</button>
+        </div>
+      </div>
       <div class="review" id="review" hidden>
         <p class="caption" id="reviewMsg" aria-live="polite"></p>
         <div class="row">

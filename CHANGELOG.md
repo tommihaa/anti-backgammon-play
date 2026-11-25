@@ -4,6 +4,19 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.9.0] - 2026-11-25
+
+### Added
+
+- Create position under Position (XGID) opens an empty board for setting up a position of your
+  own. Checkers are placed by clicking with the chosen colour: the height of the click sets the
+  number of checkers on the point, and clicking the top checker removes it. Turn, roll, cube and
+  match score are set in the form, and Analyse opens the position for analysis.
+
+### Fixed
+
+- The roll map no longer fails when the browser still has the previous version's bot cached.
+
 ## [0.8.1] - 2026-11-25
 
 ### Changed

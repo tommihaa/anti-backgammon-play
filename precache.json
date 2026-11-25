@@ -9,6 +9,7 @@
  "src/analyysi.mjs",
  "src/xgid.mjs",
  "src/tuonti.mjs",
+ "src/luonti.mjs",
  "src/vienti.mjs",
  "src/ulkoasu.mjs",
  "src/analyysitiedosto.mjs",

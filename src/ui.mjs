@@ -10,6 +10,7 @@ import { T, applyStatic, setLang } from './kieli.mjs';
 import { rankPlays, rollLuck, notation, topMoves, applyMove, rollBest } from './analyysi.mjs';
 import { toXGID, fromXGID } from './xgid.mjs';
 import { parseMatch, replay, linkFragment } from './tuonti.mjs';
+import { emptyPosition, placeCheckers, clearPosition, positionError, crawfordPossible, createdFragment } from './luonti.mjs';
 import { gameHTML, cubeLabel, cubeEquityRows, luckMarkOf } from './vienti.mjs';
 import { buildAnalysisFile, parseAnalysisFile, FORMAT, EXT } from './analyysitiedosto.mjs';
 import { SOUNDS, playSound } from './aanet.mjs';
@@ -103,6 +104,8 @@ let game;
 // Tuodun ottelun selaus (src/tuonti.mjs) tai null. Selauksen ajan game on näyttöolio, jonka vaihe
 // on 'review'. Keskeytetty peli odottaa kentässä saved.
 let review = null;
+// Aseman luonnin tila tai null (Aseman luonti alempana).
+let edit = null;
 // Ottelu rangaistuspisteiden rajaan (Kaanon §2.5). crawford kertoo, onko Crawford-peli jo pelattu.
 // limit on ottelun raja tai null, jolloin pelataan rahapeliä ilman rajaa ja Crawford-sääntöä.
 // Vanha tallennus ilman rajaa on 7 pisteen ottelu.
@@ -632,13 +635,16 @@ function startMap(d, depth) {
     const el = document.getElementById(`rollmapWait${depth}`);
     if (el) el.textContent = T.rollMapWait(depth, st.cells.size);
   };
-  if (mapWorker === undefined) mapWorker = spawn();
-  if (!mapWorker) {
-    for (let a = 1; a <= 6; a++) for (let c = a; c <= 6; c++) put({ a, c, ...rollBest(net, base, d.p, a, c, depth) });
+  // Ruudut, joita säie ei laskenut, lasketaan sivulla.
+  const fill = () => {
+    for (let a = 1; a <= 6; a++) for (let c = a; c <= 6; c++) if (!st.cells.has(`${a}${c}`)) put({ a, c, ...rollBest(net, base, d.p, a, c, depth) });
     st.done = true;
-    return st;
-  }
-  askStream(mapWorker, { kind: 'rollmap', s: base, p: d.p, ply: depth }, put).then(() => { st.done = true; render(); });
+  };
+  if (mapWorker === undefined) mapWorker = spawn();
+  if (!mapWorker) { fill(); return st; }
+  // Selaimen välimuistista tullut vanha säie ei tunne heittokarttaa ja vastaa ilman ruutuja, jolloin
+  // kartta kaatui (selainpaneeli 25.11.2026). Uusi sivu ja vanha säie voivat kohdata myös julkaisun jälkeen.
+  askStream(mapWorker, { kind: 'rollmap', s: base, p: d.p, ply: depth }, put).then(() => { fill(); render(); });
   return st;
 }
 function rollMap(box, d) {
@@ -1294,7 +1300,7 @@ function remainingDice() {
 // ensimmäisellä ei jää laillista siirtoa (DG Androidin CompositionSession.step, Tommin valinta
 // 1.11.2026).
 function clickSpot(spot) {
-  if (dragEnded || viewing() || game.over || game.turn !== 0 || game.phase !== 'move') return;
+  if (edit || dragEnded || viewing() || game.over || game.turn !== 0 || game.phase !== 'move') return;
   const ns = nextSteps();
   for (const d of new Set(remainingDice())) {
     const st = ns.find(x => x.m[0] === spot && x.d === d);
@@ -2005,7 +2011,7 @@ function pointAt(ev) {
   return null;
 }
 svg.addEventListener('pointerdown', ev => {
-  if (!opts.press) return;
+  if (!opts.press || edit) return;
   clearTimeout(pressTimer);
   pressed = pointAt(ev);
   drawPress();
@@ -2067,7 +2073,7 @@ function drawGhost(ev) {
   el('circle', { cx: x, cy: y, r: R - 0.75, fill: L.self.fill, stroke: L.self.inlay ?? L.self.ring ?? OUTLINE, 'stroke-width': 1.5 }, g);
 }
 svg.addEventListener('pointerdown', ev => {
-  if (ev.button !== 0 || viewing() || game.over || game.turn !== 0 || game.phase !== 'move') return;
+  if (ev.button !== 0 || edit || viewing() || game.over || game.turn !== 0 || game.phase !== 'move') return;
   const from = spotAt(ev);
   if (from === null || !nextMoves().some(m => m[0] === from)) return;
   drag = { from, x: ev.clientX, y: ev.clientY, moved: false };
@@ -2104,10 +2110,11 @@ document.addEventListener('pointercancel', () => { drag = null; svg.querySelecto
 
 function render() {
   // Valitun rivin asema piirretään näyttöoliosta. Peli itse jatkuu taustalla ennallaan.
-  const real = game, shown = viewGame();
+  // Aseman luonnissa lauta ja tila piirretään luonnin asemasta.
+  const real = game, shown = edit ? editGame() : viewGame();
   if (shown) game = shown;
-  try { drawBoard(); } finally { game = real; }
-  renderStatus(!!shown);
+  try { drawBoard(); if (edit) renderStatus(false); } finally { game = real; }
+  if (!edit) renderStatus(!!shown);
 }
 
 function drawBoard() {
@@ -2256,14 +2263,15 @@ function renderStatus(isView) {
   // tuodun pelin pelaajat ja pisteet pelin alussa, muuten oma ottelu (Tommi 24.11.2026).
   const rg = review ? reviewGame() : null;
   const nm = rg ? [rg.players[review.h], rg.players[1 - review.h]] : namesOf(liveGame());
-  const pp = rg ? [rg.scores[review.h], rg.scores[1 - review.h]] : pen;
+  const pp = rg ? [rg.scores[review.h], rg.scores[1 - review.h]] : edit ? edit.pen : pen;
   for (const [id, k] of [['cardBot', 1], ['cardMe', 0]]) {
     const turn = game.turn === k && !game.over;
     $(id).textContent = T.card(nm[k], pp[k], turn);
     $(id).classList.toggle('turn', turn);
   }
-  $('review').hidden = !review;
-  $('actions').hidden = !!review || isView;
+  $('review').hidden = !review || !!edit;
+  $('editor').hidden = !edit;
+  $('actions').hidden = !!review || isView || !!edit;
   $('viewBar').hidden = !isView;
   renderPanels();
   if (review) renderReview();
@@ -2411,10 +2419,10 @@ function currentXGID() {
   const moving = game.turn === 0 && (game.phase === 'move' || game.phase === 'pass');
   return toXGID({
     s: moving ? game.base : game.s, cube: game.cube, turn: game.turn,
-    dice: moving || game.phase === 'review' ? game.dice : null, offered: game.phase === 'offer', crawford: game.crawford,
-    // Selauksessa pisteet ja pituus ovat tuodun pelin.
-    pen: review ? [reviewGame().scores[review.h], reviewGame().scores[1 - review.h]] : pen,
-    limit: review ? reviewLimit() : match.limit,
+    dice: moving || game.phase === 'review' || game.phase === 'edit' ? game.dice : null, offered: game.phase === 'offer', crawford: game.crawford,
+    // Selauksessa pisteet ja pituus ovat tuodun pelin ja aseman luonnissa luotavan aseman.
+    pen: review ? [reviewGame().scores[review.h], reviewGame().scores[1 - review.h]] : edit ? edit.pen : pen,
+    limit: review ? reviewLimit() : edit ? edit.limit : match.limit,
   });
 }
 
@@ -2461,6 +2469,113 @@ $('xgidLink').addEventListener('click', async () => {
   catch { $('xgid').select(); $('xgidMsg').textContent = T.xgidSelect; }
 });
 $('xgid').addEventListener('keydown', ev => { if (ev.key === 'Enter') loadXGID($('xgid').value); });
+
+// Aseman luonti (src/luonti.mjs, Tommin valinnat 25.11.2026): tyhjä lauta, nappulat klikkaamalla
+// värivalitsimen värillä, vuoro, heitto, kuutio ja ottelun tilanne lomakkeelta. Analysoi avaa
+// aseman selaukseen aseman linkkinä. Luonnin aikana peli odottaa taustalla, ja lauta piirretään
+// luonnin asemasta (render). Tila edit on määritelty tiedoston alussa reviewin vieressä.
+const editGame = () => ({
+  ...game, s: edit.s, turn: edit.turn, dice: edit.dice, diceOwner: edit.turn, order: edit.dice ? [...edit.dice] : [],
+  cube: edit.cube.value === 1 ? { value: 1, owner: -1 } : edit.cube, crawford: edit.crawford && crawfordPossible(edit), dmp: false,
+  phase: 'edit', over: false, base: null, partial: [], partialDice: [], botUsed: [], botMoves: null, lastBot: [],
+  autoRolled: false, mark: null, engineNote: '', msg: '',
+});
+function fillEditor() {
+  const opt = (sel, list) => {
+    const v = sel.value;
+    sel.textContent = '';
+    for (const [value, label] of list) { const o = document.createElement('option'); o.value = value; o.textContent = label; sel.appendChild(o); }
+    if (v !== '') sel.value = v;
+  };
+  opt($('editTurn'), [['0', T.static.you], ['1', T.static.bot]]);
+  const rolls = [['', T.editNoRoll]];
+  for (let a = 6; a >= 1; a--) for (let b = a; b >= 1; b--) rolls.push([`${a}${b}`, `${a}${b}`]);
+  opt($('editDice'), rolls);
+  opt($('editCubeValue'), [1, 2, 4, 8, 16, 32, 64].map(v => [String(v), String(v)]));
+  opt($('editCubeOwner'), [['-1', T.editCenter], ['0', T.static.you], ['1', T.static.bot]]);
+  $('editCubeValue').setAttribute('aria-label', T.static.cube);
+  $('editCubeOwner').setAttribute('aria-label', T.editOwner);
+  if (edit) editForm();
+}
+function editForm() {
+  $('editTurn').value = String(edit.turn);
+  $('editDice').value = edit.dice ? `${edit.dice[0]}${edit.dice[1]}` : '';
+  $('editCubeValue').value = String(edit.cube.value);
+  $('editCubeOwner').value = String(edit.cube.value === 1 ? -1 : edit.cube.owner);
+  $('editCubeOwner').disabled = edit.cube.value === 1;
+  $('editLimit').value = String(edit.limit);
+  $('editLimitNote').textContent = edit.limit ? '' : T.limitOption(null);
+  $('editPenMe').value = String(edit.pen[0]);
+  $('editPenBot').value = String(edit.pen[1]);
+  $('editCrawford').disabled = !crawfordPossible(edit);
+  $('editCrawford').checked = edit.crawford && crawfordPossible(edit);
+}
+function readEditor() {
+  const num = (id, max) => Math.max(0, Math.min(max, Math.floor(Number($(id).value)) || 0));
+  const d = $('editDice').value;
+  edit.color = $('editColorBot').checked ? 1 : 0;
+  edit.turn = Number($('editTurn').value);
+  edit.dice = d ? [Number(d[0]), Number(d[1])] : null;
+  const value = Number($('editCubeValue').value);
+  edit.cube = { value, owner: value === 1 ? -1 : Number($('editCubeOwner').value) };
+  edit.limit = num('editLimit', 25);
+  edit.pen = [num('editPenMe', 24), num('editPenBot', 24)];
+  edit.crawford = $('editCrawford').checked;
+  $('editMsg').textContent = '';
+  editForm();
+  render();
+}
+function startEdit() {
+  if (!review && game.phase === 'bot') { $('xgidMsg').textContent = T.editBusy; return; }
+  if (review) closeReview();
+  sel = { when: null, d: null };
+  edit = {
+    s: emptyPosition(), color: 0, turn: 0, dice: null, cube: { value: 1, owner: -1 },
+    limit: match.limit ?? 0, pen: [0, 0], crawford: false,
+  };
+  $('editColorMe').checked = true;
+  $('editMsg').textContent = '';
+  $('xgidMsg').textContent = '';
+  fillEditor();
+  closeMenus();
+  render();
+  $('editor').scrollIntoView?.({ block: 'nearest' });
+}
+function cancelEdit() {
+  if (!edit) return;
+  edit = null;
+  render();
+}
+function finishEdit() {
+  if (!edit) return;
+  const err = positionError(edit);
+  if (err) { $('editMsg').textContent = err === 'empty' ? T.editEmpty : T.editScore; return; }
+  const f = createdFragment(edit);
+  edit = null;
+  importMatch(f);
+}
+// Klikkauskohdan korkeus pisteen tyvestä nappuloina. Muurin yläpuolisko on oma ja alapuolisko
+// botin, kuten muurin pinot piirretään.
+svg.addEventListener('click', ev => {
+  if (!edit) return;
+  const spot = spotAt(ev);
+  if (spot === null || spot === OFF) return;
+  const y = svgPoint(ev)[1];
+  let p = edit.color, slot;
+  if (spot === BAR) {
+    p = y < MID ? 0 : 1;
+    const from = p === 0 ? MID - BAND / 2 - y : y - MID - BAND / 2;
+    slot = from < 0 ? 1 : Math.floor(from / K) + 1;
+  } else slot = Math.floor((isTop(spot) ? y - TOP : BOTTOM - y) / K) + 1;
+  placeCheckers(edit.s, p, spot, slot);
+  $('editMsg').textContent = '';
+  render();
+});
+$('editStart').addEventListener('click', startEdit);
+$('editor').addEventListener('change', readEditor);
+$('editClear').addEventListener('click', () => { clearPosition(edit.s); $('editMsg').textContent = ''; render(); });
+$('editDone').addEventListener('click', finishEdit);
+$('editCancel').addEventListener('click', cancelEdit);
 
 // Ottelun tuonti ja selaus (Tommin valinta 1.11.2026): DailyGammonin vienti (.mat) tai .sgf
 // tiedostona tai liitettynä. Ottelua selataan teko kerrallaan. Mistä tahansa asemasta voi
@@ -2904,6 +3019,8 @@ darkQuery?.addEventListener?.('change', () => { applyLook(); render(); });
 document.addEventListener('keydown', ev => {
   if (ev.target.closest?.('input, select, textarea, details.menu, .langmenu, dialog') || ev.altKey || ev.metaKey) return;
   const key = ev.key.toLowerCase();
+  // Aseman luonnissa pelin näppäimet eivät toimi, ja Esc peruu luonnin.
+  if (edit) { if (key === 'escape') { ev.preventDefault(); cancelEdit(); } return; }
   // Rivin aseman katselussa nuolet ylös ja alas askeltavat listaa ja Esc palaa peliin.
   if (!review && sel.d !== null) {
     if (key === 'escape') { ev.preventDefault(); resume(); }
@@ -3218,7 +3335,7 @@ $('langList').addEventListener('click', e => {
   const o = e.target.closest('[data-code]');
   if (!o) return;
   langOpen(false);
-  setLang(o.dataset.code); fillHead(); fillLimits(); fillLook(); fillLayout(); fillGameSel();
+  setLang(o.dataset.code); fillHead(); fillLimits(); fillLook(); fillLayout(); fillGameSel(); fillEditor();
   if (review) { fillReview(); $('reviewGame').value = String(review.gi); showStep(); } else render();
 });
 document.addEventListener('pointerdown', e => {
