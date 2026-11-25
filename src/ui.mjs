@@ -2,12 +2,12 @@
 // Verkko siirtää ja tekee kuutiopäätökset omalla arviollaan (src/verkko.mjs, Kaanon §4).
 // Lauta piirretään ihmisen näkökulmasta: oma piste i, botin nappulat bottipisteessä 25 - i.
 
-import { initialState, legalPlays, pips, exited, clone, OFF, BAR, DRAW_HALF, DRAW_ROWS } from './engine.mjs';
-import { fromJSON, netBot, netCube } from './verkko.mjs';
+import { initialState, legalPlays, pips, exited, clone, key, OFF, BAR, DRAW_HALF, DRAW_ROWS } from './engine.mjs';
+import { fromJSON, netBot, netCube, value } from './verkko.mjs';
 import { newCube, mayDouble, tablePolicy, MATCH_LIMIT } from './kuutio.mjs';
 import { newStall, observe, stuck, botOffers, botAccepts } from './jumi.mjs';
 import { T, applyStatic, setLang } from './kieli.mjs';
-import { rankPlays, rollLuck, notation, topMoves, applyMove } from './analyysi.mjs';
+import { rankPlays, rollLuck, notation, topMoves, applyMove, rollBest } from './analyysi.mjs';
 import { toXGID, fromXGID } from './xgid.mjs';
 import { parseMatch, replay, linkFragment } from './tuonti.mjs';
 import { gameHTML, cubeLabel, cubeEquityRows, luckMarkOf } from './vienti.mjs';
@@ -15,6 +15,7 @@ import { buildAnalysisFile, parseAnalysisFile, FORMAT, EXT } from './analyysitie
 import { SOUNDS, playSound } from './aanet.mjs';
 import { VERSION } from './versio.mjs';
 import { NET_SHORT, NET_CODE, netHistory } from './historia.mjs';
+import { parseMove, positionLine, isFinal, RULES } from './protokolla.mjs';
 import {
   STYLES, boardLook, panelLook, cubeLook, OUTLINE, NUMBER_INK, PIP_INK, CHECKER_PER_COLUMN, TRAY_PER_COLUMN,
   DICE_PER_CHECKER, CUBE_PER_CHECKER, CHECKERS_APART, BAND_PER_CHECKER, CORNER_PER_SIDE, SPENT_DIE_DIM,
@@ -127,11 +128,16 @@ const botPlay = netBot(net);
 // vastausta. Kumpikin vie 2-ply:llä sekunteja.
 let reqId = 0;
 const waiting = new Map();
+// Välitulokset pyynnöille, jotka lähettävät osia ennen tulosta (heittokartta).
+const partials = new Map();
 function spawn() {
   try {
     const w = new Worker(new URL('./botti-tyo.mjs', import.meta.url), { type: 'module' });
     w.postMessage({ net: netText });
-    w.onmessage = ({ data }) => { waiting.get(data.id)?.(data.result); waiting.delete(data.id); };
+    w.onmessage = ({ data }) => {
+      if (data.partial) { partials.get(data.id)?.(data.partial); return; }
+      waiting.get(data.id)?.(data.result); waiting.delete(data.id); partials.delete(data.id);
+    };
     return w;
   } catch { return null; }
 }
@@ -139,12 +145,72 @@ const botWorker = spawn(), analysisWorker = spawn();
 // Pelattujen pelien jälkianalyysi saa kolmannen säikeen, kun sitä ensi kerran tarvitaan.
 let reviewWorker;
 const reviewW = () => (reviewWorker === undefined ? (reviewWorker = spawn()) : reviewWorker);
+// Pyyntö, jonka osat tulevat onPart-kutsuina ennen lopullista tulosta.
+function askStream(w, msg, onPart) {
+  const id = ++reqId;
+  partials.set(id, onPart);
+  return new Promise(res => { waiting.set(id, res); w.postMessage({ id, ...msg }); });
+}
 function ask(w, msg) {
   const id = ++reqId;
   return new Promise(res => { waiting.set(id, res); w.postMessage({ id, ...msg }); });
 }
+// Ulkoinen moottori (Kaanon/Anti-Backgammon §5 kohta 9 › Protokolla ensin, 25.11.2026). Osoite on
+// protokollamoottorin silta (tyokalut/moottorisilta.mjs), tyhjä osoite on laudan oma botti.
+// Ulkoinen moottori päättää botin siirrot, tuplaukset, otot ja tasapelitarjoukset. Analyysi
+// käyttää aina laudan verkkoa. Jos moottori ei vastaa tai vastaa laittomasti, laudan botti tekee
+// päätöksen ja viesti kertoo sen.
+let engineUrl = String(store.get('ab-moottori', '') ?? '');
+const engine = { name: null, error: null, sentFor: null };
+async function engineAsk(lines, ms = 120000) {
+  const r = await fetch(engineUrl, { method: 'POST', body: lines.join('\n'), signal: AbortSignal.timeout(ms) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const out = (await r.text()).split(/\r?\n/).filter(Boolean);
+  const last = out.filter(isFinal).at(-1);
+  if (!last || last.startsWith('error')) throw new Error(last ?? 'ei vastausta');
+  return { last, out };
+}
+async function engineHello() {
+  engine.name = null; engine.error = null;
+  if (!engineUrl) return;
+  try {
+    const { last, out } = await engineAsk(['abg'], 3000);
+    const rules = out.find(l => l.startsWith('id rules '))?.slice(9);
+    if (last !== 'abgok') throw new Error(last);
+    if (rules !== RULES) throw new Error(T.engineRules(rules ?? '?', RULES));
+    engine.name = out.find(l => l.startsWith('id name '))?.slice(8) ?? engineUrl;
+  } catch (e) { engine.error = e.message; }
+}
+// Laudan pelaaja 0 on ihminen ja 1 botti. Rahapelin raja on protokollassa 0.
+const enginePos = (turn, extra = {}) => positionLine({
+  s: game.s, cube: game.cube, turn, dice: null, offered: false, pen: [...pen], crawford: game.crawford,
+  limit: match.limit ?? 0, ...extra,
+}, game.half);
+// Kysymys ulkoiselle moottorille. Uusi peli ja syvyys kulkevat ensimmäisen kysymyksen mukana.
+function engineQuery(turn, cmd, extra) {
+  const pre = engine.sentFor === game ? [] : ['newgame'];
+  engine.sentFor = game;
+  return engineAsk([...pre, `setoption name ply value ${ply}`, enginePos(turn, extra), cmd]).then(r => r.last);
+}
+const useEngine = () => engineUrl !== '' && engine.name !== null;
+function engineFailed(e) {
+  engine.error = e?.message ?? String(e);
+  game.engineNote = T.engineFallback;
+}
+if (engineUrl) await engineHello();
+
 const deepBots = {};
 function botMove(s, d1, d2) {
+  if (useEngine()) {
+    return engineQuery(1, 'move', { dice: [d1, d2] }).then(a => {
+      const play = a.startsWith('bestmove ') ? parseMove(a.slice(9), s, 1, d1, d2) : null;
+      if (!play) throw new Error(`${T.engineIllegal}: ${a}`);
+      return play;
+    }).catch(e => { engineFailed(e); return internalMove(s, d1, d2); });
+  }
+  return internalMove(s, d1, d2);
+}
+function internalMove(s, d1, d2) {
   if (ply === 0) return Promise.resolve(botPlay(s, 1, d1, d2, Math.random));
   if (!botWorker) { deepBots[ply] ??= netBot(net, ply); return Promise.resolve(deepBots[ply](s, 1, d1, d2, Math.random)); }
   return ask(botWorker, { s, p: 1, d1, d2, ply });
@@ -183,7 +249,7 @@ function newGame() {
     crawford, dmp, plays: null, partial: [], partialDice: [], hitsMarks: [], base: null,
     lastBot: [], log: [], moveNo: 0, half: 0, over: false, errors: [], analysed: 0, totalLoss: 0,
     when: Date.now(), limit: match.limit, decisions: [], stall: newStall(), turnAct: null,
-    names: [meName(), botLabel()],
+    names: [meName(), useEngine() ? engine.name : botLabel()],
     msg: T.opening(a, b, a > b, crawford && !dmp), no, score: [...pen], match: match.id,
   };
   if (!first) sound('gong');
@@ -507,9 +573,122 @@ function renderEval() {
   box.appendChild(table);
   luck();
   para(box, T.evalHelp).className = 'caption';
+  allMoves(box, d, played);
+  rollMap(box, d);
   // Aseman linkki analysoidusta siirrosta pelattuine siirtoineen. Nappi näkyy, kun siirto on valittu
   // siirtolistasta, myös kesken pelin (Tommi 24.11.2026).
   if (picked) linkButton(box, () => decisionLink(d));
+}
+
+// Kaikki lailliset siirrot 0-plyllä (Tommin tilaus 25.11.2026: kolme parasta ei riitä). Lista on
+// oma taulukkonsa, koska analyysin rivit ovat pelin syvyydellä ja nämä 0-plyllä. Ero on etäisyys
+// 0-plyn parhaaseen. Avattu lista pysyy auki, kunnes päätös vaihtuu.
+const allOpen = new WeakSet();
+function allMoves(box, d, played) {
+  if (!d.s || !d.dice) return;
+  const b = document.createElement('button');
+  b.textContent = allOpen.has(d) ? T.allMovesHide : T.allMovesShow;
+  b.addEventListener('click', () => { if (allOpen.has(d)) allOpen.delete(d); else allOpen.add(d); render(); });
+  box.appendChild(b);
+  if (!allOpen.has(d)) return;
+  const base = [Int8Array.from(d.s[0]), Int8Array.from(d.s[1])];
+  const plays = legalPlays(base, d.p, d.dice[0], d.dice[1]);
+  const ranked = plays.map(pl => ({ moves: pl.moves, x: exited(pl.s[d.p]) ? 0 : value(net, pl.s, d.p), k: key(pl.s) }))
+    .sort((a, b) => b.x - a.x);
+  const after = d.after ? key([Int8Array.from(d.after[0]), Int8Array.from(d.after[1])]) : null;
+  const shown = topMoves(base, d.p, d.dice, ranked, ranked[0].x);
+  const table = document.createElement('table');
+  table.className = 'eval';
+  const head = table.insertRow();
+  T.evalHead.forEach((c, i) => { const th = document.createElement('th'); th.textContent = c; if (i > 0) th.className = 'num'; head.appendChild(th); });
+  shown.forEach((r, i) => {
+    const tr = table.insertRow();
+    const best = r.loss < SAME, isPlayed = !d.open && (after ? ranked[i].k === after : r.m === played);
+    tr.className = (best ? 'best' : 'worse') + (isPlayed ? ' played' : '');
+    [r.m, T.pct(r.x), signed(2 * r.x - 1), best ? '' : '−' + fmt(r.loss)]
+      .forEach((c, j) => { const td = tr.insertCell(); td.textContent = c; td.className = j === 0 ? 'mv' : 'num'; });
+  });
+  para(box, T.allMovesCaption(plays.length)).className = 'caption';
+  box.appendChild(table);
+}
+
+// Heittokartta (Tommin tilaus 25.11.2026, analyysiohjelmien värikartan malli): kaikki 36 heittoa
+// ruudukkona ennen siirtoa. Ruudun luku on heiton onni eli verkon arvio heiton parhaasta siirrosta
+// miinus kaikkien heittojen keskiarvo, equityinä. Rivi on ensimmäinen noppa ja sarake toinen, joten
+// sekaheitto näkyy kahdesti. Toteutunut heitto on kehystetty, ja ruudun vihje näyttää parhaan
+// siirron. Kartta lasketaan 1-plyllä (noin sekunti) ja napista 2-plyllä (15–35 s) omassa
+// säikeessään (Tommin valinta 25.11.2026). Valmis kartta muistetaan päätöksen ajan. 1-ply-kartta
+// näkyy, kunnes 2-ply valmistuu.
+const maps = new WeakMap();
+let mapWorker;
+function startMap(d, depth) {
+  const all = maps.get(d) ?? {};
+  maps.set(d, all);
+  if (all[depth]) return all[depth];
+  const st = all[depth] = { cells: new Map(), done: false };
+  const base = [Int8Array.from(d.s[0]), Int8Array.from(d.s[1])];
+  const put = ({ a, c, x, moves }) => {
+    st.cells.set(`${a}${c}`, { x, moves });
+    const el = document.getElementById(`rollmapWait${depth}`);
+    if (el) el.textContent = T.rollMapWait(depth, st.cells.size);
+  };
+  if (mapWorker === undefined) mapWorker = spawn();
+  if (!mapWorker) {
+    for (let a = 1; a <= 6; a++) for (let c = a; c <= 6; c++) put({ a, c, ...rollBest(net, base, d.p, a, c, depth) });
+    st.done = true;
+    return st;
+  }
+  askStream(mapWorker, { kind: 'rollmap', s: base, p: d.p, ply: depth }, put).then(() => { st.done = true; render(); });
+  return st;
+}
+function rollMap(box, d) {
+  if (!d.s || !d.dice) return;
+  const one = startMap(d, 1), two = maps.get(d)?.[2];
+  const shown = two?.done ? two : one.done ? one : null;
+  const wait = depth => {
+    const st = maps.get(d)[depth];
+    const el = para(box, T.rollMapWait(depth, st.cells.size));
+    el.id = `rollmapWait${depth}`;
+    el.className = 'caption';
+  };
+  if (!shown) { wait(1); return; }
+  const depth = shown === two ? 2 : 1;
+  const base = [Int8Array.from(d.s[0]), Int8Array.from(d.s[1])];
+  const cell = (a, c) => shown.cells.get(a <= c ? `${a}${c}` : `${c}${a}`);
+  let sum = 0;
+  for (let a = 1; a <= 6; a++) for (let c = 1; c <= 6; c++) sum += cell(a, c).x;
+  const mean = sum / 36;
+  const table = document.createElement('table');
+  table.className = 'rollmap';
+  const cap = table.createCaption();
+  cap.textContent = T.rollMapTitle(depth);
+  const head = table.insertRow();
+  head.appendChild(document.createElement('th'));
+  for (let c = 1; c <= 6; c++) { const th = document.createElement('th'); th.textContent = c; head.appendChild(th); }
+  for (let a = 1; a <= 6; a++) {
+    const tr = table.insertRow();
+    const th = document.createElement('th'); th.textContent = a; tr.appendChild(th);
+    for (let c = 1; c <= 6; c++) {
+      const { x, moves } = cell(a, c);
+      const l = 2 * (x - mean);
+      const td = tr.insertCell();
+      td.textContent = (l >= 0 ? '+' : '−') + Math.abs(l).toFixed(2).replace(/^0/, '');
+      // Väri: onnekas sininen ja epäonninen ruskea kuten onnen merkit, voimakkuus 0,3 equityyn asti.
+      const w = Math.min(1, Math.abs(l) / 0.3);
+      td.style.background = `color-mix(in srgb, var(${l >= 0 ? '--lucky' : '--unlucky'}) ${Math.round(w * 70)}%, transparent)`;
+      if ((a === d.dice[0] && c === d.dice[1]) || (a === d.dice[1] && c === d.dice[0])) td.className = 'got';
+      const m = moves.length ? topMoves(base, d.p, [a, c], [{ moves, x }], x)[0].m : T.rollMapNoMove;
+      td.title = T.rollMapCell(a, c, signed(l), m);
+    }
+  }
+  box.appendChild(table);
+  if (!two) {
+    const b = document.createElement('button');
+    b.textContent = T.rollMapDeeper;
+    b.addEventListener('click', () => { startMap(d, 2); render(); });
+    box.appendChild(b);
+  } else if (!two.done) wait(2);
+  para(box, T.rollMapHelp).className = 'caption';
 }
 
 // Linkin kopiointinappi ja ilmoitus. Jos leikepöytä ei ole käytettävissä, linkki näytetään valittuna.
@@ -1286,8 +1465,32 @@ function botTurn(opening = false, cubeDone = false) {
   if (game.over) return;
   game.turn = 1;
   if (!opening && !cubeDone) turnStart(1);
+  // Ulkoinen moottori päättää ennen heittoa: double, draw tai roll.
+  if (!opening && !cubeDone && useEngine()) {
+    const g = game;
+    game.msg = T.botThinking;
+    render();
+    engineQuery(1, 'cube').then(a => {
+      if (!['double', 'draw', 'roll'].includes(a)) throw new Error(`${T.engineIllegal}: ${a}`);
+      return a;
+    }).catch(e => { engineFailed(e); return internalCubeChoice(); })
+      .then(a => { if (game === g && !game.over) botTurnRest(false, false, a); });
+    return;
+  }
+  botTurnRest(opening, cubeDone, opening || cubeDone ? 'roll' : internalCubeChoice());
+}
+
+// Laudan botin päätös ennen heittoa. Tasapeliä botti tarjoaa vain jumissa ja vain, kun jatkaminen
+// ei ole sille edullista.
+function internalCubeChoice() {
+  if (botCube.double(game.s, 1, game.cube)) return 'double';
+  if (botOffers(netPolicy.winProb(game.s, 1), game.half, stuck(game.stall))) return 'draw';
+  return 'roll';
+}
+
+function botTurnRest(opening, cubeDone, choice) {
   // Botti päättää tuplauksesta ennen heittoa. Avausheitto on jo heitetty, joten silloin ei tuplata.
-  const doubles = !opening && !cubeDone && botCube.double(game.s, 1, game.cube);
+  const doubles = !opening && !cubeDone && choice === 'double' && canDouble(1);
   if (!opening && !cubeDone && canDouble(1)) cubeDecision(1, doubles ? 'double' : 'nodouble');
   if (doubles) {
     game.phase = 'offer';
@@ -1296,8 +1499,7 @@ function botTurn(opening = false, cubeDone = false) {
     render();
     return;
   }
-  // Botti tarjoaa tasapeliä vain jumissa ja vain, kun jatkaminen ei ole sille edullista.
-  if (!opening && !cubeDone && botOffers(netPolicy.winProb(game.s, 1), game.half, stuck(game.stall))) {
+  if (!opening && !cubeDone && choice === 'draw') {
     game.phase = 'drawOffer';
     logCube('', T.logOfferDraw);
     game.msg = T.botOffersDraw;
@@ -1411,7 +1613,21 @@ function humanDouble() {
   const next = game.cube.value * 2;
   cubeDecision(0, 'double');
   const meD = lastDecision();
-  const takes = botCube.take(game.s, 1, game.cube);
+  if (useEngine()) {
+    const g = game;
+    game.msg = T.botThinking;
+    render();
+    engineQuery(1, 'cube', { offered: true }).then(a => {
+      if (a !== 'take' && a !== 'pass') throw new Error(`${T.engineIllegal}: ${a}`);
+      return a === 'take';
+    }).catch(e => { engineFailed(e); return botCube.take(game.s, 1, game.cube); })
+      .then(takes => { if (game === g && !game.over) botAnswersDouble(takes, next, meD); });
+    return;
+  }
+  botAnswersDouble(botCube.take(game.s, 1, game.cube), next, meD);
+}
+
+function botAnswersDouble(takes, next, meD) {
   takeDecision(1, takes ? 'take' : 'drop');
   if (!takes) {
     logCube(T.logDouble(next), T.logDrop, meD, lastDecision());
@@ -1448,7 +1664,21 @@ function humanDrop() {
 function humanOfferDraw() {
   if (game.phase !== 'roll' || game.turnAct !== null) return;
   game.turnAct = 'offer';
-  const accepts = botAccepts(netPolicy.winProb(game.s, 0), game.half);
+  if (useEngine()) {
+    const g = game;
+    game.msg = T.botThinking;
+    render();
+    engineQuery(0, 'drawoffer').then(a => {
+      if (a !== 'accept' && a !== 'decline') throw new Error(`${T.engineIllegal}: ${a}`);
+      return a === 'accept';
+    }).catch(e => { engineFailed(e); return botAccepts(netPolicy.winProb(game.s, 0), game.half); })
+      .then(accepts => { if (game === g && !game.over) botAnswersDraw(accepts); });
+    return;
+  }
+  botAnswersDraw(botAccepts(netPolicy.winProb(game.s, 0), game.half));
+}
+
+function botAnswersDraw(accepts) {
   logCube(T.logOfferDraw, accepts ? T.logAccept : T.logDecline);
   if (accepts) { endDraw(T.drawAgreed); return; }
   game.msg = T.botDeclinedDraw;
@@ -1707,7 +1937,7 @@ function drawCube() {
     el('rect', { x, y, width: CUBE, height: CUBE, rx: CUBE * CORNER_PER_SIDE, fill: cl.fill, stroke: OUTLINE, 'stroke-width': 1.5 });
   }
   const v = game.cube.value === 1 ? 64 : game.cube.value;
-  text(cx, cy + 1, String(v), { 'font-size': CUBE * 0.48, 'font-weight': cl.bold ? 'bold' : 'normal', fill: cl.value(game.cube.value === 1 ? null : v) });
+  text(cx, cy + 1, String(v), { 'font-size': CUBE * 0.48, 'font-weight': cl.bold && !decoFont() ? 'bold' : 'normal', fill: cl.value(game.cube.value === 1 ? null : v), ...decoFont() });
   if (!canHumanDouble()) return;
   // Tuplattavissa oleva kuutio korostetaan kuten siirrettävä nappula ja on klikattava (clickCube).
   el('rect', { x: x - 3, y: y - 3, width: CUBE + 6, height: CUBE + 6, rx: 6, fill: 'none', stroke: 'var(--hl)', 'stroke-width': 2.5, 'pointer-events': 'none' });
@@ -1902,7 +2132,7 @@ function drawBoard() {
     const tipY = top ? TOP + WEDGE : BOTTOM - WEDGE;
     const baseY = top ? TOP : BOTTOM;
     el('polygon', { points: `${x},${baseY} ${x + COL},${baseY} ${cx},${tipY}`, fill: i % 2 ? L.wedgeOdd : L.wedgeEven });
-    numEls[i] = text(cx, top ? PAD + NUM / 2 : BOTTOM + NUM / 2, String(i), { 'font-size': 13, fill: NUMBER_INK, opacity: 0.8 });
+    numEls[i] = text(cx, top ? PAD + NUM / 2 : BOTTOM + NUM / 2, String(i), { 'font-size': 13, fill: NUMBER_INK, opacity: 0.8, ...decoFont() });
     if (game.lastBot.includes(i)) el('rect', { x: x + 6, y: top ? TOP - 5 : BOTTOM + 1, width: COL - 12, height: 4, rx: 2, fill: 'var(--last)' });
     if (s[0][i] > 0) stack(cx, top, s[0][i], L.self);
     const o = s[1][25 - i];
@@ -1969,7 +2199,7 @@ function drawBoard() {
 // Laudalle kirjoitetaan vain tieto, jota se ei muuten näytä: botin tuplaus luopumisen hintoineen,
 // tasapelitarjous ja pelin tulos nappien yläpuolella sekä Ei siirtoa noppien alla (drawDice).
 // Tuodun ottelun selauksen viesti on laudan alla selausnappien yläpuolella.
-const boardNote = () => (game.over || game.phase === 'offer' || game.phase === 'drawOffer' ? game.msg : '');
+const boardNote = () => [game.engineNote, game.over || game.phase === 'offer' || game.phase === 'drawOffer' ? game.msg : ''].filter(Boolean).join(' ');
 function renderStatus(isView) {
   const note = review ? '' : boardNote();
   $('boardNote').textContent = note;
@@ -2492,6 +2722,9 @@ $('reviewClose').addEventListener('click', closeReview);
 
 // Ulkoasu: lautatyyli, kotialueen puoli ja pystylauta. Ympäristön värit tulevat CSS-muuttujiin
 // lautatyylistä ja laitteen tummasta tilasta (src/ulkoasu.mjs).
+// Deco-laudan kuution ja pistenumeroiden kirjasin (Poiret One, index.html @font-face). Muilla
+// laudoilla tyhjä, jolloin text() käyttää oletusta.
+function decoFont() { return prefs.style === 'deco' ? { 'font-family': "'Poiret One', system-ui, sans-serif" } : null; }
 function applyLook() {
   const P = panelLook(prefs.style, isDark());
   const root = document.documentElement.style;
@@ -2509,6 +2742,7 @@ function applyLook() {
   // Puhelimen tila- ja osoitepalkki sekä asennetun sovelluksen yläpalkki sivun taustan värissä.
   for (const m of document.querySelectorAll('meta[name="theme-color"]')) m.content = P.background;
   document.body.classList.toggle('home-left', prefs.left);
+  document.body.classList.toggle('deco', prefs.style === 'deco');
 }
 function fillLook() {
   const sel = $('style');
@@ -2587,6 +2821,32 @@ function fillLook() {
   plySel.value = String(ply);
   plySel.addEventListener('change', () => { ply = Number(plySel.value); store.set('ab-syvyys', ply); });
   box.append(plyLabel, plySel);
+  const engLabel = document.createElement('label');
+  engLabel.htmlFor = 'engineUrl';
+  engLabel.textContent = T.engineLabel;
+  const engIn = document.createElement('input');
+  engIn.id = 'engineUrl';
+  engIn.type = 'url';
+  engIn.placeholder = 'http://127.0.0.1:5191/';
+  engIn.value = engineUrl;
+  const engState = document.createElement('p');
+  engState.className = 'net-note';
+  engState.id = 'engineState';
+  const showEngine = () => {
+    engState.textContent = !engineUrl ? T.engineNone : engine.name ? T.engineOk(engine.name) : engine.error ? T.engineFail(engine.error) : T.engineWait;
+  };
+  engIn.addEventListener('change', async () => {
+    engineUrl = engIn.value.trim();
+    store.set('ab-moottori', engineUrl);
+    engine.name = null; engine.error = null;
+    showEngine();
+    await engineHello();
+    showEngine();
+  });
+  showEngine();
+  const engNote = document.createElement('p');
+  engNote.className = 'net-note';
+  engNote.textContent = T.engineNote;
   // Käytössä oleva verkko ja sen ero syvyyteen (Tommin tilaus 18.11.2026): ennen tätä verkko
   // näkyi vain HTML-viennissä.
   for (const [cls, text] of [['net-line', netLabel(NET_FILE)], ['net-note', T.netVsDepth]]) {
@@ -2595,6 +2855,7 @@ function fillLook() {
     p.textContent = text;
     box.appendChild(p);
   }
+  box.append(engLabel, engIn, engState, engNote);
   const nameLabel = document.createElement('label');
   nameLabel.htmlFor = 'myName';
   nameLabel.textContent = T.nameLabel;

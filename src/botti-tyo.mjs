@@ -4,7 +4,7 @@
 // Pyynnöt käsitellään saapumisjärjestyksessä.
 
 import { fromJSON, netBot } from './verkko.mjs';
-import { rankPlays } from './analyysi.mjs';
+import { rankPlays, rollBest } from './analyysi.mjs';
 
 let net = null;
 const bots = {};
@@ -12,6 +12,12 @@ const bots = {};
 self.onmessage = ({ data }) => {
   if (data.net) { net = fromJSON(data.net); return; }
   const { id, s, p, d1, d2, ply } = data;
+  // Heittokartta: jokainen heitto lähetetään valmistuessaan (partial), lopuksi tulos true.
+  if (data.kind === 'rollmap') {
+    for (let a = 1; a <= 6; a++) for (let c = a; c <= 6; c++) postMessage({ id, partial: { a, c, ...rollBest(net, s, p, a, c, ply) } });
+    postMessage({ id, result: true });
+    return;
+  }
   if (data.kind === 'analyse') {
     postMessage({ id, result: rankPlays(net, s, p, d1, d2, data.played, ply) });
     return;

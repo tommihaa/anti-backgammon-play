@@ -146,6 +146,16 @@
   .eval tr.worse td { color: var(--bad); }
   .eval tr.played { background: color-mix(in srgb, var(--accent) 14%, transparent); }
   .eval tr.played td:first-child { font-weight: bold; }
+  /* Deco-laudan otsikkokirjasin Poiret One kuten DG Androidissa (Tommin tilaus 25.11.2026). SIL Open
+     Font License 1.1, lisenssi fontit/OFL-PoiretOne.txt. Leipäteksti pysyy oletuksena, koska ohut
+     kirjasin ei kanna pitkää tekstiä. */
+  @font-face { font-family: 'Poiret One'; src: url('fontit/PoiretOne-Regular.ttf') format('truetype'); font-display: swap; }
+  body.deco h1, body.deco h2, body.deco h3, body.deco h4 { font-family: 'Poiret One', system-ui, sans-serif; letter-spacing: .04em; }
+  .rollmap { border-collapse: collapse; margin-top: 10px; font-size: .75rem; font-family: ui-monospace, Consolas, monospace; }
+  .rollmap caption { text-align: left; color: var(--muted); font-family: inherit; padding-bottom: 2px; }
+  .rollmap th { color: var(--muted); font-weight: normal; padding: 1px 4px; }
+  .rollmap td { text-align: center; padding: 3px 2px; min-width: 2.6em; border: 1px solid var(--frame); }
+  .rollmap td.got { outline: 2px solid var(--accent); outline-offset: -2px; font-weight: bold; }
   .results-extra { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin-top: 8px; }
   .side-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .side-btns button { flex: 1 1 auto; padding: 6px 10px; }
@@ -538,6 +548,7 @@
         vahvemmin, mutta 2-ply vie koneesta riippuen sekunteja siirtoa kohden. Oletus on 2-ply, ja botin viesti kertoo, kauanko haku kesti. Siirtojesi analyysi
         tehdään samalla syvyydellä kuin botti pelaa. Syvemmällä haulla analyysi ilmestyy hetken
         viiveellä. Botin kuutiopäätökset tehdään aina 0-ply-arviolla.</p>
+        <p>Ulkoinen moottori -kenttään kirjoitetaan protokollamoottorin sillan osoite omalla koneellasi, esimerkiksi http://127.0.0.1:5191/. Silloin moottori päättää botin siirrot, tuplaukset, otot ja vastaukset tasapelitarjoukseen. Kentän alla näkyy, saatiinko yhteys. Tyhjä kenttä käyttää laudan omaa bottia. Jos moottori ei vastaa kelvollisesti, laudan botti tekee päätöksen, ja laudan alla kerrotaan siitä. Analyysi käyttää aina laudan verkkoa.</p>
         <p>Pelaaminen-kohdan kytkimet ovat oletuksena päällä automaattiheittoa lukuun ottamatta. Pelaa pakkosiirrot puolestani asettaa
         valmiiksi ne osasiirrot, jotka ovat mukana jokaisessa laillisessa siirrossa. Kun laillinen
         siirto on vain yksi tai siirtoa ei ole, vuoro päättyy itsestään. Muuten Valmis jää sinulle. Nuolet näyttävät omat osasiirtosi ennen Valmista ja botin edellisen siirron
@@ -550,7 +561,7 @@
         osasiirtoosi asti. Seuraava peli noppien paikalle tuo
         napin laudan keskelle pelin päätyttyä.</p>
         <p>Ulkoasu-kohdasta valitset laudan (Deco, Monte Carlo X-22, Monte Carlo variant, vaahtera,
-        pähkinä, tammi ja nahka tai oliivi) ja kotialueen puolen. Kotialue vasemmalla
+        pähkinä, tammi ja nahka tai oliivi) ja kotialueen puolen. Deco-laudalla otsikot, pistenumerot ja kuutio ovat Poiret One -kirjasimella kuten DG Androidin Deco-teemassa. Kotialue vasemmalla
         peilaa laudan ja siirtää laudan vieressä olevat paneelit vasemmalle. Laudan yläpuolella on vastapuolen
         kortti ja alapuolella omasi: nimi, rangaistuspisteet ja vuoro. Tuodun ottelun selauksessa kortit
         näyttävät tuodun pelin pelaajat ja pisteet. Tumma tila seuraa laitteen asetusta.
@@ -582,6 +593,7 @@
         koska molemmat lasketaan samassa jonossa.
         Pelin lopussa Arvio-paneeli näyttää virheiden summan ja kolme suurinta virhettä, kunkin
         kohdalla verkon kolme parasta.</p>
+        <p>Siirron arvion alla <kbd>Kaikki siirrot (0-ply)</kbd> näyttää kaikki lailliset siirrot omana taulukkonaan 0-ply-arviona. Ero on silloin etäisyys 0-plyn parhaaseen, joten taulukkoa ei verrata suoraan syvemmän analyysin riveihin. Heittokartta näyttää kaikki 36 heittoa ruudukkona 1-plyllä. Ruudun luku on heiton onni siirtäjälle, sininen onnekas ja ruskea epäonninen. Kartan alla oleva nappi laskee sen 2-plyllä. Laskenta vie 15–35 sekuntia. Sillä aikaa näkyy 1-ply-kartta. Rivi on ensimmäinen noppa ja sarake toinen. Toteutunut heitto on kehystetty. Kun osoitin on ruudun päällä, näet heiton onnen ja parhaan siirron.</p>
         <h4>Puhelin ja tabletti</h4>
         <p>Kosketusnäytöllä napautus toimii kuten klikkaus, ja laudan pyöreät napit ovat isompia.
         Lauta toimii pysty- ja vaaka-asennossa. Vaaka-asennossa lauta täyttää ruudun korkeuden ja
@@ -736,6 +748,7 @@
         stronger, but 2-ply can take seconds per move depending on your computer. The default is 2-ply, and the bot's message tells how long the search took. Your moves are
         analysed at the same depth as the bot plays, so with a deeper search the analysis appears
         after a short delay. The bot's cube decisions always use the 0-ply evaluation.</p>
+        <p>In the External engine field you write the address of a protocol engine's bridge on your own computer, for example http://127.0.0.1:5191/. The engine then makes the bot's moves, doubles, takes and answers to draw offers. Below the field you see whether the connection works. An empty field uses the board's own bot. If the engine does not give a valid answer, the board's bot makes the decision and a note below the board says so. Analysis always uses the board's network.</p>
         <p>All switches under Playing are on by default except automatic rolling. Play forced checkers for me places the
         parts of the move that are in every legal move. When there is only one legal move or no move
         at all, your turn ends by itself. Otherwise Done stays yours. The arrows show your
@@ -747,7 +760,7 @@
         owns the cube or it is at 64. You then can't offer a draw before the roll. The arrows for the
         bot's move stay until your first checker move. Next game where the dice were puts the button in the middle of the board when a game ends.</p>
         <p>Under Appearance you choose the board (Deco, Monte Carlo X-22, Monte Carlo variant, maple,
-        walnut, oak leather or olive) and the side of your home board. Home board
+        walnut, oak leather or olive) and the side of your home board. With the Deco board the headings, point numbers and cube use the Poiret One typeface. Home board
         on the left mirrors the board and moves the panels next to the board to the left. The opponent's card is above the
         board and yours below it, with the name, penalty points and who is to move. When you review an
         imported match, the cards show the players and score of that game. Dark mode follows the
@@ -779,6 +792,7 @@
         moment later, because both are computed in the same queue.
         At the end of the game the Evaluation panel shows the total error and the three biggest
         errors, each with the network's top three.</p>
+        <p>Below a move's evaluation, <kbd>All moves (0-ply)</kbd> shows every legal move in a table of its own at 0-ply. Diff is then the distance to the 0-ply best, so the table is not compared directly with the rows of a deeper analysis. The roll map shows all 36 rolls as a grid at 1-ply, and the button below it computes it at 2-ply (15–35 seconds, the 1-ply map stays meanwhile): the number is the luck of the roll for the mover, blue lucky and brown unlucky. The row is the first die and the column the second. The roll that came is framed. Hovering over a cell shows the roll's luck and best move.</p>
         <h4>Phone and tablet</h4>
         <p>On a touch screen a tap works like a click, and the round buttons on the board are larger.
         The board works in portrait and landscape. In landscape the board fills the height of the
@@ -947,6 +961,7 @@
         Züge werden in derselben Tiefe analysiert, in der der Bot spielt, daher erscheint die Analyse
         bei tieferer Suche mit kurzer Verzögerung. Die Würfelentscheidungen des Bots verwenden immer
         die 0-ply-Bewertung.</p>
+        <p>Im Feld Externe Engine trägst du die Adresse der Brücke einer Protokoll-Engine auf deinem eigenen Rechner ein, zum Beispiel http://127.0.0.1:5191/. Dann entscheidet die Engine über die Züge, Verdopplungen, Annahmen und Antworten auf Remisangebote des Bots. Unter dem Feld steht, ob die Verbindung besteht. Ein leeres Feld verwendet den eigenen Bot des Bretts. Antwortet die Engine nicht gültig, entscheidet der Bot des Bretts, und ein Hinweis unter dem Brett sagt es. Die Analyse verwendet immer das Netz des Bretts.</p>
         <p>Alle Schalter unter Spielen sind standardmäßig an, außer dem automatischen Würfeln. Erzwungene Züge für mich spielen setzt
         die Teile des Zuges, die in jedem legalen Zug vorkommen. Gibt es nur einen legalen Zug oder
         gar keinen, endet dein Zug von selbst. Sonst bleibt Fertig dir überlassen. Die
@@ -961,7 +976,7 @@
         Spiel an der Stelle der Würfel setzt die Schaltfläche in die Brettmitte, wenn ein Spiel
         endet.</p>
         <p>Unter Aussehen wählst du das Brett (Deco, Monte Carlo X-22, Monte Carlo variant, Ahorn,
-        Nussbaum, Eiche und Leder oder Olive) und die Seite deines Heimfelds. Heimfeld
+        Nussbaum, Eiche und Leder oder Olive) und die Seite deines Heimfelds. Beim Deco-Brett stehen Überschriften, Punktnummern und Würfel in der Schrift Poiret One. Heimfeld
         links spiegelt das Brett und setzt die Panels neben dem Brett nach links. Über dem Brett steht die Karte
         des Gegners und darunter deine, mit Name, Strafpunkten und wer am Zug ist. Beim Ansehen eines
         importierten Matches zeigen die Karten die Spieler und den Stand dieses Spiels. Der
@@ -995,6 +1010,7 @@
         Warteschlange berechnet werden. Am Ende des Spiels zeigt das
         Bewertung-Panel die Fehlersumme und die drei größten Fehler, jeweils mit den drei besten
         Zügen des Netzes.</p>
+        <p>Unter der Bewertung eines Zugs zeigt <kbd>Alle Züge (0-ply)</kbd> alle legalen Züge in einer eigenen Tabelle mit 0-ply. Diff. ist dann der Abstand zum besten 0-ply-Zug, daher wird die Tabelle nicht direkt mit den Zeilen einer tieferen Analyse verglichen. Die Wurfkarte zeigt alle 36 Würfe als Raster mit 1-ply, und die Schaltfläche darunter berechnet sie mit 2-ply (15–35 Sekunden, solange bleibt die 1-ply-Karte stehen): Die Zahl ist das Glück des Wurfs für den Ziehenden, blau glücklich und braun unglücklich. Die Zeile ist der erste Würfel, die Spalte der zweite. Der tatsächliche Wurf ist umrahmt. Mit dem Mauszeiger über einem Feld siehst du das Glück und den besten Zug des Wurfs.</p>
         <h4>Handy und Tablet</h4>
         <p>Auf einem Touchscreen wirkt Tippen wie ein Klick, und die runden Knöpfe auf dem Brett sind
         größer. Das Brett funktioniert im Hoch- und Querformat. Im Querformat füllt das Brett die
@@ -1166,6 +1182,7 @@
         bot indique la durée de la recherche. Vos coups sont analysés à la même profondeur que celle
         du bot, donc avec une recherche plus profonde l'analyse apparaît après un court délai. Les
         décisions de videau du bot utilisent toujours l'évaluation 0-ply.</p>
+        <p>Dans le champ Moteur externe, vous saisissez l'adresse du pont d'un moteur à protocole sur votre propre ordinateur, par exemple http://127.0.0.1:5191/. Le moteur décide alors des coups, doublements, acceptations et réponses aux offres de nulle du bot. Sous le champ, vous voyez si la connexion fonctionne. Un champ vide utilise le bot du plateau. Si le moteur ne répond pas de façon valide, le bot du plateau décide et une note sous le plateau l'indique. L'analyse utilise toujours le réseau du plateau.</p>
         <p>Tous les interrupteurs sous Jeu sont activés par défaut, sauf le lancer automatique. Jouer les déplacements forcés pour
         moi place les parties du coup présentes dans tous les coups légaux. S'il n'y a qu'un seul coup
         légal ou aucun, votre tour se termine tout seul. Sinon Terminé reste à vous. Les
@@ -1179,7 +1196,7 @@
         du coup du bot restent jusqu'à votre premier déplacement. Partie suivante à la place
         des dés met le bouton au milieu du plateau à la fin d'une partie.</p>
         <p>Sous Apparence, vous choisissez le plateau (Deco, Monte Carlo X-22, Monte Carlo variant,
-        érable, noyer, chêne et cuir ou olivier) et le côté de votre jan intérieur. Le jan intérieur à gauche inverse le plateau et place les panneaux à côté
+        érable, noyer, chêne et cuir ou olivier) et le côté de votre jan intérieur. Avec le plateau Deco, les titres, les numéros des flèches et le videau utilisent la police Poiret One. Le jan intérieur à gauche inverse le plateau et place les panneaux à côté
         du plateau à gauche. La carte de l'adversaire est au-dessus
         du plateau et la vôtre en dessous, avec le nom, les points de pénalité et le joueur au trait. En
         revue d'un match importé, les cartes montrent les joueurs et le score de cette partie. Le mode sombre suit le réglage de l'appareil.
@@ -1212,6 +1229,7 @@
         peu plus tard, car les deux sont calculées dans la même file. À la fin de la partie, le panneau Évaluation
         affiche l'erreur totale et les trois plus grosses erreurs, chacune avec les trois meilleurs
         coups du réseau.</p>
+        <p>Sous l'évaluation d'un coup, <kbd>Tous les coups (0-ply)</kbd> affiche tous les coups légaux dans un tableau séparé à 0-ply. L'écart est alors la distance au meilleur coup 0-ply, et le tableau ne se compare donc pas directement aux lignes d'une analyse plus profonde. La carte des lancers montre les 36 lancers en grille à 1-ply, et le bouton en dessous la calcule à 2-ply (15 à 35 secondes, la carte 1-ply reste affichée entre-temps)&#8239;: le nombre est la chance du lancer pour le joueur au trait, bleu chanceux et brun malchanceux. La ligne est le premier dé, la colonne le second. Le lancer obtenu est encadré. Au survol d'une case, vous voyez la chance et le meilleur coup du lancer.</p>
         <h4>Téléphone et tablette</h4>
         <p>Sur un écran tactile, toucher fonctionne comme cliquer, et les boutons ronds du plateau
         sont plus grands. Le plateau fonctionne en portrait et en paysage. En paysage, le plateau

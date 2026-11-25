@@ -70,3 +70,18 @@ export function rollLuck(net, base, p, d1, d2) {
   }
   return 2 * (got - sum / weight);
 }
+
+// Heittokartan yksi heitto (Tommin valinta 25.11.2026: 1-ply oletuksena, 2-ply napista). Paras
+// siirto heitolla (a, c) samalla karsinnalla kuin verkkobotti: 0-ply järjestää siirrot ja
+// syvempi haku arvioi niistä keep parasta. Palauttaa siirtäjän voittotodennäköisyyden parhaan
+// siirron jälkeen ja siirron osasiirrot. 2-ply-kartta vie tyypillisessä asemassa 15–35 s.
+export function rollBest(net, base, p, a, c, ply = 0, keep = 5) {
+  const v0 = pl => (exited(pl.s[p]) ? 0 : value(net, pl.s, p));
+  let plays = legalPlays(base, p, a, c).map(pl => ({ pl, x: v0(pl) })).sort((m, n) => n.x - m.x);
+  if (ply > 0) {
+    plays = plays.slice(0, keep);
+    for (const e of plays) if (!exited(e.pl.s[p])) e.x = PLY[ply](net, e.pl.s, p);
+    plays.sort((m, n) => n.x - m.x);
+  }
+  return { x: plays[0].x, moves: plays[0].pl.moves };
+}

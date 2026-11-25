@@ -7,7 +7,7 @@
 // opettajaksi tai pohjaksi, 'not' luku ei noussut eikä verkko edennyt.
 
 // Laudan verkon lyhyt nimi botin nimeen. Avain on verkon tiedosto.
-export const NET_SHORT = { 'verkot/jatko-raw-g4-p3000.json': 'g4-jatko' };
+export const NET_SHORT = { 'verkot/jatko-raw-g4-p3000.json': 'g4-ft' };
 // Verkon kirjain aseman linkissä (src/tuonti.mjs). Lista vain kasvaa: vanhan linkin kirjain ei saa
 // vaihtaa merkitystä, kun laudan verkko vaihtuu.
 export const NET_CODE = { 'verkot/jatko-raw-g4-p3000.json': 'a' };
@@ -21,7 +21,7 @@ const LINE = {
     ['g2', '30.10.2026', 'up', 'Opettajana g1 2-plyllä. Sai 42 % rangaistuspisteistä opettajaa vastaan ja 43 % td-featia vastaan. Ensimmäinen pelkän aseman verkko, joka voitti periaateverkon. Laudan vastustaja 30.10.'],
     ['g3', '31.10.–3.11.2026', 'up', 'Opettajana g2 3-plyllä, 30 opetuskierrosta. Sai 39 % rangaistuspisteistä opettajaa vastaan.'],
     ['g4', '4.11.2026', 'held', 'Opettajana g3 3-plyllä. Sai 48,5 % rangaistuspisteistä opettajaa vastaan 2000 pelissä eli pääsi tasolle. Siitä tuli jatko-opetuksen pohja.'],
-    ['g4-jatko', '6.11.2026', 'up', 'g4:n opetusta jatkettiin 60 000 tallennetulla asemalla ja 3000 viimeistelykerralla. Voittaa g3:n otteluista rajaan 7 69 % 0-plyllä ja 66 % 2-plyllä. Laudan verkko 6.11.2026 alkaen.'],
+    ['g4-ft', '6.11.2026', 'up', 'g4:n opetusta jatkettiin (englanniksi fine-tuned, lyhenne ft) 60 000 tallennetulla asemalla ja 3000 viimeistelykerralla. Voittaa g3:n otteluista rajaan 7 69 % 0-plyllä ja 66 % 2-plyllä. Laudan verkko 6.11.2026 alkaen.'],
   ],
   en: [
     ['Rule bots', '25 Oct 2026', 'up', 'A hand-written evaluation: pip difference and the price of a borne-off checker. Depth 2, which counts the opponent\'s forced moves, beat depth 1: 42 vs. 358 penalty points.'],
@@ -31,7 +31,7 @@ const LINE = {
     ['g2', '30 Oct 2026', 'up', 'g1 at 2-ply as the teacher. It got 42% of the penalty points against the teacher and 43% against td-feat. The first board-only network to beat the principle network. The board\'s opponent from 30 October.'],
     ['g3', '31 Oct to 3 Nov 2026', 'up', 'g2 at 3-ply as the teacher, 30 training rounds. It got 39% of the penalty points against the teacher.'],
     ['g4', '4 Nov 2026', 'held', 'g3 at 3-ply as the teacher. It got 48.5% of the penalty points against the teacher in 2000 games, so it reached its level. It became the base for further training.'],
-    ['g4-jatko', '6 Nov 2026', 'up', 'g4\'s training was continued ("jatko") on 60,000 stored positions with 3000 fine-tuning passes. It wins 69% of matches to 7 against g3 at 0-ply and 66% at 2-ply. The board\'s network since 6 November 2026.'],
+    ['g4-ft', '6 Nov 2026', 'up', 'g4 was fine-tuned ("ft"): its training was continued on 60,000 stored positions with 3000 fine-tuning passes. It wins 69% of matches to 7 against g3 at 0-ply and 66% at 2-ply. The board\'s network since 6 November 2026.'],
   ],
   de: [
     ['Regelbots', '25.10.2026', 'up', 'Eine von Hand geschriebene Bewertung: Pip-Differenz und der Preis eines abgetragenen Steins. Tiefe 2, die die Zwangszüge des Gegners berechnet, schlug Tiefe 1: 42 zu 358 Strafpunkte.'],
@@ -41,7 +41,7 @@ const LINE = {
     ['g2', '30.10.2026', 'up', 'g1 mit 2-ply als Lehrer. 42 % der Strafpunkte gegen den Lehrer und 43 % gegen td-feat. Das erste Netz nur mit der Stellung als Eingabe, das das Prinzipiennetz schlug. Gegner auf dem Brett ab 30.10.'],
     ['g3', '31.10.–3.11.2026', 'up', 'g2 mit 3-ply als Lehrer, 30 Trainingsrunden. 39 % der Strafpunkte gegen den Lehrer.'],
     ['g4', '4.11.2026', 'held', 'g3 mit 3-ply als Lehrer. 48,5 % der Strafpunkte gegen den Lehrer in 2000 Spielen, also auf dessen Niveau. Es wurde die Grundlage für das Weitertraining.'],
-    ['g4-jatko', '6.11.2026', 'up', 'Das Training von g4 wurde („jatko“) mit 60.000 gespeicherten Stellungen und 3000 Feinabstimmungsdurchläufen fortgesetzt. Es gewinnt gegen g3 69 % der Matches bis 7 mit 0-ply und 66 % mit 2-ply. Netz des Bretts seit 6.11.2026.'],
+    ['g4-ft', '6.11.2026', 'up', 'Das Training von g4 wurde (englisch fine-tuned, daher „ft“) mit 60.000 gespeicherten Stellungen und 3000 Feinabstimmungsdurchläufen fortgesetzt. Es gewinnt gegen g3 69 % der Matches bis 7 mit 0-ply und 66 % mit 2-ply. Netz des Bretts seit 6.11.2026.'],
   ],
   fr: [
     ['Bots à règles', '25/10/2026', 'up', 'Une évaluation écrite à la main : écart de pips et prix d\'une dame sortie. La profondeur 2, qui calcule les coups forcés de l\'adversaire, a battu la profondeur 1 : 42 contre 358 points de pénalité.'],
@@ -51,7 +51,7 @@ const LINE = {
     ['g2', '30/10/2026', 'up', 'g1 à 2-ply comme professeur. 42 % des points de pénalité contre le professeur et 43 % contre td-feat. Le premier réseau sans caractéristiques à battre le réseau à principes. Adversaire du plateau à partir du 30/10.'],
     ['g3', '31/10–3/11/2026', 'up', 'g2 à 3-ply comme professeur, 30 tours d\'entraînement. 39 % des points de pénalité contre le professeur.'],
     ['g4', '4/11/2026', 'held', 'g3 à 3-ply comme professeur. 48,5 % des points de pénalité contre le professeur en 2000 parties : il a atteint son niveau. Il est devenu la base de l\'entraînement prolongé.'],
-    ['g4-jatko', '6/11/2026', 'up', 'L\'entraînement de g4 a été prolongé (« jatko ») sur 60 000 positions enregistrées avec 3000 passes d\'affinage. Il gagne 69 % des matchs en 7 contre g3 à 0-ply et 66 % à 2-ply. Réseau du plateau depuis le 6/11/2026.'],
+    ['g4-ft', '6/11/2026', 'up', 'L\'entraînement de g4 a été prolongé (en anglais fine-tuned, d\'où « ft ») sur 60 000 positions enregistrées avec 3000 passes d\'affinage. Il gagne 69 % des matchs en 7 contre g3 à 0-ply et 66 % à 2-ply. Réseau du plateau depuis le 6/11/2026.'],
   ],
 };
 
@@ -62,7 +62,7 @@ const SIDE = {
     ['g2 1-ply-opettajalla', '30.10.2026', 'not', 'Opettajana g1 1-plyllä. 48 % rangaistuspisteistä opettajaa vastaan, ero ei merkitsevä.'],
     ['g3 2-ply-opettajalla', '31.10.2026', 'not', 'Opettajana g2 2-plyllä. 48 % rangaistuspisteistä opettajaa vastaan, ero ei merkitsevä.'],
     ['g4-feat2', '5.11.2026', 'not', 'Kuten g4, mutta syötteenä periaatteet. 49,2 % rangaistuspisteistä g4:ää vastaan 10 000 pelissä, ero ei merkitsevä.'],
-    [`g5`, `7.11.2026`, `not`, `Opettajana g4-jatko 3-plyllä ja sama jatko-opetus omalla aineistolla. Suorassa ottelussa tasan opettajan kanssa (49,96 % rangaistuspisteistä), mutta g3:a vastaan heikompi: 41,9 % pisteistä, kun opettaja saa 39,7 %.`],
+    [`g5`, `7.11.2026`, `not`, `Opettajana g4-ft 3-plyllä ja sama jatko-opetus omalla aineistolla. Suorassa ottelussa tasan opettajan kanssa (49,96 % rangaistuspisteistä), mutta g3:a vastaan heikompi: 41,9 % pisteistä, kun opettaja saa 39,7 %.`],
     [`g5-h`, `7.11.2026`, `not`, `g5 jatko-opetettuna samalla aineistolla kuin opettaja. 49,6 % pisteistä opettajaa vastaan ja 41,4 % g3:a vastaan, joten aineisto ei selittänyt eroa. Opettaja on g5:tä parempi kaikkia kuutta muuta mitattua vastustajaa vastaan.`],
     ['Asemaluokkaverkot', '14.11.2026', 'not', 'Omat verkot kilpajuoksulle, avoimelle kontaktille ja pidolle. Yksikään yhdistelmä ei parantanut g3:a vastaan.'],
     [`g5 DailyGammonissa`, `16.–18.11.2026`, `not`, `Ihmisten DMP-peleissä g5:n virhearviot ennustivat voittajan hieman paremmin (79,7 % peleistä, laudan verkko 78,7 %, 2-ply). Kun verkkojen eri valinnat pelattiin loppuun, laudan verkon siirto oli parempi 51 suurimmassa erimielisyydessä ja g5:n 21:ssä. Keskikokoisissa erimielisyyksissä ne olivat tasoissa (27 ja 20 asemaa).`],
@@ -74,7 +74,7 @@ const SIDE = {
     ['g2 with a 1-ply teacher', '30 Oct 2026', 'not', 'g1 at 1-ply as the teacher. 48% of the penalty points against the teacher, not a significant difference.'],
     ['g3 with a 2-ply teacher', '31 Oct 2026', 'not', 'g2 at 2-ply as the teacher. 48% of the penalty points against the teacher, not a significant difference.'],
     ['g4-feat2', '5 Nov 2026', 'not', 'Like g4 but with the principles as input. 49.2% of the penalty points against g4 in 10,000 games, not a significant difference.'],
-    [`g5`, `7 Nov 2026`, `not`, `g4-jatko at 3-ply as the teacher and the same further training on its own data. A tie with the teacher in a direct match (49.96% of the penalty points) but weaker against g3: 41.9% of the points where the teacher gets 39.7%.`],
+    [`g5`, `7 Nov 2026`, `not`, `g4-ft at 3-ply as the teacher and the same further training on its own data. A tie with the teacher in a direct match (49.96% of the penalty points) but weaker against g3: 41.9% of the points where the teacher gets 39.7%.`],
     [`g5-h`, `7 Nov 2026`, `not`, `g5 trained further on the same data as the teacher. 49.6% of the points against the teacher and 41.4% against g3, so the data did not explain the gap. The teacher is better than g5 against all six other measured opponents.`],
     ['Position class networks', '14 Nov 2026', 'not', 'Separate networks for races, open contact and holding games. No combination improved against g3.'],
     [`g5 on DailyGammon`, `16–18 Nov 2026`, `not`, `In human DMP games g5's error estimates predicted the winner slightly better (79.7% of games, board network 78.7%, 2-ply). When the networks' different choices were played out, the board network's move was better in 51 of the biggest disagreements and g5's in 21. In medium-sized disagreements they were even (27 and 20 positions).`],
@@ -86,7 +86,7 @@ const SIDE = {
     ['g2 mit 1-ply-Lehrer', '30.10.2026', 'not', 'g1 mit 1-ply als Lehrer. 48 % der Strafpunkte gegen den Lehrer, kein signifikanter Unterschied.'],
     ['g3 mit 2-ply-Lehrer', '31.10.2026', 'not', 'g2 mit 2-ply als Lehrer. 48 % der Strafpunkte gegen den Lehrer, kein signifikanter Unterschied.'],
     ['g4-feat2', '5.11.2026', 'not', 'Wie g4, aber mit den Prinzipien als Eingabe. 49,2 % der Strafpunkte gegen g4 in 10.000 Spielen, kein signifikanter Unterschied.'],
-    [`g5`, `7.11.2026`, `not`, `g4-jatko mit 3-ply als Lehrer und dasselbe Weitertraining mit eigenen Daten. Im direkten Match gleichauf mit dem Lehrer (49,96 % der Strafpunkte), aber schwächer gegen g3: 41,9 % der Punkte, der Lehrer 39,7 %.`],
+    [`g5`, `7.11.2026`, `not`, `g4-ft mit 3-ply als Lehrer und dasselbe Weitertraining mit eigenen Daten. Im direkten Match gleichauf mit dem Lehrer (49,96 % der Strafpunkte), aber schwächer gegen g3: 41,9 % der Punkte, der Lehrer 39,7 %.`],
     [`g5-h`, `7.11.2026`, `not`, `g5 weitertrainiert mit denselben Daten wie der Lehrer. 49,6 % der Punkte gegen den Lehrer und 41,4 % gegen g3, die Daten erklärten den Abstand also nicht. Der Lehrer ist gegen alle sechs anderen gemessenen Gegner besser als g5.`],
     ['Stellungsklassen-Netze', '14.11.2026', 'not', 'Eigene Netze für Rennen, offenen Kontakt und Haltespiele. Keine Kombination war gegen g3 besser.'],
     [`g5 auf DailyGammon`, `16.–18.11.2026`, `not`, `In menschlichen DMP-Spielen sagten die Fehlerschätzungen von g5 den Sieger etwas besser voraus (79,7 % der Spiele, Netz des Bretts 78,7 %, 2-ply). Als die unterschiedlichen Wahlen der Netze ausgespielt wurden, war der Zug des Brett-Netzes in 51 der größten Meinungsverschiedenheiten besser und der von g5 in 21. Bei mittelgroßen waren sie gleichauf (27 und 20 Stellungen).`],
@@ -98,7 +98,7 @@ const SIDE = {
     ['g2 avec un professeur à 1-ply', '30/10/2026', 'not', 'g1 à 1-ply comme professeur. 48 % des points de pénalité contre le professeur, écart non significatif.'],
     ['g3 avec un professeur à 2-ply', '31/10/2026', 'not', 'g2 à 2-ply comme professeur. 48 % des points de pénalité contre le professeur, écart non significatif.'],
     ['g4-feat2', '5/11/2026', 'not', 'Comme g4, mais avec les principes en entrée. 49,2 % des points de pénalité contre g4 en 10 000 parties, écart non significatif.'],
-    [`g5`, `7/11/2026`, `not`, `g4-jatko à 3-ply comme professeur et le même entraînement prolongé sur ses propres données. À égalité avec le professeur en match direct (49,96 % des points de pénalité) mais plus faible contre g3 : 41,9 % des points quand le professeur en prend 39,7 %.`],
+    [`g5`, `7/11/2026`, `not`, `g4-ft à 3-ply comme professeur et le même entraînement prolongé sur ses propres données. À égalité avec le professeur en match direct (49,96 % des points de pénalité) mais plus faible contre g3 : 41,9 % des points quand le professeur en prend 39,7 %.`],
     [`g5-h`, `7/11/2026`, `not`, `g5 entraîné plus longtemps sur les mêmes données que le professeur. 49,6 % des points contre le professeur et 41,4 % contre g3 : les données n'expliquaient pas l'écart. Le professeur fait mieux que g5 contre les six autres adversaires mesurés.`],
     ['Réseaux par classe de position', '14/11/2026', 'not', 'Des réseaux séparés pour la course, le contact ouvert et le jeu de tenue. Aucune combinaison n\'a fait mieux contre g3.'],
     [`g5 sur DailyGammon`, `16–18/11/2026`, `not`, `Dans les parties DMP humaines, les estimations d'erreur de g5 prédisaient un peu mieux le vainqueur (79,7 % des parties, réseau du plateau 78,7 %, 2-ply). Quand les choix différents des réseaux ont été joués jusqu'au bout, le coup du réseau du plateau était meilleur dans 51 des plus grands désaccords et celui de g5 dans 21. Dans les désaccords moyens, ils étaient à égalité (27 et 20 positions).`],

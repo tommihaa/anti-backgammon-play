@@ -4,6 +4,27 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.8.0] - 2026-11-25
+
+### Added
+
+- All moves (0-ply) under a move's evaluation lists every legal move with its win chance, equity
+  and difference to the best move. The list is a 0-ply evaluation of its own, so its numbers are
+  not compared directly with the deeper analysis above it.
+- A roll map under a move's evaluation shows all 36 rolls as a grid. Each cell is the luck of that
+  roll for the mover, blue for lucky and brown for unlucky, and the roll that came is framed.
+  Hovering over a cell shows the roll's best move. The map is computed at 1-ply, and a button
+  computes it at 2-ply, which takes 15 to 35 seconds. The 1-ply map stays on screen meanwhile.
+- An External engine field under Settings > Playing. It is for engine developers: with the
+  address of an engine bridge on your own computer, that engine makes the bot's moves, doubles,
+  takes and answers to draw offers. An empty field keeps the board's own bot.
+
+### Changed
+
+- The bot's network is now called g4-ft (fine-tuned) instead of the Finnish g4-jatko.
+- With the Deco board the headings, point numbers and cube use the Poiret One typeface, as in the
+  Deco theme of the DG Android app.
+
 ## [0.7.0] - 2026-11-25
 
 ### Added

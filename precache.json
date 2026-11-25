@@ -15,6 +15,7 @@
  "src/aanet.mjs",
  "src/versio.mjs",
  "src/historia.mjs",
+ "src/protokolla.mjs",
  "src/botti-tyo.mjs",
  "verkot/jatko-raw-g4-p3000.json",
  "aanet/wood_dice.wav",
@@ -27,5 +28,7 @@
  "icons/icon-192.png",
  "icons/icon-512-maskable.png",
  "icons/icon-512.png",
- "icons/icon.svg"
+ "icons/icon.svg",
+ "fontit/OFL-PoiretOne.txt",
+ "fontit/PoiretOne-Regular.ttf"
 ]
