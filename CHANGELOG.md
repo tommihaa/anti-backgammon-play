@@ -4,6 +4,14 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.10.1] - 2026-11-25
+
+### Changed
+
+- New home screen icon in the Deco style: a raccoon on the doubling cube, the sibling of the
+  DG Android icon on teal felt. The raccoon is tough and stays on the board. The browser tab
+  shows the same icon.
+
 ## [0.10.0] - 2026-11-25
 
 ### Added
