@@ -4,6 +4,14 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.11.1] - 2026-11-26
+
+### Fixed
+
+- The import texts no longer speak of a .mat file. A DailyGammon export saves as a .txt file,
+  and the Evaluation panel hint, the Import match file field, its error message and Help now say
+  so. The field already accepted .txt files and pasted text.
+
 ## [0.11.0] - 2026-11-26
 
 ### Added
