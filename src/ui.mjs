@@ -15,7 +15,7 @@ import { gameHTML, cubeLabel, cubeEquityRows, luckMarkOf } from './vienti.mjs';
 import { buildAnalysisFile, parseAnalysisFile, FORMAT, EXT } from './analyysitiedosto.mjs';
 import { SOUNDS, playSound } from './aanet.mjs';
 import { VERSION } from './versio.mjs';
-import { NET_SHORT, NET_CODE, netHistory } from './historia.mjs';
+import { NET_SHORT, NET_OLD_SHORT, NET_CODE, netHistory } from './historia.mjs';
 import { parseMove, positionLine, isFinal, RULES } from './protokolla.mjs';
 import {
   STYLES, boardLook, panelLook, cubeLook, OUTLINE, NUMBER_INK, PIP_INK, CHECKER_PER_COLUMN, TRAY_PER_COLUMN,
@@ -85,7 +85,10 @@ let ply = PLIES.includes(savedPly) ? savedPly : DEFAULT_PLY;
 let myName = store.get('ab-nimi', '');
 const meName = () => (typeof myName === 'string' && myName.trim()) || T.static.you;
 const botLabel = (net = NET_FILE, p = ply) => `${NET_SHORT[net] ?? T.static.bot} ${p}-ply`;
-const namesOf = x => x?.names ?? [meName(), botLabel(x?.net ?? NET_FILE)];
+// Tallennetun nimen vanha verkon lyhyt nimi vaihtuu nykyiseen (NET_OLD_SHORT). Syvyys säilyy, koska
+// se on se, jolla peli pelattiin.
+const renamed = n => (typeof n === 'string' ? n.replace(/^(\S+)(?= \d+-ply$)/, m => NET_OLD_SHORT[m] ?? m) : n);
+const namesOf = x => (x?.names ? x.names.map(renamed) : [meName(), botLabel(x?.net ?? NET_FILE)]);
 // Pelin äänet (src/aanet.mjs): kytkin oletuksena pois. off luettelee pois jätetyt äänet.
 const snd = { on: false, off: [] };
 { const saved = store.get('ab-aanet', {}); snd.on = saved?.on === true; snd.off = Array.isArray(saved?.off) ? saved.off : []; }
@@ -436,7 +439,13 @@ function renderGamePanel() {
         navOrder.push(e.d);
         b.dataset.d = String(e.d);
         if (sel.d === e.d) { b.classList.add('sel'); selected = b; }
-        b.addEventListener('click', () => select(e.d));
+        if (multiRec === x && multi.has(e.d)) b.classList.add('multi');
+        // Ctrl- tai Cmd-klikkaus kokoaa siirtoja 3-ply-analyysiin, tavallinen klikkaus valitsee yhden.
+        b.addEventListener('click', ev => {
+          if (ev.ctrlKey || ev.metaKey) { toggleMulti(e.d); return; }
+          multi.clear();
+          select(e.d);
+        });
       }
       lines.appendChild(b);
     }
@@ -504,6 +513,8 @@ function renderEval() {
   box.textContent = '';
   const picked = sel.d !== null ? selRec().decisions?.[sel.d] : null;
   if (picked) markLine(box, picked);
+  deepProgress(box);
+  multiSection(box);
   if (review && !opts.importAnalysis) { para(box, T.evalReview); return; }
   if (review?.stale || review?.paused) {
     para(box, review.stale ? T.analysisStale(review.net.replace(/^.*\//, '')) : T.analysisPaused);
@@ -553,34 +564,163 @@ function renderEval() {
   para(box, mine
     ? (lv ? T.noteBad(d.text, T.levels[lv[2]], fmt(loss)) : loss < SAME ? T.noteSame(d.text) : T.noteGood(d.text, fmt(loss)))
     : T.evalTitle(d.n, who, d.text));
-  const rows = d.r.top.map(t => ({ m: t.m, x: t.x, loss: t.loss, played: false }));
-  if (!d.open) {
-    let k = rows.findIndex(r => r.m === played);
-    if (k < 0) k = rows.findIndex(r => Math.abs(r.x - d.r.played) < 1e-12);
-    if (k >= 0) rows[k].played = true;
-    else rows.push({ m: played, x: d.r.played, loss, played: true });
-  }
-  const table = document.createElement('table');
-  table.className = 'eval';
-  const head = table.insertRow();
-  T.evalHead.forEach((c, i) => { const th = document.createElement('th'); th.textContent = c; if (i > 0) th.className = 'num'; head.appendChild(th); });
-  for (const r of rows) {
-    const tr = table.insertRow();
-    const best = r.loss < SAME;
-    tr.className = (best ? 'best' : 'worse') + (r.played ? ' played' : '');
-    const cells = [(r.played && best ? '✓ ' : '') + r.m];
-    cells.push(T.pct(r.x), signed(2 * r.x - 1));
-    cells.push(best ? '' : '−' + fmt(r.loss));
-    cells.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; td.className = i === 0 ? 'mv' : 'num'; });
-  }
-  box.appendChild(table);
+  box.appendChild(evalTable(d, d.r, played));
   luck();
   para(box, T.evalHelp).className = 'caption';
+  deepSection(box, d, played);
   allMoves(box, d, played);
   rollMap(box, d);
   // Aseman linkki analysoidusta siirrosta pelattuine siirtoineen. Nappi näkyy, kun siirto on valittu
   // siirtolistasta, myös kesken pelin (Tommi 24.11.2026).
   if (picked) linkButton(box, () => decisionLink(d));
+}
+
+// Analyysin taulukko: verkon parhaat ja pelattu siirto, joka lisätään loppuun, jos se ei ole parhaiden
+// joukossa. r on analyysin tulos (pelin syvyydellä d.r, 3-plyllä d.r3).
+function evalTable(d, r, played) {
+  const loss = Math.max(0, 2 * (r.best - r.played));
+  const rows = r.top.map(t => ({ m: t.m, x: t.x, loss: t.loss, played: false }));
+  if (!d.open) {
+    let k = rows.findIndex(row => row.m === played);
+    if (k < 0) k = rows.findIndex(row => Math.abs(row.x - r.played) < 1e-12);
+    if (k >= 0) rows[k].played = true;
+    else rows.push({ m: played, x: r.played, loss, played: true });
+  }
+  const table = document.createElement('table');
+  table.className = 'eval';
+  const head = table.insertRow();
+  T.evalHead.forEach((c, i) => { const th = document.createElement('th'); th.textContent = c; if (i > 0) th.className = 'num'; head.appendChild(th); });
+  for (const row of rows) {
+    const tr = table.insertRow();
+    const best = row.loss < SAME;
+    tr.className = (best ? 'best' : 'worse') + (row.played ? ' played' : '');
+    const cells = [(row.played && best ? '✓ ' : '') + row.m];
+    cells.push(T.pct(row.x), signed(2 * row.x - 1));
+    cells.push(best ? '' : '−' + fmt(row.loss));
+    cells.forEach((c, i) => { const td = tr.insertCell(); td.textContent = c; td.className = i === 0 ? 'mv' : 'num'; });
+  }
+  return table;
+}
+
+// 3-ply-analyysi napista (Tommin tilaus 26.11.2026, Kaanon mittaukset/07 › Syvemmän opettajan hinta).
+// Yksi siirto vie PC:llä noin 20 s ja puhelimella noin minuutin, joten 3-ply ei ole pelin syvyys vaan
+// erillinen laskenta omassa säikeessään. Tulos on päätöksen kentässä r3 omana taulukkonaan. Se ei
+// muuta virheiden summaa, PR:ää eikä siirtolistan värejä, jotka ovat pelin syvyydellä. Ctrl- tai
+// Cmd-klikkaus siirtolistassa kokoaa useamman siirron, ja pelin yhteenvedon nappi jonottaa virheet,
+// koska kosketusnäytöllä ei ole Ctrl-näppäintä. Jono lasketaan siirto kerrallaan.
+const DEEP = 3;
+const deepJobs = [];
+const deepQueued = new WeakSet();
+let deepWorker, deepBusy = null, deepDone = 0, deepTotal = 0;
+// Ctrl- tai Cmd-klikkauksella valitut päätökset (indeksit) ja tietue, johon ne kuuluvat.
+const multi = new Set();
+let multiRec = null;
+const deepable = d => d?.k === 'move' && !!d.s && !!d.dice && !!d.after && !d.forced && !d.r3;
+function queueDeep(x, list) {
+  for (const d of list) {
+    if (!deepable(d) || deepQueued.has(d)) continue;
+    deepQueued.add(d);
+    deepJobs.push({ d, x, rv: review });
+    deepTotal++;
+  }
+  runDeep();
+  render();
+}
+async function runDeep() {
+  if (deepBusy) return;
+  while (deepJobs.length) {
+    const { d, x, rv } = deepJobs.shift();
+    deepBusy = d;
+    render();
+    const base = [Int8Array.from(d.s[0]), Int8Array.from(d.s[1])];
+    const after = [Int8Array.from(d.after[0]), Int8Array.from(d.after[1])];
+    if (deepWorker === undefined) deepWorker = spawn();
+    const r = deepWorker
+      ? await ask(deepWorker, { kind: 'analyse', s: base, p: d.p, d1: d.dice[0], d2: d.dice[1], played: after, ply: DEEP })
+      : rankPlays(net, base, d.p, d.dice[0], d.dice[1], after, DEEP);
+    deepQueued.delete(d);
+    deepDone++;
+    if (r) {
+      d.r3 = { best: r.best, played: d.open ? r.best : r.played, top: topMoves(base, d.p, d.dice, r.top, r.best) };
+      saveDeep(x, d, rv);
+    }
+  }
+  deepBusy = null;
+  deepDone = deepTotal = 0;
+  render();
+}
+// Tulos tallentuu kuten muukin analyysi: tuodun ottelun tulos tiedoston mukana, oma peli pelattujen listaan.
+function saveDeep(x, d, rv) {
+  if (x.imported) {
+    if (rv && rv === review) { rv.done.set(d.key, { ...rv.done.get(d.key), r3: d.r3 }); saveImported(); }
+  } else if (x === game) { if (game.over) saveFinished(); }
+  else store.set('ab-pelatut', played);
+}
+function cancelDeep() {
+  for (const j of deepJobs) { deepQueued.delete(j.d); deepTotal--; }
+  deepJobs.length = 0;
+  render();
+}
+// Jonon tila Arvio-paneelin alkuun, kun 3-ply-laskenta on kesken.
+function deepProgress(box) {
+  if (!deepBusy) return;
+  para(box, T.deepProgress(deepDone, deepTotal)).className = 'caption';
+  if (deepJobs.length) {
+    const b = document.createElement('button');
+    b.textContent = T.deepCancel;
+    b.addEventListener('click', cancelDeep);
+    box.appendChild(b);
+  }
+}
+// Monivalinta: Ctrl- tai Cmd-klikkaus lisää tai poistaa siirron. Ensimmäinen lisäys ottaa mukaan
+// myös jo valitun rivin.
+function toggleMulti(i) {
+  const x = selRec();
+  if (multiRec !== x) { multi.clear(); multiRec = x; }
+  if (!multi.size && sel.d !== null && sel.d !== i) multi.add(sel.d);
+  if (multi.has(i)) multi.delete(i); else multi.add(i);
+  render();
+}
+function multiSection(box) {
+  const x = selRec();
+  if (multiRec !== x) { multi.clear(); multiRec = x; }
+  if (!multi.size) return;
+  const list = [...multi].map(i => x.decisions?.[i]).filter(deepable);
+  para(box, T.deepPicked(multi.size));
+  if (list.length) {
+    const go = document.createElement('button');
+    go.textContent = T.deepPickedGo(list.length);
+    go.addEventListener('click', () => { queueDeep(x, list); multi.clear(); render(); });
+    box.appendChild(go);
+  }
+  const clear = document.createElement('button');
+  clear.textContent = T.deepPickedClear;
+  clear.addEventListener('click', () => { multi.clear(); render(); });
+  box.appendChild(clear);
+}
+function deepSection(box, d, played) {
+  if (d.r3) {
+    para(box, T.deepTitle).className = 'eval-sub';
+    box.appendChild(evalTable(d, d.r3, played));
+    para(box, T.deepHelp).className = 'caption';
+    return;
+  }
+  if (deepQueued.has(d)) { para(box, deepBusy === d ? T.deepRunning : T.deepQueued).className = 'caption'; return; }
+  if (!deepable(d)) return;
+  const b = document.createElement('button');
+  b.textContent = T.deepOne;
+  b.addEventListener('click', () => queueDeep(selRec(), [d]));
+  box.appendChild(b);
+}
+// Pelin yhteenvedon nappi: siirtäjän 0 virheet (vähintään epätarkka) 3-ply-jonoon.
+function deepErrorsButton(box, x) {
+  const list = (x.decisions ?? []).filter(d => d.p === 0 && d.r && !d.open && deepable(d) && !deepQueued.has(d)
+    && level(Math.max(0, 2 * (d.r.best - d.r.played))));
+  if (!list.length) return;
+  const b = document.createElement('button');
+  b.textContent = T.deepErrors(list.length);
+  b.addEventListener('click', () => queueDeep(x, list));
+  box.appendChild(b);
 }
 
 // Kaikki lailliset siirrot 0-plyllä (Tommin tilaus 25.11.2026: kolme parasta ei riitä). Lista on
@@ -1748,6 +1888,7 @@ function renderSummary(box, game) {
     ol.appendChild(li);
   }
   box.appendChild(ol);
+  deepErrorsButton(box, game);
 }
 
 // ---------- piirto ----------

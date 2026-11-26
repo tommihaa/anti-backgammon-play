@@ -8,6 +8,10 @@
 
 // Laudan verkon lyhyt nimi botin nimeen. Avain on verkon tiedosto.
 export const NET_SHORT = { 'verkot/jatko-raw-g4-p3000.json': 'g4-ft' };
+// Saman verkon aiemmat lyhyet nimet. Peli tallentaa botin nimen alkaessaan, joten ennen nimen vaihtoa
+// pelatussa pelissä on vanha nimi (Tommin havainto 26.11.2026: g4-jatko ja g4-ft näyttivät eri
+// verkoilta). Vanha nimi näytetään nykyisellä. Lista vain kasvaa.
+export const NET_OLD_SHORT = { 'g4-jatko': 'g4-ft' };
 // Verkon kirjain aseman linkissä (src/tuonti.mjs). Lista vain kasvaa: vanhan linkin kirjain ei saa
 // vaihtaa merkitystä, kun laudan verkko vaihtuu.
 export const NET_CODE = { 'verkot/jatko-raw-g4-p3000.json': 'a' };

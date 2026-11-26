@@ -4,6 +4,22 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.11.0] - 2026-11-26
+
+### Added
+
+- Analyse at 3-ply below a move's evaluation recomputes the move at 3-ply, which looks one roll
+  further than 2-ply. The result is its own table and does not change the error total, the PR
+  or the move list colours. One move takes about 20 seconds on a computer and about a minute on
+  a phone, and it runs in the background while you browse.
+- Ctrl-click or Cmd-click in the Game panel's list selects several moves for a 3-ply analysis.
+  The game summary has a button that queues all your errors at once, also on a touch screen.
+
+### Fixed
+
+- A game played before 25 November showed the bot as g4-jatko. It is the same network as g4-ft
+  and is now shown with that name.
+
 ## [0.10.1] - 2026-11-25
 
 ### Changed
