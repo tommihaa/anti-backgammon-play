@@ -4,6 +4,15 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.12.1] - 2026-11-28
+
+### Changed
+
+- The Rules help now explains light and dark mode: they follow the device or browser setting
+  as in DG Android, and the board has no switch of its own for them. In dark mode the panels
+  and background take the colours of the board. In light mode they are light and the Deco
+  board turns light too.
+
 ## [0.12.0] - 2026-11-28
 
 ### Added
