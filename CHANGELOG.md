@@ -4,6 +4,15 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.13.0] - 2026-11-28
+
+### Added
+
+- A right click on a checker moves it by the second unused die, so you no longer have to swap
+  the dice first. If the second die has no legal move for that checker, it moves by the first
+  one as with a left click. With a checker on the bar, the bar checkers come in first as before.
+  A long press on a touch screen is unchanged.
+
 ## [0.12.1] - 2026-11-28
 
 ### Changed

@@ -1440,15 +1440,18 @@ function remainingDice() {
 
 // Nappulan klikkaus siirtää sen ensimmäisen käyttämättömän nopan verran, tai seuraavan, jos
 // ensimmäisellä ei jää laillista siirtoa (DG Androidin CompositionSession.step, Tommin valinta
-// 1.11.2026).
-function clickSpot(spot) {
+// 1.11.2026). Hiiren oikea painike (second) kokeilee nopat käänteisessä järjestyksessä, joten se
+// tekee saman kuin järjestyksen vaihto ja klikkaus (Tommin valinta 28.11.2026, DailyGammonin
+// ketju 64419). Tuplilla ja yhdellä jäljellä olevalla nopalla järjestystä ei ole.
+const diceToTry = second => { const ds = [...new Set(remainingDice())]; return second ? ds.reverse() : ds; };
+function clickSpot(spot, second = false) {
   if (edit || dragEnded || viewing() || game.over || game.turn !== 0 || game.phase !== 'move') return;
   const ns = nextSteps();
-  for (const d of new Set(remainingDice())) {
+  for (const d of diceToTry(second)) {
     const st = ns.find(x => x.m[0] === spot && x.d === d);
     if (st) { doMove(st.m[0], st.m[1], d); return; }
   }
-  const seq = viaBar(spot);
+  const seq = viaBar(spot, second);
   if (seq) { for (const { m, d } of seq) doMove(m[0], m[1], d); return; }
   if (spot !== BAR) sound('miss');
 }
@@ -1456,12 +1459,13 @@ function clickSpot(spot) {
 // Kun muurilla on nappula, laudan nappulan klikkaus tuo muurin nappulat ensin sisään ja siirtää
 // sitten klikatun nappulan, kuten XG Androidissa (Tommin havainto 1.11.2026: muurilla 51, ja
 // klikkaus 11-pisteeseen pelaa 25/20 11/10). Klikattu nappula saa ensimmäisen käyttämättömän
-// nopan, jolla sellainen siirto on laillinen. Sisääntulot saavat muut nopat.
-function viaBar(spot) {
+// nopan, jolla sellainen siirto on laillinen. Sisääntulot saavat muut nopat. Oikealla
+// painikkeella klikattu nappula saa ensisijaisesti toisen nopan.
+function viaBar(spot, second = false) {
   if (spot === BAR || game.s[0][BAR] === 0 || game.s[0][spot] === 0) return null;
   const k = game.partial.length;
   const plays = candidates();
-  for (const d of new Set(remainingDice())) {
+  for (const d of diceToTry(second)) {
     for (const p of plays) {
       const rest = p.moves.slice(k);
       const j = rest.findIndex((m, i) => m[0] === spot && p.dice[k + i] === d);
@@ -2730,7 +2734,19 @@ function editClick(ev, other) {
   render();
 }
 svg.addEventListener('click', ev => { if (edit) editClick(ev, false); });
-svg.addEventListener('contextmenu', ev => { if (!edit) return; ev.preventDefault(); editClick(ev, true); });
+// Pelivuorolla hiiren oikea painike nappulaan pelaa sen toisella käyttämättömällä nopalla.
+// Selaimen valikko estetään vain, kun painallus osuu laudan pisteeseen tai muuriin. Kosketuksen
+// pitkä painallus tuottaa myös contextmenun, joten se jätetään selaimelle.
+let pointerKind = 'mouse';
+svg.addEventListener('pointerdown', ev => { pointerKind = ev.pointerType || 'mouse'; }, true);
+svg.addEventListener('contextmenu', ev => {
+  if (edit) { ev.preventDefault(); editClick(ev, true); return; }
+  if (pointerKind !== 'mouse' || viewing() || game.over || game.turn !== 0 || game.phase !== 'move') return;
+  const hit = ev.target.closest?.('[data-point]');
+  if (!hit) return;
+  ev.preventDefault();
+  clickSpot(Number(hit.dataset.point), true);
+});
 $('editStart').addEventListener('click', () => startEdit());
 // Muokkaa asemaa avaa laudalla näkyvän aseman luontiin (Tommin pyyntö 25.11.2026). Kesken
 // olevaa luontia ei korvata.
