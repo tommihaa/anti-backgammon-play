@@ -64,7 +64,9 @@ const prefs = {
 // valinta 14.11.2026), koska 2-ply-analyysi vie koko ottelusta minuutteja. Botin siirtojen
 // analyysi kesken pelin on oma kytkimensä (Tommin tilaus 24.11.2026). Automaattiheitto heittää
 // vain vuoroilla, joilla et voi tuplata (Tommin valinta 25.11.2026), jotta tuplaus säilyy.
-export const PLAY_TOGGLES = ['analysis', 'botAnalysis', 'importAnalysis', 'forced', 'arrows', 'botArrows', 'press', 'diceSubmit', 'diceSwap', 'diceRoll', 'autoRoll', 'nextOnDice'];
+// Suurempi noppa ensin asettaa vuoron alussa suuremman nopan jonon ensimmäiseksi (late hitin
+// palaute DailyGammonissa 28.11.2026, oletus päällä Tommin valinnalla samana päivänä).
+export const PLAY_TOGGLES = ['analysis', 'botAnalysis', 'importAnalysis', 'forced', 'arrows', 'botArrows', 'press', 'diceSubmit', 'diceSwap', 'diceHigh', 'diceRoll', 'autoRoll', 'nextOnDice'];
 // Kytkimet ovat oletuksena päällä 3.11.2026 alkaen (Tommin päätös debuggausta varten, Kaanon §4).
 // Automaattiheitto on poikkeus (Tommi 25.11.2026): se vie tasapelitarjouksen hetken ennen heittoa.
 const OFF_BY_DEFAULT = ['autoRoll'];
@@ -1340,7 +1342,7 @@ function beginHumanMove() {
   game.forcedN = 0;
   game.diceOwner = 0;
   const [d1, d2] = game.dice;
-  game.order = d1 === d2 ? [d1, d1, d1, d1] : [d1, d2];
+  game.order = d1 === d2 ? [d1, d1, d1, d1] : opts.diceHigh ? [Math.max(d1, d2), Math.min(d1, d2)] : [d1, d2];
   game.phase = 'move';
   if (game.plays.every(p => p.moves.length === 0)) {
     game.phase = 'pass';
@@ -3162,6 +3164,8 @@ function fillLook() {
     input.addEventListener('change', () => {
       opts[k] = input.checked; store.set('ab-pelaaminen', opts);
       if (k === 'importAnalysis' && opts[k]) resumeAnalysis();
+      // Kesken olevan vuoron nopat järjestetään heti, jos kumpaakaan ei ole vielä käytetty.
+      if (k === 'diceHigh' && opts[k] && swappable()) game.order.sort((a, b) => b - a);
       render();
     });
     const span = document.createElement('span');

@@ -82,7 +82,7 @@ const fi = {
   toggles: {
     analysis: 'Tutor-tila: näytä arvio jokaisen siirtoni jälkeen', botAnalysis: 'Analysoi botin siirrot kesken pelin', importAnalysis: 'Analysoi tuotu ottelu', forced: 'Pelaa pakkosiirrot puolestani', arrows: 'Näytä nuolet omasta siirrosta',
     botArrows: 'Näytä nuolet botin siirrosta', press: 'Näytä painettu piste',
-    diceSubmit: 'Vahvista siirto noppia klikkaamalla', diceSwap: 'Vaihda noppien järjestys klikkaamalla',
+    diceSubmit: 'Vahvista siirto noppia klikkaamalla', diceSwap: 'Vaihda noppien järjestys klikkaamalla', diceHigh: 'Suurempi noppa ensin',
     diceRoll: 'Heitä klikkaamalla botin noppia', autoRoll: 'Heitä automaattisesti, kun en voi tuplata', nextOnDice: 'Seuraava peli noppien paikalle',
   },
   newMatch: 'Uusi ottelu', nextGame: 'Seuraava peli',
@@ -288,7 +288,7 @@ const en = {
   toggles: {
     analysis: 'Tutor mode: show the evaluation after each of my moves', botAnalysis: "Analyse the bot's moves during the game", importAnalysis: 'Analyse imported matches', forced: 'Play forced checkers for me', arrows: 'Show arrows for my move',
     botArrows: "Show arrows for the bot's move", press: "Show which point I'm pressing",
-    diceSubmit: 'Submit the move by tapping the dice', diceSwap: 'Swap the dice by tapping them',
+    diceSubmit: 'Submit the move by tapping the dice', diceSwap: 'Swap the dice by tapping them', diceHigh: 'Higher die first',
     diceRoll: "Roll by tapping the bot's dice", autoRoll: "Roll automatically when I can't double", nextOnDice: 'Next game where the dice were',
   },
   newMatch: 'New match', nextGame: 'Next game',
@@ -499,7 +499,7 @@ const de = {
   toggles: {
     analysis: 'Tutor-Modus: Bewertung nach jedem meiner Züge zeigen', botAnalysis: 'Züge des Bots während des Spiels analysieren', importAnalysis: 'Importierte Matches analysieren', forced: 'Erzwungene Züge für mich spielen', arrows: 'Pfeile für meinen Zug zeigen',
     botArrows: 'Pfeile für den Zug des Bots zeigen', press: 'Gedrückten Punkt zeigen',
-    diceSubmit: 'Zug durch Tippen auf die Würfel bestätigen', diceSwap: 'Würfel durch Tippen tauschen',
+    diceSubmit: 'Zug durch Tippen auf die Würfel bestätigen', diceSwap: 'Würfel durch Tippen tauschen', diceHigh: 'Höherer Würfel zuerst',
     diceRoll: 'Durch Tippen auf die Würfel des Bots würfeln', autoRoll: 'Automatisch würfeln, wenn ich nicht verdoppeln kann', nextOnDice: 'Nächstes Spiel an der Stelle der Würfel',
   },
   newMatch: 'Neues Match', nextGame: 'Nächstes Spiel',
@@ -705,7 +705,7 @@ const fr = {
   toggles: {
     analysis: `Mode tuteur${NB}: afficher l'évaluation après chacun de mes coups`, botAnalysis: 'Analyser les coups du bot pendant la partie', importAnalysis: 'Analyser les matchs importés', forced: 'Jouer les déplacements forcés pour moi', arrows: 'Afficher les flèches de mon coup',
     botArrows: 'Afficher les flèches du coup du bot', press: 'Afficher la case touchée',
-    diceSubmit: 'Confirmer le coup en touchant les dés', diceSwap: 'Inverser les dés en les touchant',
+    diceSubmit: 'Confirmer le coup en touchant les dés', diceSwap: 'Inverser les dés en les touchant', diceHigh: "Dé le plus fort d'abord",
     diceRoll: 'Lancer en touchant les dés du bot', autoRoll: 'Lancer automatiquement quand je ne peux pas doubler', nextOnDice: 'Partie suivante à la place des dés',
   },
   newMatch: 'Nouveau match', nextGame: 'Partie suivante',

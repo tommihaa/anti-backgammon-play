@@ -4,6 +4,15 @@ Changes to the Anti-Backgammon board at https://tommihaa.github.io/anti-backgamm
 The version is shown next to the title. A new feature raises the middle number and a fix the
 last one.
 
+## [0.12.0] - 2026-11-28
+
+### Added
+
+- Higher die first, under Playing in Settings, puts the higher die first in the queue at the
+  start of your turn, so a click on a checker moves it by the higher die. A click on the dice or
+  S still swaps them. The switch is on by default. Before this the dice were queued in the
+  order they were rolled.
+
 ## [0.11.1] - 2026-11-26
 
 ### Fixed
